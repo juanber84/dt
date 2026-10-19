@@ -10,6 +10,7 @@ import { iconFor } from '../../lib/icons.js';
 import { fmtClock, fmtDec, fmtDuration, fmtInt } from '../../lib/format.js';
 import { CATEGORY_COLOR, STAGE_COLOR, STAGE_LABEL } from '../charts/colors.js';
 import { sourceName } from '../../data/sources.js';
+import { useConfirm } from '../../composables/useConfirm.js';
 
 const props = defineProps({
   event: { type: Object, default: null },
@@ -39,8 +40,21 @@ const title = computed(() =>
 const icon = computed(() =>
   clinical.value && doc.value?.type ? TYPE_ICON[doc.value.type] : props.event?.icon,
 );
-function close() {
-  if (dirty.value && !window.confirm('Tienes cambios sin guardar. ¿Cerrar igualmente?')) return;
+const { ask } = useConfirm();
+let asking = false;
+async function close() {
+  if (dirty.value) {
+    // El Escape que cancela la pregunta también le llega al lateral: no se pregunta dos veces
+    if (asking) return;
+    asking = true;
+    const ok = await ask({
+      title: 'Cambios sin guardar',
+      message: 'Si cierras ahora, se pierden los cambios de la revisión.',
+      confirmLabel: 'Cerrar sin guardar',
+      danger: true,
+    }).finally(() => setTimeout(() => (asking = false)));
+    if (!ok) return;
+  }
   dirty.value = false;
   emit('close');
 }

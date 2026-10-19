@@ -8,6 +8,7 @@ import IntervalsConnectModal from '../../components/admin/IntervalsConnectModal.
 import SourceBadge from '../../components/ui/SourceBadge.vue';
 import StatusPill from '../../components/ui/StatusPill.vue';
 import { useAsync } from '../../composables/useAsync.js';
+import { useConfirm } from '../../composables/useConfirm.js';
 import { useToast } from '../../composables/useToast.js';
 import { SOURCES, DATA_TYPES } from '../../data/sources.js';
 import {
@@ -30,6 +31,7 @@ const reload = ref(0);
 const { data: result, error, loading } = useAsync(reload, fetchConnections);
 const connections = computed(() => result.value?.items ?? null);
 const toast = useToast();
+const { ask } = useConfirm();
 const xiaomiOpen = ref(false);
 const intervalsOpen = ref(false);
 const syncing = ref(null);
@@ -121,9 +123,14 @@ async function startTelegramLink() {
   }, 'Vincular Telegram');
 }
 
-function unlinkTelegramAccount() {
-  if (!confirm('¿Desvincular Telegram? Lo que mandes al bot dejará de guardarse a tu nombre.'))
-    return;
+async function unlinkTelegramAccount() {
+  const ok = await ask({
+    title: 'Desvincular Telegram',
+    message: 'Lo que mandes al bot dejará de guardarse a tu nombre.',
+    confirmLabel: 'Desvincular',
+    danger: true,
+  });
+  if (!ok) return;
   run(async () => {
     await unlinkTelegram();
     reload.value++;
@@ -186,9 +193,14 @@ function connect(row) {
   run(() => connectProvider(row.id), `Conectar ${row.name}`);
 }
 
-function disconnect(row) {
-  const ask = `¿Desconectar ${row.name}? Para volver a conectarlo tendrás que iniciar sesión otra vez.`;
-  if (!confirm(ask)) return;
+async function disconnect(row) {
+  const ok = await ask({
+    title: `Desconectar ${row.name}`,
+    message: 'Para volver a conectarlo tendrás que iniciar sesión otra vez.',
+    confirmLabel: 'Desconectar',
+    danger: true,
+  });
+  if (!ok) return;
   run(async () => {
     await disconnectProvider(row.id);
     reload.value++;

@@ -137,6 +137,18 @@ textarea {
   border-color: var(--text-2);
 }
 
+/* Acciones que no se deshacen (borrar, desconectar) */
+.btn-danger {
+  background: var(--critical);
+  color: #fff;
+  border-color: var(--critical);
+}
+
+.btn-danger:hover {
+  background: var(--critical-text);
+  border-color: var(--critical-text);
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;

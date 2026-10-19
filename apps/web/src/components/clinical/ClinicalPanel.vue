@@ -13,6 +13,7 @@ import {
 } from '@lucide/vue';
 import StatusPill from '../ui/StatusPill.vue';
 import LineChart from '../charts/LineChart.vue';
+import { useConfirm } from '../../composables/useConfirm.js';
 import { useToast } from '../../composables/useToast.js';
 import {
   DOCUMENT_ISSUE_LABEL,
@@ -58,6 +59,7 @@ const emit = defineEmits(['loaded', 'changed', 'deleted', 'dirty']);
 
 const POLL_MS = 2500;
 const toast = useToast();
+const { ask } = useConfirm();
 
 const doc = ref(null);
 const draft = ref(null);
@@ -211,13 +213,18 @@ const cancelEdit = () => {
   editing.value = false;
 };
 
-const remove = () =>
-  run('delete', async () => {
-    const message =
+async function remove() {
+  const ok = await ask({
+    title: 'Borrar informe',
+    message:
       doc.value.status === 'confirmed'
-        ? 'Se borrará el informe y lo que añadió a tu timeline. ¿Seguro?'
-        : '¿Borrar este informe?';
-    if (!window.confirm(message)) return;
+        ? 'Se borrará el informe y los datos que añadió a tu timeline.'
+        : 'Se borrará el informe.',
+    confirmLabel: 'Borrar',
+    danger: true,
+  });
+  if (!ok) return;
+  await run('delete', async () => {
     await deleteDocument(props.documentId);
     draft.value = null;
     doc.value = null;
@@ -225,6 +232,7 @@ const remove = () =>
     emit('deleted');
     toast.show('Informe borrado');
   });
+}
 
 const issueText = (item) =>
   item.issues

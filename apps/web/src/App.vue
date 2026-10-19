@@ -18,6 +18,7 @@ import {
   FileHeart,
 } from '@lucide/vue';
 import Toast from './components/ui/Toast.vue';
+import ConfirmDialog from './components/ui/ConfirmDialog.vue';
 import { useTheme } from './composables/useTheme.js';
 import { useAuth, signOut } from './composables/useAuth.js';
 import { fetchSystemStatus } from './services/twin.js';
@@ -163,6 +164,7 @@ const admin = [
     </nav>
   </div>
   <Toast />
+  <ConfirmDialog />
 </template>
 
 <style scoped>

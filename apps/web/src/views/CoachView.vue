@@ -16,6 +16,7 @@ import {
 } from '@lucide/vue';
 import CoachChart from '../components/coach/CoachChart.vue';
 import Markdown from '../components/coach/Markdown.vue';
+import { useConfirm } from '../composables/useConfirm.js';
 import { useToast } from '../composables/useToast.js';
 import {
   addChart,
@@ -40,6 +41,7 @@ const SUGGESTIONS = [
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const { ask } = useConfirm();
 
 const conversations = ref([]);
 const unavailable = ref(false);
@@ -194,7 +196,14 @@ function bump(id) {
 
 async function remove() {
   const conversation = current.value;
-  if (!conversation || !confirm(`¿Borrar «${conversation.title}»?`)) return;
+  if (!conversation) return;
+  const ok = await ask({
+    title: 'Borrar conversación',
+    message: `Se borrará «${conversation.title}» con todos sus mensajes.`,
+    confirmLabel: 'Borrar',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await deleteConversation(conversation.id);
     conversations.value = conversations.value.filter((c) => c.id !== conversation.id);
