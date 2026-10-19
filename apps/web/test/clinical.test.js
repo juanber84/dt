@@ -27,10 +27,10 @@ import {
   clinicalEvent,
   documentDay,
   documentEvent,
+  emptySummary,
   mergeDay,
   withDocuments,
 } from '../src/services/timeline.js';
-import { dayDetail } from '../src/data/mock.js';
 
 const item = (over = {}) => ({
   id: 'i1',
@@ -208,7 +208,7 @@ describe('informes en el timeline del día', () => {
   });
 
   it('entra en el día como un evento más', () => {
-    const day = dayDetail('2026-10-07');
+    const day = emptySummary('2026-10-07');
     const merged = mergeDay(day, {
       episodes: byDay([lab]),
       daily: new Map(),

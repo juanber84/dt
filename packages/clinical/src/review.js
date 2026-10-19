@@ -64,11 +64,11 @@ export function clinicalMetric(code) {
  * y el valor ya en la unidad de esa métrica.
  * @param {import('zod').infer<typeof import('./schema.js').modelOutputSchema>} output
  * @param {string} text  El texto que se le mandó al modelo (ya sin datos personales).
- * @param {{ aliases?: Map<string, string>, fallbackDate?: string | null }} [options]
+ * @param {{ aliases?: Map<string, string>, fallbackDate?: string | null, ocr?: boolean }} [options]
  *   aliases: nombre normalizado → métrica, confirmados. fallbackDate: el día desde el que se subió,
  *   para cuando el informe no trae fecha (se queda marcado 'date-unverified' para revisarlo).
  */
-export function buildExtraction(output, text, { aliases, fallbackDate = null } = {}) {
+export function buildExtraction(output, text, { aliases, fallbackDate = null, ocr = false } = {}) {
   const type = output.type;
   const start = minute(output.start);
   const end = minute(output.end);
@@ -118,6 +118,7 @@ export function buildExtraction(output, text, { aliases, fallbackDate = null } =
       restFrom: output.report.rest_from,
       restTo: output.report.rest_to,
     },
+    ocr,
     issues: [],
   };
   return refreshExtraction(extraction, text, { aliases });
@@ -131,6 +132,7 @@ export function buildExtraction(output, text, { aliases, fallbackDate = null } =
 export function refreshExtraction(extraction, text, { aliases } = {}) {
   const items = extraction.items.map((item) => refreshItem(extraction.type, item, text, aliases));
   const issues = [];
+  if (extraction.ocr) issues.push('ocr');
   if (!extraction.date) issues.push('date-missing');
   else if (!dateInText(extraction.date, text)) issues.push('date-unverified');
   const hourly = (extraction.hourly ?? []).map((row) => ({

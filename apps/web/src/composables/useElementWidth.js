@@ -8,8 +8,11 @@ export function useElementWidth(el, fallback = 300) {
     if (!el.value) return;
     width.value = el.value.clientWidth || fallback;
     if (typeof ResizeObserver === 'undefined') return;
+    // Oculto (v-show, pestaña sin pintar) mide 0: se queda el último ancho, si no las gráficas
+    // salen con anchos negativos (x(fin) - x(inicio) < 0 al restar los márgenes)
     observer = new ResizeObserver(([entry]) => {
-      width.value = Math.max(0, Math.floor(entry.contentRect.width));
+      const next = Math.floor(entry.contentRect.width);
+      if (next > 0) width.value = next;
     });
     observer.observe(el.value);
   });

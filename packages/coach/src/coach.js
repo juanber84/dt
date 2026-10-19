@@ -40,9 +40,11 @@ export function createCoach({ llm, timeZone, maxSteps = 8, now = () => new Date(
      * @param {Array<{ name: string, description: string, inputSchema: object, handler: Function }>} input.tools
      * @param {string} [input.userName]
      * @param {(event: object) => void} [input.onEvent]
-     *   { type: 'delta', text } | { type: 'tool', id, name, args } | { type: 'tool_result', id, ok }
+     *   { type: 'delta', text } | { type: 'tool', id, name, args } |
+     *   { type: 'tool_result', id, ok, display? } (display: lo que la app enseña, p. ej. una gráfica)
      * @param {(message: object) => (void | Promise<void>)} [input.onMessage]
-     *   Cada mensaje nuevo (del asistente o resultado de herramienta), para guardarlo.
+     *   Cada mensaje nuevo (del asistente o resultado de herramienta, este con su `display`), para
+     *   guardarlo.
      * @param {(entry: { model: string, usage: object | null, durationMs: number, error?: string }) => void} [input.onUsage]
      * @param {AbortSignal} [input.signal]
      * @returns {Promise<object>} el mensaje final del asistente
@@ -91,11 +93,16 @@ export function createCoach({ llm, timeZone, maxSteps = 8, now = () => new Date(
         for (const call of message.tool_calls) {
           const args = parseArgs(call.function.arguments);
           onEvent?.({ type: 'tool', id: call.id, name: call.function.name, args });
-          const { ok, content } = await runTool(byName.get(call.function.name), args, logger);
-          onEvent?.({ type: 'tool_result', id: call.id, ok });
+          const { ok, content, display } = await runTool(
+            byName.get(call.function.name),
+            args,
+            logger,
+          );
+          onEvent?.({ type: 'tool_result', id: call.id, ok, ...(display && { display }) });
+          // El display no va al modelo: solo a la app
           const reply = { role: 'tool', tool_call_id: call.id, content };
           messages.push(reply);
-          await onMessage?.(reply);
+          await onMessage?.(display ? { ...reply, display } : reply);
         }
       }
     },
@@ -112,13 +119,18 @@ async function runTool(tool, args, logger) {
     return { ok: false, content: `Error: argumentos no válidos (${issues.join('; ')})` };
   }
   try {
-    const output = JSON.stringify(await tool.handler(parsed.data));
+    // Las herramientas con `display` (show_chart) devuelven { display, result }: lo primero lo
+    // pinta la app y solo lo segundo vuelve al modelo
+    const value = await tool.handler(parsed.data);
+    const { display, result } = tool.display ? value : { result: value };
+    const output = JSON.stringify(result);
     return {
       ok: true,
       content:
         output.length > MAX_TOOL_OUTPUT
           ? `${output.slice(0, MAX_TOOL_OUTPUT)}… [recortado: pide un rango más corto]`
           : output,
+      ...(display && { display: { type: tool.display, ...display } }),
     };
   } catch (error) {
     // ToolError: argumentos fuera de rango, se le cuenta al modelo para que corrija

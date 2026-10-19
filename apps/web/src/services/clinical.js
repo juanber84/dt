@@ -132,6 +132,7 @@ export const DOCUMENT_ISSUE_LABEL = {
   'date-from-upload':
     'El informe no trae fecha: se ha puesto el día desde el que lo subiste. Compruébala',
   'hourly-unverified': 'Alguna fila de la tabla por horas no cuadra con el informe',
+  ocr: 'Era un PDF escaneado y se ha leído con OCR: repasa bien los números',
 };
 
 /**

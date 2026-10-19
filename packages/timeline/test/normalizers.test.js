@@ -13,11 +13,12 @@ import {
   METRICS,
   GOOGLE_MEASURES,
 } from '../src/index.js';
+import { appleDeviceShares } from '../src/normalizers/google.js';
 
 const apple = {
   recordingMethod: 'PASSIVELY_MEASURED',
   device: { manufacturer: 'Apple Inc.' },
-  application: { packageName: 'com.apple.health.X' },
+  application: { packageName: 'com.apple.health.29549FF7-08E8-4B4B-8B8C-EFB15CB8161D' },
   platform: 'HEALTH_KIT',
 };
 
@@ -90,7 +91,7 @@ describe('Google', () => {
         metric: 'heart.rate',
         value: 67,
         time: '2026-10-08T11:31:45.764Z',
-        origin: 'HEALTH_KIT|com.apple.health.X|Apple Inc.|',
+        origin: 'HEALTH_KIT|com.apple.health',
       }),
     ]);
   });
@@ -247,6 +248,73 @@ describe('Google', () => {
     expect(normalizerFor('google-health', 'sedentary-period')).toBeNull();
     expect(normalizerFor('google-health', 'steps')).toBe(normalizeGoogleDay);
     expect(normalizerFor('strava', 'activity')).toBeNull();
+  });
+});
+
+describe('Google: Apple Watch e iPhone', () => {
+  const day = { from: '2026-10-19T00:00:00.000Z', to: '2026-10-20T00:00:00.000Z' };
+  // Desde el 17/10/2026 Google ya no manda el UUID del aparato; el iPhone va con formFactor
+  const watch = { ...apple, application: { packageName: 'com.apple.health' } };
+  const phone = { ...watch, device: { manufacturer: 'Apple Inc.', formFactor: 'PHONE' } };
+  const steps = (dataSource, start, end, count) => ({
+    dataSource,
+    steps: { interval: { startTime: start, endTime: end }, count: String(count) },
+  });
+  const normalize = (points) =>
+    normalizeGoogleDay({ ...day, dataType: 'steps', points }, { timeZone: 'Europe/Madrid' })
+      .observations;
+
+  it('el formato viejo (con UUID) y el nuevo son el mismo origen', () => {
+    const [a, b] = normalize([
+      steps(apple, '2026-10-19T08:00:00Z', '2026-10-19T08:01:00Z', 10),
+      steps(watch, '2026-10-19T09:00:00Z', '2026-10-19T09:01:00Z', 10),
+    ]);
+    expect(a.origin).toBe('HEALTH_KIT|com.apple.health');
+    expect(b.origin).toBe(a.origin);
+  });
+
+  it('manda el reloj; el iPhone solo cuenta donde el reloj no mide (en proporción)', () => {
+    const obs = normalize([
+      steps(watch, '2026-10-19T08:00:00Z', '2026-10-19T08:10:00Z', 1000),
+      // Lo mismo, medido también por el iPhone: no cuenta
+      steps(phone, '2026-10-19T08:00:00Z', '2026-10-19T08:10:00Z', 950),
+      // El iPhone sigue media hora más que el reloj: cuenta la parte sin reloj
+      steps(watch, '2026-10-19T09:00:00Z', '2026-10-19T09:10:00Z', 500),
+      steps(phone, '2026-10-19T09:00:00Z', '2026-10-19T09:40:00Z', 800),
+      // Un rato largo sin reloj (en la mesilla): cuenta entero
+      steps(phone, '2026-10-19T12:00:00Z', '2026-10-19T12:20:00Z', 2000),
+    ]);
+    const total = obs.reduce((a, o) => a + o.value, 0);
+    // 1000 + 500 + 800 × 30/40 + 2000 (el margen solo une huecos entre dos muestras del reloj)
+    expect(total).toBe(1000 + 500 + 600 + 2000);
+    expect(obs).toHaveLength(4);
+  });
+
+  it('los huecos cortos entre muestras del reloj cuentan como medidos por el reloj', () => {
+    const points = [
+      steps(watch, '2026-10-19T08:00:00Z', '2026-10-19T08:05:00Z', 300),
+      steps(phone, '2026-10-19T08:05:00Z', '2026-10-19T08:15:00Z', 400),
+      steps(watch, '2026-10-19T08:15:00Z', '2026-10-19T08:20:00Z', 300),
+    ];
+    expect(appleDeviceShares('steps', points).get(points[1])).toBe(0);
+    expect(normalize(points).reduce((a, o) => a + o.value, 0)).toBe(600);
+  });
+
+  it('sin reloj ese día, todo lo del iPhone', () => {
+    const obs = normalize([steps(phone, '2026-10-19T08:00:00Z', '2026-10-19T08:10:00Z', 900)]);
+    expect(obs.map((o) => o.value)).toEqual([900]);
+  });
+
+  it('otras apps que pasan por Apple Health (Garmin) no se tocan', () => {
+    const garmin = { ...watch, application: { packageName: 'com.garmin.connect.mobile' } };
+    const obs = normalize([
+      steps(watch, '2026-10-19T08:00:00Z', '2026-10-19T08:10:00Z', 1000),
+      steps(garmin, '2026-10-19T08:00:00Z', '2026-10-19T08:10:00Z', 990),
+    ]);
+    expect(obs.map((o) => [o.origin, o.value])).toEqual([
+      ['HEALTH_KIT|com.apple.health', 1000],
+      ['HEALTH_KIT|com.garmin.connect.mobile|Apple Inc.|', 990],
+    ]);
   });
 });
 

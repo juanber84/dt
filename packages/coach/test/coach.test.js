@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { createChatClient, createCoach, LlmError, toolDefinitions } from '../src/index.js';
+import {
+  createChartTool,
+  createChatClient,
+  createCoach,
+  LlmError,
+  toolDefinitions,
+} from '../src/index.js';
 
 const NOW = new Date('2026-10-17T10:00:00Z');
 
@@ -232,5 +238,113 @@ describe('createCoach', () => {
       }),
     ).rejects.toBeInstanceOf(LlmError);
     expect(usage).toEqual([expect.objectContaining({ usage: null, error: '500: Server Error' })]);
+  });
+});
+
+const seriesOutput = {
+  timeZone: 'Europe/Madrid',
+  bucket: 'day',
+  series: {
+    'body.weight': {
+      label: 'Peso',
+      unit: 'kg',
+      aggregation: 'avg',
+      points: [
+        { date: '2026-10-01', value: 81.2 },
+        { date: '2026-10-03', value: 80.6 },
+      ],
+    },
+  },
+  noData: ['body.fat'],
+};
+
+describe('createChartTool', () => {
+  it('la gráfica va entera a la app y al modelo solo un resumen', async () => {
+    const getSeries = vi.fn(async () => seriesOutput);
+    const tool = createChartTool({ getSeries });
+    const { display, result } = await tool.handler({
+      title: 'Peso',
+      metrics: ['body.weight', 'body.fat'],
+      from: '2026-10-01',
+      to: '2026-10-03',
+    });
+
+    expect(getSeries).toHaveBeenCalledWith({
+      metrics: ['body.weight', 'body.fat'],
+      from: '2026-10-01',
+      to: '2026-10-03',
+      bucket: 'day',
+    });
+    expect(display).toEqual({
+      title: 'Peso',
+      bucket: 'day',
+      kind: 'line',
+      average: false,
+      // Todos los días del rango: el que falta queda como hueco
+      labels: ['2026-10-01', '2026-10-02', '2026-10-03'],
+      series: [
+        {
+          code: 'body.weight',
+          label: 'Peso',
+          unit: 'kg',
+          aggregation: 'avg',
+          values: [81.2, null, 80.6],
+        },
+      ],
+    });
+    expect(result).toEqual({
+      shown: true,
+      series: [
+        {
+          code: 'body.weight',
+          label: 'Peso',
+          unit: 'kg',
+          points: 2,
+          min: 80.6,
+          max: 81.2,
+          mean: 80.9,
+          first: { at: '2026-10-01', value: 81.2 },
+          last: { at: '2026-10-03', value: 80.6 },
+        },
+      ],
+      noData: ['body.fat'],
+    });
+  });
+
+  it('sin datos se lo dice al modelo (ToolError)', async () => {
+    const tool = createChartTool({ getSeries: async () => ({ series: {} }) });
+    await expect(
+      tool.handler({ title: 'x', metrics: ['a'], from: '2026-10-01', to: '2026-10-02' }),
+    ).rejects.toMatchObject({ name: 'ToolError' });
+  });
+
+  it('en el coach: display a la app (evento y mensaje guardado), no al modelo', async () => {
+    const { fetch, llm } = build(
+      toolReply([
+        {
+          id: 'g1',
+          name: 'show_chart',
+          args: '{"title":"Peso","metrics":["body.weight"],"from":"2026-10-01","to":"2026-10-03"}',
+        },
+      ]),
+      textReply('Bajas.'),
+    );
+    const events = [];
+    const saved = [];
+    const coach = createCoach({ llm, timeZone: 'Europe/Madrid', now: () => NOW });
+    await coach.run({
+      history: [{ role: 'user', content: '¿Peso?' }],
+      tools: [createChartTool({ getSeries: async () => seriesOutput })],
+      onEvent: (e) => events.push(e),
+      onMessage: (m) => saved.push(m),
+    });
+
+    const result = events.find((e) => e.type === 'tool_result');
+    expect(result).toMatchObject({ id: 'g1', ok: true, display: { type: 'chart', title: 'Peso' } });
+    expect(saved[1]).toMatchObject({ role: 'tool', display: { type: 'chart' } });
+    const toModel = sent(fetch, 1).messages.at(-1);
+    expect(toModel.display).toBeUndefined();
+    expect(JSON.parse(toModel.content)).toMatchObject({ shown: true });
+    expect(toModel.content).not.toContain('labels');
   });
 });

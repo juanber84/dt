@@ -183,7 +183,8 @@ async function documentDeleted() {
 // --- Puntuaciones -----------------------------------------------------------------------------
 
 const recovery = computed(() => {
-  const v = day.value?.recovery ?? 0;
+  const v = day.value?.recovery;
+  if (v == null) return { tone: 'neutral', label: 'Sin calcular', color: 'var(--grid)' };
   if (v >= 67) return { tone: 'good', label: 'Alta', color: 'var(--good)' };
   if (v >= 34) return { tone: 'warning', label: 'Media', color: 'var(--warning)' };
   return { tone: 'critical', label: 'Baja', color: 'var(--critical)' };
@@ -206,13 +207,16 @@ const insight = computed(() => {
   const sleepGap = d.sleep.need - d.sleep.minutes;
   if (d.sleep.minutes && sleepGap > 30) parts.push(`te faltaron ${fmtDuration(sleepGap)} de sueño`);
   if (!parts.length) parts.push('Sin datos del reloj este día');
+  // El consejo sale de la recuperación: sin ella, solo los datos
   const advice =
-    d.recovery >= 67
-      ? 'Buen día para meter intensidad.'
-      : d.recovery >= 34
-        ? 'Mejor volumen suave que series.'
-        : 'Hoy toca descanso o algo muy suave.';
-  return `${parts.join(', ')}. ${advice}`;
+    d.recovery == null
+      ? ''
+      : d.recovery >= 67
+        ? ' Buen día para meter intensidad.'
+        : d.recovery >= 34
+          ? ' Mejor volumen suave que series.'
+          : ' Hoy toca descanso o algo muy suave.';
+  return `${parts.join(', ')}.${advice}`;
 });
 
 // --- Constantes (tendencia de 30 días) ----------------------------------------------------------
@@ -331,31 +335,33 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
           <div class="score-text">
             <span class="section-label">Recuperación</span>
             <StatusPill :tone="recovery.tone" :label="recovery.label" />
-            <p class="secondary">
-              VFC {{ fmtInt(day.hrv) }} ms · reposo {{ fmtInt(day.rhr) }} ppm
-              <span class="sample-tag">Ejemplo</span>
-            </p>
+            <p class="secondary">VFC {{ fmtInt(day.hrv) }} ms · reposo {{ fmtInt(day.rhr) }} ppm</p>
           </div>
         </div>
         <div class="card score">
           <ScoreRing :value="day.sleep.score" color="var(--sleep)" label="Sueño" />
           <div class="score-text">
             <span class="section-label">Sueño</span>
-            <strong class="big">{{ fmtDuration(day.sleep.minutes) }}</strong>
-            <p class="secondary">
-              de {{ fmtDuration(day.sleep.need) }} · eficiencia {{ day.sleep.efficiency }} %
-            </p>
+            <template v-if="day.sleep.minutes != null">
+              <strong class="big">{{ fmtDuration(day.sleep.minutes) }}</strong>
+              <p class="secondary">
+                de {{ fmtDuration(day.sleep.need) }} · eficiencia {{ day.sleep.efficiency }} %
+              </p>
+            </template>
+            <p v-else class="secondary">Sin noche registrada</p>
           </div>
         </div>
         <div class="card score">
-          <ScoreRing :value="day.load.tss" :max="150" color="var(--activity)" label="Carga" />
+          <ScoreRing :value="day.load?.tss" :max="150" color="var(--activity)" label="Carga" />
           <div class="score-text">
             <span class="section-label">Carga del día · TSS</span>
-            <strong class="big">{{ day.load.tss ? `${day.load.tss} TSS` : 'Descanso' }}</strong>
-            <p class="secondary">
-              Forma {{ fmtSigned(day.load.tsb) }} · fitness {{ fmtInt(day.load.ctl) }}
-              <span v-if="!day.real?.includes('load')" class="sample-tag">Ejemplo</span>
-            </p>
+            <template v-if="day.load">
+              <strong class="big">{{ day.load.tss ? `${day.load.tss} TSS` : 'Descanso' }}</strong>
+              <p class="secondary">
+                Forma {{ fmtSigned(day.load.tsb) }} · fitness {{ fmtInt(day.load.ctl) }}
+              </p>
+            </template>
+            <p v-else class="secondary">Sin datos de intervals.icu este día</p>
           </div>
         </div>
         <p class="insight">{{ insight }}</p>
@@ -403,10 +409,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
         <div class="side">
           <section class="card card-pad">
             <header class="col-head">
-              <h2>
-                Actividad
-                <span v-if="day.real?.includes('activity')" class="real-tag">Real</span>
-              </h2>
+              <h2>Actividad</h2>
             </header>
             <div class="headline">
               <strong class="big">{{ fmtInt(day.steps) }}</strong>
@@ -442,20 +445,21 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
           <section class="card card-pad">
             <header class="col-head">
-              <h2>
-                Nutrición
-                <span v-if="day.real?.includes('nutrition')" class="real-tag">Real</span>
-              </h2>
-              <span class="muted">{{ fmtInt(day.nutrition.target) }} kcal objetivo</span>
+              <h2>Nutrición</h2>
+              <span v-if="day.nutrition.target" class="muted"
+                >{{ fmtInt(day.nutrition.target) }} kcal gastadas</span
+              >
             </header>
             <div class="headline">
               <strong class="big">{{ fmtInt(day.nutrition.kcal) }}</strong>
-              <span class="muted"
+              <span v-if="day.nutrition.target" class="muted"
                 >kcal · quedan
                 {{ fmtInt(Math.max(0, day.nutrition.target - day.nutrition.kcal)) }}</span
               >
+              <span v-else class="muted">kcal</span>
             </div>
             <Meter
+              v-if="day.nutrition.target"
               :value="day.nutrition.kcal"
               :max="day.nutrition.target"
               color="var(--nutrition)"
@@ -479,12 +483,14 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
             <div class="water">
               <span class="section-label">Agua</span>
               <span class="num"
-                >{{ fmtDec(day.nutrition.waterMl / 1000, 1) }} /
-                {{ fmtDec(day.nutrition.waterTargetMl / 1000, 1) }} L</span
+                >{{
+                  day.nutrition.waterMl == null ? '—' : fmtDec(day.nutrition.waterMl / 1000, 1)
+                }}
+                / {{ fmtDec(day.nutrition.waterTargetMl / 1000, 1) }} L</span
               >
             </div>
             <Meter
-              :value="day.nutrition.waterMl"
+              :value="day.nutrition.waterMl ?? 0"
               :max="day.nutrition.waterTargetMl"
               color="var(--text-2)"
               :height="4"
@@ -493,10 +499,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
           <section v-if="body" class="card card-pad">
             <header class="col-head">
-              <h2>
-                Cuerpo
-                <span v-if="day.real?.includes('body')" class="real-tag">Real</span>
-              </h2>
+              <h2>Cuerpo</h2>
               <span class="muted">{{
                 body.isToday
                   ? 'Pesaje de hoy'
@@ -533,19 +536,19 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
           <section class="card card-pad">
             <header class="col-head">
-              <h2>
-                Sueño
-                <span v-if="day.real?.includes('sleep')" class="real-tag">Real</span>
-              </h2>
+              <h2>Sueño</h2>
               <span class="muted">{{ fmtDuration(day.sleep.minutes) }}</span>
             </header>
-            <Hypnogram :stages="day.sleepDetail.stages" :height="120" />
-            <div class="legend stage-legend">
-              <span v-for="k in ['deep', 'light', 'rem', 'awake']" :key="k">
-                <span class="dot" :style="{ background: STAGE_COLOR[k] }" />
-                {{ STAGE_LABEL[k] }} {{ fmtDuration(day.sleep[k]) }}
-              </span>
-            </div>
+            <template v-if="day.sleepDetail.stages.length">
+              <Hypnogram :stages="day.sleepDetail.stages" :height="120" />
+              <div class="legend stage-legend">
+                <span v-for="k in ['deep', 'light', 'rem', 'awake']" :key="k">
+                  <span class="dot" :style="{ background: STAGE_COLOR[k] }" />
+                  {{ STAGE_LABEL[k] }} {{ fmtDuration(day.sleep[k]) }}
+                </span>
+              </div>
+            </template>
+            <p v-else class="muted">Sin noche registrada (¿no dormiste con el reloj?).</p>
           </section>
         </div>
       </div>
@@ -597,27 +600,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   justify-content: space-between;
   gap: 12px;
   color: var(--critical-text);
-}
-
-.real-tag {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--good) 16%, transparent);
-  color: var(--good-text);
-  font-size: 11px;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
-.sample-tag {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--warning) 16%, transparent);
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 600;
 }
 
 .page-head {

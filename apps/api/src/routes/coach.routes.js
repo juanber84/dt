@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { createChartTool } from '@digitaltwin/coach';
 import { createTools } from '@digitaltwin/mcp';
 import { validate } from '../middlewares/validate.js';
 import { HttpError } from '../utils/http-error.js';
@@ -31,7 +32,8 @@ const PING_MS = 15_000;
  *   DELETE /conversations/:id
  *   POST   /messages            { conversationId?, text, context? } → stream SSE:
  *     conversation { id, title, created } · user (el mensaje guardado) · tool { id, name, args } ·
- *     tool_result { id, ok } · delta { text } · message (cada mensaje del asistente guardado) ·
+ *     tool_result { id, ok, display? } (display: una gráfica de show_chart) · delta { text } ·
+ *     message (cada mensaje del asistente guardado) ·
  *     done { message } | error { message }
  *
  * @param {object} deps
@@ -97,10 +99,15 @@ export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
     });
     send('user', question);
 
+    // Las de lectura (las mismas del MCP) y show_chart, que solo tiene sentido en la app
+    const tools = createTools({ queries, userId, timeZone });
+    const getSeries = tools.find((tool) => tool.name === 'get_series').handler;
+    tools.push(createChartTool({ getSeries }));
+
     try {
       const final = await coach.run({
         history: toModelHistory([...conversation.messages, question]),
-        tools: createTools({ queries, userId, timeZone }),
+        tools,
         userName: req.user.name ?? undefined,
         signal: abort.signal,
         onEvent: ({ type, ...data }) => send(type, data),
@@ -110,6 +117,8 @@ export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
             content: message.content,
             toolCalls: message.tool_calls,
             toolCallId: message.tool_call_id,
+            // La gráfica se guarda para volver a pintarla al abrir la conversación
+            ...(message.display && { meta: { display: message.display } }),
           });
           if (saved.role === 'assistant') send('message', saved);
         },

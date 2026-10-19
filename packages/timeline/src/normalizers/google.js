@@ -80,8 +80,54 @@ export function isGoogleNormalized(dataType) {
 
 const pick = (value, path) => path.split('.').reduce((acc, key) => acc?.[key], value);
 
-/** De dónde viene el punto dentro de Google (el reloj, la app de Xiaomi vía Apple Health...). */
+// Lo que Apple Health manda a Google con su propio nombre: lo del Apple Watch y lo del iPhone.
+// Hasta el 16/10/2026 cada aparato venía como com.apple.health.<UUID>; desde el 17, todos como
+// com.apple.health y el iPhone con device.formFactor PHONE.
+const APPLE_HEALTH = /^com\.apple\.health(\.[0-9a-f-]{36})?$/i;
+export const APPLE_HEALTH_ORIGIN = 'HEALTH_KIT|com.apple.health';
+
+const isAppleHealth = (dataSource = {}) =>
+  dataSource.platform === 'HEALTH_KIT' &&
+  APPLE_HEALTH.test(dataSource.application?.packageName ?? '');
+
+/**
+ * Tipos que se acumulan por intervalos (pasos, distancia, kcal...). Reloj e iPhone los miden a
+ * la vez y Google manda los dos: sumarlos cuenta dos veces lo andado.
+ */
+const ADDITIVE = new Set([
+  'steps',
+  'distance',
+  'floors',
+  'altitude',
+  'active-zone-minutes',
+  'active-energy-burned',
+  'basal-energy-burned',
+]);
+
+/**
+ * El reloj apunta los pasos a trozos y entre uno y otro deja huecos aunque lo lleves puesto. Un
+ * hueco más corto que esto cuenta como medido por el reloj; si no, la app Salud no rellena con el
+ * iPhone. Ajustado con los totales de Salud (19/10/2026: reloj 7.442, Salud ~7.400; sin margen
+ * salían 8.293).
+ */
+const WATCH_GAP_MS = 15 * 60 * 1000;
+
+/**
+ * De dónde viene el punto dentro de Google (el reloj, la app de Xiaomi vía Apple Health...).
+ * Todo lo de Apple Health es un solo origen, como lo ve la app Salud: el reloj y el iPhone ya
+ * se han combinado (ver appleDeviceShares), y el aparato cambia de un punto a otro.
+ */
 export function googleOrigin(dataSource = {}) {
+  if (isAppleHealth(dataSource)) {
+    return {
+      origin: APPLE_HEALTH_ORIGIN,
+      originDetails: {
+        platform: 'HEALTH_KIT',
+        app: 'com.apple.health',
+        manufacturer: 'Apple Inc.',
+      },
+    };
+  }
   const parts = [
     dataSource.platform ?? 'UNKNOWN',
     dataSource.application?.packageName ?? '',
@@ -112,6 +158,7 @@ export function normalizeGoogleDay(payload, { timeZone }) {
   const episodes = [];
   const measures = GOOGLE_MEASURES[dataType];
   const episode = GOOGLE_EPISODES[dataType];
+  const shares = ADDITIVE.has(dataType) ? appleDeviceShares(dataType, points) : null;
 
   for (const point of points) {
     const time = getPointTime(dataType, point);
@@ -121,10 +168,22 @@ export function normalizeGoogleDay(payload, { timeZone }) {
     const { origin, originDetails } = googleOrigin(point.dataSource);
     const value = point[fieldOf(dataType)] ?? {};
 
+    // Parte del punto que cuenta (el iPhone, solo lo que el reloj no ha medido)
+    const share = shares?.get(point) ?? 1;
+    if (share === 0) continue;
+
     for (const [metric, path, convert] of measures ?? []) {
       const n = convert(num(pick(value, path)));
       if (n === null) continue;
-      observations.push({ origin, originDetails, metric, time: start, end: time.end, value: n });
+      const scaled = share === 1 ? n : Math.round(n * share * 100) / 100;
+      observations.push({
+        origin,
+        originDetails,
+        metric,
+        time: start,
+        end: time.end,
+        value: scaled,
+      });
     }
 
     if (episode) {
@@ -166,6 +225,55 @@ export function normalizeGoogleDay(payload, { timeZone }) {
     };
   }
   return result;
+}
+
+/**
+ * Lo mismo que hace la app Salud con lo que miden a la vez el reloj y el iPhone: manda el reloj,
+ * y de cada intervalo del iPhone solo cuenta la parte que no cubre el reloj (en proporción al
+ * tiempo). Los huecos de menos de WATCH_GAP_MS entre muestras del reloj cuentan como cubiertos.
+ * Así un rato sin reloj se rellena con el iPhone sin contar dos veces el resto. Devuelve
+ * punto → fracción (0–1) solo de los puntos del iPhone.
+ * @returns {Map<object, number>}
+ */
+export function appleDeviceShares(dataType, points) {
+  const apple = points.filter((p) => isAppleHealth(p.dataSource));
+  const isPhone = (p) => p.dataSource?.device?.formFactor === 'PHONE';
+  const phone = apple.filter(isPhone);
+  const shares = new Map();
+  if (!phone.length) return shares;
+
+  const span = (p) => {
+    const time = getPointTime(dataType, p);
+    return [Date.parse(time.start), Date.parse(time.end ?? time.start)];
+  };
+  // Lo que cubre el reloj, como intervalos ordenados y sin solapes
+  const covered = [];
+  for (const [s, e] of apple
+    .filter((p) => !isPhone(p))
+    .map(span)
+    .filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e))
+    .sort((a, b) => a[0] - b[0])) {
+    const last = covered.at(-1);
+    if (last && s <= last[1] + WATCH_GAP_MS) last[1] = Math.max(last[1], e);
+    else covered.push([s, e]);
+  }
+
+  for (const point of phone) {
+    const [s, e] = span(point);
+    if (!Number.isFinite(s) || !Number.isFinite(e)) continue;
+    if (e <= s) {
+      // Sin duración: cuenta entero salvo que caiga dentro de lo medido por el reloj
+      shares.set(point, covered.some(([a, b]) => s >= a && s <= b) ? 0 : 1);
+      continue;
+    }
+    let overlap = 0;
+    for (const [a, b] of covered) {
+      if (a >= e) break;
+      overlap += Math.max(0, Math.min(b, e) - Math.max(a, s));
+    }
+    shares.set(point, Math.max(0, 1 - overlap / (e - s)));
+  }
+  return shares;
 }
 
 function fieldOf(dataType) {

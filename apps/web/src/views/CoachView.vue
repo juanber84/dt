@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowUp,
+  ChartLine,
   CircleAlert,
   Database,
   LoaderCircle,
@@ -13,9 +14,12 @@ import {
   Trash2,
   X,
 } from '@lucide/vue';
+import CoachChart from '../components/coach/CoachChart.vue';
 import Markdown from '../components/coach/Markdown.vue';
 import { useToast } from '../composables/useToast.js';
 import {
+  addChart,
+  answerParts,
   deleteConversation,
   getConversation,
   listConversations,
@@ -106,7 +110,14 @@ async function send(text = draft.value) {
   draft.value = '';
   const context = contextDate.value ? { date: contextDate.value } : undefined;
   chat.value.push({ id: `local-${Date.now()}`, role: 'user', content: text, context });
-  const answer = reactive({ id: null, role: 'assistant', content: '', tools: [], live: true });
+  const answer = reactive({
+    id: null,
+    role: 'assistant',
+    content: '',
+    tools: [],
+    charts: [],
+    live: true,
+  });
   chat.value.push(answer);
   scrollToEnd(true);
   clearContext();
@@ -152,6 +163,7 @@ function onEvent(event, data, answer) {
     case 'tool_result': {
       const tool = answer.tools.find((t) => t.id === data.id);
       if (tool) tool.ok = data.ok;
+      if (data.display?.type === 'chart') addChart(answer, data.id, data.display);
       break;
     }
     case 'delta':
@@ -323,12 +335,19 @@ const isEmpty = computed(() => !chat.value.length && !loadingChat.value);
             <ul v-if="m.tools.length" class="tools" aria-label="Datos consultados">
               <li v-for="t in m.tools" :key="t.id" :class="{ failed: t.ok === false }">
                 <LoaderCircle v-if="t.ok === null" class="icon icon-sm spin" />
+                <ChartLine v-else-if="t.name === 'show_chart'" class="icon icon-sm" />
                 <Database v-else class="icon icon-sm" />
                 {{ toolLabel(t.name, t.args) }}
               </li>
             </ul>
-            <Markdown v-if="m.content" :source="m.content" />
-            <span v-else-if="m.live && !m.tools.some((t) => t.ok === null)" class="thinking">
+            <template v-for="part in answerParts(m)" :key="part.key">
+              <CoachChart v-if="part.type === 'chart'" :chart="part.chart" />
+              <Markdown v-else :source="part.text" />
+            </template>
+            <span
+              v-if="!m.content && m.live && !m.tools.some((t) => t.ok === null)"
+              class="thinking"
+            >
               <span /><span /><span />
             </span>
             <p v-if="m.stopped" class="muted note">Respuesta cortada.</p>

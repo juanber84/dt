@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { RefreshCw, Server, Database, Bot, Globe, Cog, BrainCircuit } from '@lucide/vue';
+import { RefreshCw, Server, Database, Bot, Cog, BrainCircuit } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import StatusPill from '../../components/ui/StatusPill.vue';
-import { fetchSystemStatus, USING_SAMPLE_DATA } from '../../services/twin.js';
+import { fetchSystemStatus } from '../../services/twin.js';
 import { fmtDuration, fmtInt, fmtRelativeTime } from '../../lib/format.js';
 import { balanceStatus, fetchAiStatus } from '../../services/ai.js';
 
@@ -204,23 +204,6 @@ const pill = (ok) =>
           </p>
         </div>
         <StatusPill :tone="llm.tone" :label="llm.label" />
-      </li>
-      <li class="row">
-        <Globe class="icon" />
-        <div class="info">
-          <strong>Frontal</strong>
-          <p class="secondary">
-            {{
-              USING_SAMPLE_DATA
-                ? 'Gráficas con datos de ejemplo hasta que la API tenga los endpoints.'
-                : 'Datos reales de la API.'
-            }}
-          </p>
-        </div>
-        <StatusPill
-          :tone="USING_SAMPLE_DATA ? 'warning' : 'good'"
-          :label="USING_SAMPLE_DATA ? 'Datos de ejemplo' : 'Datos reales'"
-        />
       </li>
     </ul>
 

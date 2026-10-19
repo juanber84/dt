@@ -105,7 +105,7 @@ Cada push a `main` (o lanzándolo a mano desde Actions) ejecuta `.github/workflo
 Un único job:
 
 1. Comprueba que estén los secrets del repo (apartado 3.3); si falta alguno dice cuál.
-2. `npm ci`, lint y tests. Si fallan, no se despliega.
+2. `npm ci`, lint, formato (Prettier) y tests. Si fallan, no se despliega.
 3. `git archive` del código a un tar en `/tmp` del runner (no es un artefacto: se borra con el runner).
 4. `scp` del tar al VPS.
 5. Por SSH en el VPS:
@@ -290,4 +290,4 @@ acceso (`INFISICAL_TOKEN` o `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET`) y
 | `The provided access token is malformed` / `Invalid credentials` | Token o Client ID/Secret de Infisical mal copiados, o `INFISICAL_DOMAIN` de otra región (US/EU).    |
 | `failed to fetch secrets for path "/api"` con 403/404            | La identidad no tiene acceso a ese entorno, o el slug del entorno o la carpeta no coinciden.        |
 | El deploy falla en _Comprobar los secrets_                       | Falta algún secret del repo (apartado 3.3); el error dice cuáles.                                   |
-| El deploy falla en _Tests y lint_                                | Lo mismo que `make check` en local (salvo formato): arréglalo y vuelve a hacer push.                |
+| El deploy falla en _Tests, lint y formato_                       | Lo mismo que `make check` en local (`make format` arregla el formato) y vuelve a hacer push.        |

@@ -37,10 +37,13 @@ const { data: list } = useAsync(range, (days) => fetchActivities(days));
 
 const days = computed(() => summaries.value ?? []);
 const labels = computed(() => days.value.map((d) => formatShortDate(d.date)));
-const last = computed(() => days.value.at(-1)?.load);
+// La carga es la de intervals.icu: el último día que la tenga (hoy puede no estar aún)
+const last = computed(() => days.value.findLast((d) => d.load)?.load);
+const round = (v) => (v == null ? null : Math.round(v));
 
 const formState = computed(() => {
-  const tsb = last.value?.tsb ?? 0;
+  if (!last.value) return 'Sin datos de carga: conecta intervals.icu.';
+  const tsb = last.value.tsb;
   if (tsb > 10) return 'Fresco: buen momento para competir o apretar.';
   if (tsb > -10) return 'Equilibrado: puedes entrenar con normalidad.';
   if (tsb > -30) return 'Cargando: fatiga productiva, vigila la recuperación.';
@@ -72,6 +75,7 @@ const thisWeek = computed(() => {
 const pmcTable = computed(() => ({
   columns: ['Fecha', 'Fitness', 'Fatiga', 'Forma', 'TSS'],
   rows: days.value
+    .filter((d) => d.load)
     .map((d) => [
       formatShortDate(d.date),
       fmtInt(d.load.ctl),
@@ -148,7 +152,7 @@ const dayLabel = (iso) =>
     </section>
 
     <ChartCard
-      v-if="days.length"
+      v-if="last"
       title="Fitness y fatiga"
       subtitle="Modelo de carga (PMC) a partir del TSS de cada entreno."
       :table="pmcTable"
@@ -164,14 +168,14 @@ const dayLabel = (iso) =>
             id: 'ctl',
             label: 'Fitness',
             color: 'var(--sleep)',
-            values: days.map((d) => Math.round(d.load.ctl)),
+            values: days.map((d) => round(d.load?.ctl)),
             area: true,
           },
           {
             id: 'atl',
             label: 'Fatiga',
             color: 'var(--activity)',
-            values: days.map((d) => Math.round(d.load.atl)),
+            values: days.map((d) => round(d.load?.atl)),
           },
         ]"
         :height="220"
@@ -186,7 +190,7 @@ const dayLabel = (iso) =>
               id: 'tsb',
               label: 'Forma',
               color: 'var(--diverge-pos)',
-              values: days.map((d) => Math.round(d.load.tsb)),
+              values: days.map((d) => round(d.load?.tsb)),
             },
           ]"
           :color-for="(v) => (v >= 0 ? 'var(--diverge-pos)' : 'var(--diverge-neg)')"

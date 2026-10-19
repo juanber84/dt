@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { dayDetail } from '../src/data/mock.js';
 import {
   activityFrom,
   byDay,
@@ -10,6 +9,7 @@ import {
   realTotals,
   sleepFrom,
   workoutEvent,
+  emptySummary,
 } from '../src/services/timeline.js';
 
 const local = (h, m = 0, d = 6) => new Date(2026, 9, d, h, m).toISOString();
@@ -123,18 +123,42 @@ describe('timeline real', () => {
     });
   });
 
-  it('carga real con CTL/ATL de intervals.icu; sin ellos se queda la de ejemplo', () => {
-    const mock = dayDetail('2026-10-14');
-    const real = mergeSummary(mock, undefined, { tss: 55, ctl: 26.4, atl: 43.7 });
+  it('carga con CTL/ATL de intervals.icu; sin ellos no hay carga (nada inventado)', () => {
+    const empty = emptySummary('2026-10-14');
+    const real = mergeSummary(empty, undefined, { tss: 55, ctl: 26.4, atl: 43.7 });
     expect(real.load).toEqual({ tss: 55, ctl: 26.4, atl: 43.7, tsb: -17.3 });
-    expect(real.real).toContain('load');
-    const sample = mergeSummary(mock);
-    expect(sample.load).toEqual(mock.load);
-    expect(sample.real).not.toContain('load');
+    const none = mergeSummary(empty);
+    expect(none.load).toBeNull();
+  });
+
+  it('un día vacío no tiene ningún número: ni recuperación, ni sueño, ni agua, ni objetivo de kcal', () => {
+    const summary = mergeSummary(emptySummary('2026-10-06'));
+    const numbers = [];
+    const walk = (value, path) => {
+      if (typeof value === 'number') numbers.push(path);
+      else if (value && typeof value === 'object')
+        for (const [k, v] of Object.entries(value)) walk(v, `${path}.${k}`);
+    };
+    walk(summary, 'día');
+    // Solo los objetivos por defecto (proteína, agua) y lo que necesitas dormir
+    expect(numbers.sort()).toEqual([
+      'día.nutrition.proteinTarget',
+      'día.nutrition.waterTargetMl',
+      'día.sleep.need',
+    ]);
+  });
+
+  it('el agua sale de intake.water y el objetivo de kcal es lo gastado ese día', () => {
+    const summary = mergeSummary(emptySummary('2026-10-06'), undefined, {
+      waterMl: 1750,
+      activeKcal: 600,
+      basalKcal: 1750,
+    });
+    expect(summary.nutrition).toMatchObject({ waterMl: 1750, target: 2350 });
   });
 
   it('un día sin datos queda sin dato (no a 0) para que las medias no se hundan', () => {
-    const summary = mergeSummary(dayDetail('2026-10-06'));
+    const summary = mergeSummary(emptySummary('2026-10-06'));
     expect(summary).toMatchObject({
       hrv: null,
       rhr: null,
@@ -148,29 +172,30 @@ describe('timeline real', () => {
   });
 
   it('en la vista del día, lo que falta se ve como 0', () => {
-    const day = mergeDay(dayDetail('2026-10-06'), {
+    const day = mergeDay(emptySummary('2026-10-06'), {
       episodes: new Map(),
       daily: new Map(),
       stepsByHour: Array(24).fill(0),
       hr: [],
     });
-    expect(day).toMatchObject({ steps: 0, activeKcal: 0 });
-    expect(day.sleep.minutes).toBe(0);
+    expect(day).toMatchObject({ steps: 0, activeKcal: 0, recovery: null });
+    // Sin noche registrada no hay sueño de 0 minutos con puntuación 0: no hay sueño
+    expect(day.sleep).toMatchObject({ minutes: null, score: null, efficiency: null });
     expect(day.nutrition.kcal).toBe(0);
     expect(day.events).toEqual([]);
   });
 
   it('gasto total = activa + basal, solo si están las dos', () => {
     expect(
-      mergeSummary(dayDetail('2026-10-06'), undefined, { activeKcal: 600, basalKcal: 1750 }),
+      mergeSummary(emptySummary('2026-10-06'), undefined, { activeKcal: 600, basalKcal: 1750 }),
     ).toMatchObject({ totalKcal: 2350 });
     expect(
-      mergeSummary(dayDetail('2026-10-06'), undefined, { activeKcal: 600 }).totalKcal,
+      mergeSummary(emptySummary('2026-10-06'), undefined, { activeKcal: 600 }).totalKcal,
     ).toBeNull();
   });
 
-  it('el día cambia los eventos de ejemplo por los reales', () => {
-    const merged = mergeDay(dayDetail('2026-10-06'), {
+  it('el día lleva los episodios reales como eventos', () => {
+    const merged = mergeDay(emptySummary('2026-10-06'), {
       episodes: byDay([sleep, weighIn, meal, workout]),
       daily: new Map([['2026-10-06', { hrv: 51, rhr: 50, steps: 9426 }]]),
       stepsByHour: Array(24).fill(10),
@@ -179,10 +204,10 @@ describe('timeline real', () => {
     expect(merged.events.map((e) => e.id)).toEqual(['s1', 'w1', 'x1', 'm1']);
     expect(merged).toMatchObject({ hrv: 51, rhr: 50, steps: 9426, weight: 82 });
     expect(merged.nutrition.kcal).toBe(343);
-    expect(merged.nutrition.target).toBeGreaterThan(0);
+    // Sin gasto (activas + basal) ese día no hay objetivo de kcal
+    expect(merged.nutrition.target).toBeNull();
     expect(merged.sleepDetail.stages).toHaveLength(4);
     expect(merged.hr).toEqual([{ t: 600, bpm: 70 }]);
-    expect(merged.real).toContain('sleep');
   });
 });
 

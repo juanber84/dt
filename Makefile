@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: test-db user telegram mcp-token worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
+.PHONY: test-db user telegram mcp-token renormalize worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
 
 API_ENV := apps/api/.env
 BOT_ENV := apps/bot/.env
@@ -47,6 +47,11 @@ mcp-token: ## Token personal para el MCP: make mcp-token email=yo@x.com name="Cl
 	@test -n "$(email)" || (echo "Uso: make mcp-token email=yo@x.com [name=\"Claude Code\"]" && exit 1)
 	docker exec -it digitaltwin-api node scripts/create-token.js --email "$(email)" \
 		$(if $(name),--name "$(name)")
+
+renormalize: ## Re-normaliza lo descargado tras cambiar un normalizador: make renormalize provider=google-health [kind=steps]
+	@test -n "$(provider)" || (echo "Uso: make renormalize provider=google-health [kind=steps] [from=2026-10-01]" && exit 1)
+	docker exec digitaltwin-worker node scripts/renormalize.js --provider "$(provider)" \
+		$(if $(kind),--kind "$(kind)") $(if $(from),--from "$(from)")
 
 test-watch: ## Tests en modo watch
 	npm run test:watch

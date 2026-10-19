@@ -1,9 +1,12 @@
 <script setup>
 import { computed } from 'vue';
 
-/** Anillo de puntuación (recuperación, sueño...). El valor va en el centro, en tinta de texto. */
+/**
+ * Anillo de puntuación (recuperación, sueño...). El valor va en el centro, en tinta de texto.
+ * Sin valor (null): anillo vacío y una raya.
+ */
 const props = defineProps({
-  value: { type: Number, required: true },
+  value: { type: Number, default: null },
   max: { type: Number, default: 100 },
   color: { type: String, required: true },
   size: { type: Number, default: 116 },
@@ -16,8 +19,9 @@ const props = defineProps({
 const r = computed(() => (props.size - props.stroke) / 2);
 const circumference = computed(() => 2 * Math.PI * r.value);
 const offset = computed(
-  () => circumference.value * (1 - Math.min(1, Math.max(0, props.value / props.max))),
+  () => circumference.value * (1 - Math.min(1, Math.max(0, (props.value ?? 0) / props.max))),
 );
+const text = computed(() => props.display ?? (props.value == null ? '—' : props.value));
 </script>
 
 <template>
@@ -27,7 +31,7 @@ const offset = computed(
       :height="size"
       :viewBox="`0 0 ${size} ${size}`"
       role="img"
-      :aria-label="`${label}: ${display ?? value}${unit}`"
+      :aria-label="`${label}: ${value == null ? 'sin datos' : `${text}${unit}`}`"
     >
       <circle class="track" :cx="size / 2" :cy="size / 2" :r="r" :stroke-width="stroke" />
       <circle
@@ -44,7 +48,7 @@ const offset = computed(
     </svg>
     <div class="center">
       <span class="value"
-        >{{ display ?? value }}<small v-if="unit">{{ unit }}</small></span
+        >{{ text }}<small v-if="unit && value != null">{{ unit }}</small></span
       >
     </div>
   </div>

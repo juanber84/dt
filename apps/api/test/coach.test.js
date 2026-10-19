@@ -166,6 +166,71 @@ describe('/api/v1/coach', () => {
     ]);
   });
 
+  it('show_chart: la gráfica sale en el stream y se guarda para volver a pintarla', async () => {
+    const chartLlm = scriptedLlm(
+      {
+        extra: {
+          tool_calls: [
+            {
+              id: 'g1',
+              type: 'function',
+              function: {
+                name: 'show_chart',
+                arguments:
+                  '{"title":"Peso","metrics":["body.weight"],"from":"2026-10-01","to":"2026-10-02"}',
+              },
+            },
+          ],
+        },
+      },
+      { content: 'Bajas.' },
+    );
+    const chartPipeline = {
+      queries: {
+        ...pipeline.queries,
+        series: async ({ userId }) =>
+          userId === 'ana'
+            ? {
+                'body.weight': {
+                  label: 'Peso',
+                  unit: 'kg',
+                  aggregation: 'avg',
+                  points: [{ t: '2026-10-01T06:00:00.000Z', value: 81.2 }],
+                },
+              }
+            : {},
+      },
+    };
+    const chartApp = buildApp(
+      {},
+      { users: await testUsers(), pipeline: chartPipeline, coachLlm: chartLlm },
+    );
+    const cookie = await loginCookie(chartApp, 'ana@example.com');
+
+    const stream = events((await ask(chartApp, cookie, { text: '¿Peso?' }).expect(200)).body);
+    const result = stream.find((e) => e.event === 'tool_result').data;
+    expect(result).toMatchObject({
+      id: 'g1',
+      ok: true,
+      display: {
+        type: 'chart',
+        labels: ['2026-10-01', '2026-10-02'],
+        series: [{ code: 'body.weight', values: [81.2, null] }],
+      },
+    });
+    expect(chartLlm.calls[0].tools.map((t) => t.function.name)).toContain('show_chart');
+    // Al modelo solo le vuelve el resumen
+    expect(JSON.parse(chartLlm.calls[1].messages.at(-1).content)).toMatchObject({ shown: true });
+
+    const id = stream[0].data.id;
+    const saved = await request(chartApp)
+      .get(`/api/v1/coach/conversations/${id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    const tool = saved.body.messages.find((m) => m.role === 'tool');
+    expect(tool.meta.display).toEqual(result.display);
+  });
+
   it('las conversaciones de otro no se ven, ni se puede escribir en ellas', async () => {
     const list = await request(app).get('/api/v1/coach/conversations').set('Cookie', admin);
     expect(list.body.items).toEqual([]);

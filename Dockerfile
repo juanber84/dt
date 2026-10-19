@@ -12,8 +12,11 @@ WORKDIR /app
 RUN npm install -g @infisical/cli@0.43.137 && npm cache clean --force
 COPY --chmod=755 docker/digitaltwin-run.sh /usr/local/bin/digitaltwin-run
 
-# El worker lee los informes médicos en PDF con pdftotext (poppler-utils)
-RUN if [ "$APP" = "worker" ]; then apk add --no-cache poppler-utils; fi
+# El worker lee los informes médicos en PDF con pdftotext (poppler-utils) y los escaneados con OCR
+# (pdftoppm los pasa a imagen y tesseract los lee, con el modelo de español)
+RUN if [ "$APP" = "worker" ]; then \
+      apk add --no-cache poppler-utils tesseract-ocr tesseract-ocr-data-spa; \
+    fi
 
 # 1. Manifiestos (capa cacheada mientras no cambien las dependencias)
 COPY package.json package-lock.json ./

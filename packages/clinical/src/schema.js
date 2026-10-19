@@ -182,6 +182,8 @@ export const extractionSchema = z.object({
     })
     .nullable()
     .default(null),
+  /** El texto salió del OCR (PDF escaneado): los números pueden venir mal leídos. */
+  ocr: z.boolean().default(false),
   /** Avisos del documento entero ('date': no se ha encontrado la fecha en el texto...). */
   issues: z.array(z.string()).default([]),
 });

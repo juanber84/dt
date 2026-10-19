@@ -29,7 +29,6 @@ const CLINICAL_KIND_OF_TYPE = {
 };
 
 /** Bloques de los días que ya salen de datos reales (el resto sigue siendo de ejemplo). */
-export const REAL_BLOCKS = ['nutrition', 'body', 'sleep', 'vitals', 'activity', 'hr'];
 export const REAL_KINDS = ['meal', 'weigh-in', 'workout', 'sleep', ...CLINICAL_KINDS];
 
 /** Métrica del timeline → campo del resumen diario (con su conversión). */
@@ -44,6 +43,7 @@ const DAILY_METRICS = {
   'activity.floors': ['floors'],
   'energy.active': ['activeKcal'],
   'energy.basal': ['basalKcal'],
+  'intake.water': ['waterMl', (v) => Math.round(v)],
   'fitness.vo2max': ['vo2max', (v) => Math.round(v * 10) / 10],
   // intervals.icu: TSS del día y forma/fatiga
   'training.load': ['tss'],
@@ -562,7 +562,7 @@ function sleepEvent(date, episode, sleep) {
   };
 }
 
-// --- Mezcla con el mock ---------------------------------------------------------------------
+// --- Resumen del día ---------------------------------------------------------------------
 
 /** Totales reales de un día: comidas sumadas y el último pesaje (o null). */
 export function realTotals({ meals, weighIns }) {
@@ -589,51 +589,103 @@ export function temperatureBaseline(daily) {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 }
 
-const NO_SLEEP = { minutes: null, deep: null, rem: null, light: null, awake: null };
+const NO_SLEEP = {
+  minutes: null,
+  deep: null,
+  rem: null,
+  light: null,
+  awake: null,
+  efficiency: null,
+  score: null,
+  need: SLEEP_NEED,
+};
 
 /**
- * Resumen diario del mock con lo real; lo que no haya ese día queda en null (no inventado, y las
- * medias de Tendencias solo cuentan los días con dato). La recuperación aún no se calcula: null.
+ * Objetivos mientras no se puedan poner desde la app (los pondrá el módulo de objetivos). Las kcal
+ * no tienen: el objetivo es lo que gastas ese día (basal + activas), cuando se sabe.
+ */
+export const DEFAULT_TARGETS = Object.freeze({ proteinG: 160, waterMl: 3000 });
+
+/**
+ * Un día sin ningún dato, con la forma que esperan las vistas: todo en null (nada inventado).
+ * Recuperación y referencia de FC en reposo aún no se calculan.
+ */
+export function emptySummary(date) {
+  return {
+    date,
+    recovery: null,
+    hrv: null,
+    hrvBaseline: null,
+    rhr: null,
+    spo2: null,
+    respRate: null,
+    skinTemp: null,
+    vo2max: null,
+    sleep: { ...NO_SLEEP },
+    load: null,
+    steps: null,
+    distanceKm: null,
+    activeKcal: null,
+    totalKcal: null,
+    floors: null,
+    nutrition: {
+      kcal: null,
+      target: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+      proteinTarget: DEFAULT_TARGETS.proteinG,
+      waterMl: null,
+      waterTargetMl: DEFAULT_TARGETS.waterMl,
+    },
+    weight: null,
+    bodyFat: null,
+    muscle: null,
+  };
+}
+
+/**
+ * Resumen de un día con lo real, sobre `summary` (emptySummary): lo que no haya ese día queda en
+ * null, no inventado, y las medias de Tendencias solo cuentan los días con dato.
  */
 export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline = null) {
   const totals = realTotals(day);
-  const sleep = day.sleep
-    ? sleepFrom(summary.date, day.sleep).totals
-    : { ...summary.sleep, ...NO_SLEEP };
+  const sleep = day.sleep ? sleepFrom(summary.date, day.sleep).totals : { ...NO_SLEEP };
   const real = Object.fromEntries(DAILY_FIELDS.map((f) => [f, values[f] ?? null]));
-  const { tss, ctl, atl, basalKcal } = real;
+  const { tss, ctl, atl, basalKcal, waterMl } = real;
   delete real.sleepTemp;
   delete real.basalKcal;
   delete real.tss;
   delete real.ctl;
   delete real.atl;
-  // La carga solo es real si hay CTL de intervals.icu ese día; si no, se queda la de ejemplo
+  delete real.waterMl;
+  // Carga solo con el CTL de intervals.icu de ese día; sin él, no hay
   const load =
     ctl != null ? { tss: tss ?? 0, ctl, atl, tsb: Math.round((ctl - atl) * 10) / 10 } : null;
+  const totalKcal =
+    real.activeKcal != null && basalKcal != null ? Math.round(real.activeKcal + basalKcal) : null;
   return {
     ...summary,
     ...real,
-    load: load ?? summary.load,
+    load,
     recovery: null,
     hrvBaseline: null,
-    totalKcal:
-      real.activeKcal != null && basalKcal != null ? Math.round(real.activeKcal + basalKcal) : null,
+    totalKcal,
     skinTemp:
       values.sleepTemp != null && tempBaseline != null
         ? Math.round((values.sleepTemp - tempBaseline) * 100) / 100
         : null,
     sleep,
-    nutrition: { ...summary.nutrition, ...totals.nutrition },
+    nutrition: { ...summary.nutrition, ...totals.nutrition, target: totalKcal, waterMl },
     weight: totals.weight,
     bodyFat: totals.bodyFat,
     muscle: totals.muscle,
-    real: load ? [...REAL_BLOCKS, 'load'] : REAL_BLOCKS,
   };
 }
 
 /**
- * Detalle del día del mock con lo real: fuera sus eventos de ejemplo (comidas, cafés, pesajes,
- * entrenos y sueño) y dentro los episodios de verdad, la FC y los pasos por hora.
+ * Detalle de un día (`day`: emptySummary + isToday y until) con lo real: los episodios, la FC y
+ * los pasos por hora.
  */
 export function mergeDay(day, { episodes, daily, stepsByHour, hr }) {
   const mine = episodes.get(day.date) ?? EMPTY_DAY;
@@ -647,16 +699,15 @@ export function mergeDay(day, { episodes, daily, stepsByHour, hr }) {
     ...mine.workouts.map(workoutEvent),
     ...(mine.clinical ?? []).map(clinicalEvent),
   ].sort((a, b) => a.start - b.start);
-  // En la vista del día sí se ven los ceros (llevas 0 pasos, 0 kcal); la recuperación sigue de
-  // ejemplo ahí, con su etiqueta, hasta que se calcule
+  // En la vista del día sí se ven los ceros (llevas 0 pasos, 0 kcal); el sueño no: sin noche
+  // registrada no hay puntuación ni eficiencia
   return {
     ...summary,
-    recovery: day.recovery,
     steps: summary.steps ?? 0,
     activeKcal: summary.activeKcal ?? 0,
     floors: summary.floors ?? 0,
     distanceKm: summary.distanceKm ?? 0,
-    sleep: sleep.totals,
+    sleep: mine.sleep ? sleep.totals : { ...NO_SLEEP },
     nutrition: {
       ...n,
       kcal: n.kcal ?? 0,

@@ -20,7 +20,7 @@ import {
 import Toast from './components/ui/Toast.vue';
 import { useTheme } from './composables/useTheme.js';
 import { useAuth, signOut } from './composables/useAuth.js';
-import { USING_SAMPLE_DATA, fetchSystemStatus } from './services/twin.js';
+import { fetchSystemStatus } from './services/twin.js';
 
 const { toggle, isDark, theme } = useTheme();
 const { user, isAdmin } = useAuth();
@@ -123,12 +123,6 @@ const admin = [
             <LogOut class="icon icon-sm" />
           </button>
         </div>
-        <span
-          v-if="USING_SAMPLE_DATA"
-          class="sample"
-          title="Comidas, peso, sueño, FC, constantes, pasos y entrenos son reales; recuperación, carga y la vista de entrenos siguen siendo de ejemplo"
-          >Datos en parte de ejemplo</span
-        >
         <div class="foot-row">
           <span class="api" :class="apiStatus">
             <span class="dot" />
@@ -236,15 +230,6 @@ nav {
   display: grid;
   gap: 10px;
   padding: 0 4px;
-}
-
-.sample {
-  justify-self: start;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  color: var(--text-2);
-  border: 1px dashed var(--border-strong);
 }
 
 .me {

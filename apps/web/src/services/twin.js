@@ -1,22 +1,19 @@
 /**
- * Capa de datos del front. Comidas, pesajes, sueño, FC, constantes, pasos, entrenos y carga vienen
- * de la API (services/timeline.js); solo la recuperación sale aún de los datos de ejemplo
- * (data/mock.js). Si la API falla, se propaga el error: nunca se rellena con datos de ejemplo.
- * Cada día dice en `real` qué bloques son de verdad.
+ * Capa de datos del front: todo viene de la API (services/timeline.js). Lo que no hay se queda en
+ * null y la vista lo dice; nada se rellena con datos inventados. La recuperación aún no se
+ * calcula. Si la API falla, se propaga el error.
  */
 import { apiFetch } from '../api.js';
-import { dayDetail, rangeSummaries } from '../data/mock.js';
-import { addDays, todayISO } from '../lib/dates.js';
+import { addDays, dateRange, minutesOfDay, todayISO } from '../lib/dates.js';
 import {
   activityFrom,
+  emptySummary,
   fetchDayDetail,
   fetchRange,
   mergeDay,
   mergeSummary,
   temperatureBaseline,
 } from './timeline.js';
-
-export const USING_SAMPLE_DATA = true;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const CACHE_MS = 2 * 60 * 1000;
@@ -55,7 +52,8 @@ export async function fetchDay(date) {
   const real = await fetchDayDetail(cachedGet, date);
   // El día anterior se precarga: la flecha de atrás sale al momento
   fetchDayDetail(cachedGet, addDays(date, -1)).catch(() => {});
-  return mergeDay(dayDetail(date), real);
+  const isToday = date === todayISO();
+  return mergeDay({ ...emptySummary(date), isToday, until: isToday ? minutesOfDay() : 1440 }, real);
 }
 
 const BASELINE_DAYS = 30;
@@ -65,7 +63,7 @@ const BASELINE_DAYS = 30;
  * de los 30 días anteriores con dato, como hacen los relojes), y luego se quedan los pedidos.
  */
 async function summaries(end, days) {
-  const list = rangeSummaries(end, days + BASELINE_DAYS - 1);
+  const list = dateRange(end, days + BASELINE_DAYS - 1).map(emptySummary);
   const real = await fetchRange(cachedGet, list[0].date, end);
   const baseline = temperatureBaseline(real.daily);
   const merged = list.map((s) =>

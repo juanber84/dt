@@ -45,10 +45,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Tests y lint
+      - name: Tests, lint y formato
         run: |
           npm ci
           npm run lint
+          npm run format:check
           npm test
 
       - name: Empaquetar el código (en el runner, se borra al terminar)

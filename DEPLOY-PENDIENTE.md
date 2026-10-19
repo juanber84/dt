@@ -102,5 +102,3 @@ El worker también usa la carpeta `/api`. Las claves nuevas se generan con `open
   todo. Por ejemplo, un cron diario en el VPS:
   `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > /opt/digitaltwin/backups/dt-$(date +%F).dump`,
   y llevarse la copia fuera del VPS.
-- **Prettier en CI.** El workflow no ejecuta `format:check`, y
-  `apps/web/public/login/CREDITS.md` ya no lo cumple.
