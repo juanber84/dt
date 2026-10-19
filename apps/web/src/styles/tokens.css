@@ -1,0 +1,117 @@
+/*
+ * Tokens de diseño. Neutros cálidos, un solo color por familia de datos y colores de estado
+ * reservados (siempre con texto o icono, nunca solos).
+ *
+ * Paleta de datos validada (dataviz/validate_palette.js, todas las parejas, ambos modos):
+ *   sueño = azul · actividad = naranja · nutrición = aqua
+ * El resto (cuerpo, hidratación, notas) va en tinta neutra con su icono.
+ */
+:root {
+  color-scheme: light;
+  --page: #f4f4f1;
+  --surface: #fcfcfb;
+  --surface-2: #f4f3ef;
+  --surface-hover: #f0efea;
+  --border: rgba(11, 11, 11, 0.08);
+  --border-strong: rgba(11, 11, 11, 0.16);
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #898781;
+  --grid: #e8e7e1;
+  --axis: #c3c2b7;
+  --inverse: #fcfcfb;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 8px 24px -12px rgba(11, 11, 11, 0.12);
+  --overlay: rgba(11, 11, 11, 0.32);
+
+  --sleep: #2a78d6;
+  --activity: #eb6834;
+  --nutrition: #1baf7a;
+  --hr-line: #52514e;
+  /* Fases del sueño: rampa ordinal del azul (profundo = más oscuro) */
+  --stage-deep: #1c5cab;
+  --stage-rem: #3987e5;
+  --stage-light: #86b6ef;
+  --stage-awake: #c3c2b7;
+
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --warning-text: #8a5a00;
+  --critical: #d03b3b;
+  --critical-text: #b02a2a;
+  --diverge-pos: #2a78d6;
+  --diverge-neg: #e34948;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+    --page: #0f0f0e;
+    --surface: #1a1a19;
+    --surface-2: #212120;
+    --surface-hover: #242423;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --inverse: #0f0f0e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+    --overlay: rgba(0, 0, 0, 0.55);
+
+    --sleep: #3987e5;
+    --activity: #d95926;
+    --nutrition: #199e70;
+    --hr-line: #c3c2b7;
+    --stage-deep: #184f95;
+    --stage-rem: #3987e5;
+    --stage-light: #86b6ef;
+    --stage-awake: #5c5b57;
+
+    --good-text: #0ca30c;
+    --warning-text: #fab219;
+    --critical-text: #e66767;
+    --diverge-pos: #3987e5;
+    --diverge-neg: #e66767;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #0f0f0e;
+  --surface: #1a1a19;
+  --surface-2: #212120;
+  --surface-hover: #242423;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --inverse: #0f0f0e;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --sleep: #3987e5;
+  --activity: #d95926;
+  --nutrition: #199e70;
+  --hr-line: #c3c2b7;
+  --stage-deep: #184f95;
+  --stage-rem: #3987e5;
+  --stage-light: #86b6ef;
+  --stage-awake: #5c5b57;
+
+  --good-text: #0ca30c;
+  --warning-text: #fab219;
+  --critical-text: #e66767;
+  --diverge-pos: #3987e5;
+  --diverge-neg: #e66767;
+}

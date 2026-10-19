@@ -1,0 +1,17 @@
+{
+  "name": "@digitaltwin/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Acceso a la BD (PostgreSQL + TimescaleDB) con postgres.js y migraciones en SQL",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
+  }
+}

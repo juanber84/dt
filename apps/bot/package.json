@@ -1,0 +1,19 @@
+{
+  "name": "@digitaltwin/bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bot de Telegram para registrar lo que comes (macros con LLM, confirmación y envío a la API)",
+  "main": "./src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@digitaltwin/logger": "^0.1.0",
+    "@digitaltwin/nutrition": "^0.1.0",
+    "grammy": "^1.46.0",
+    "zod": "^4.6.7"
+  }
+}

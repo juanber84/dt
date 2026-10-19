@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/llm-usage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cuenta del gasto en LLM: precios, tokens, coste y filas de llm_usage",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

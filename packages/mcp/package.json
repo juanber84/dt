@@ -1,0 +1,19 @@
+{
+  "name": "@digitaltwin/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor MCP sobre el timeline del usuario: herramientas para que una IA lea sus datos",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@digitaltwin/timeline": "^0.1.0",
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "zod": "^4.6.5"
+  }
+}

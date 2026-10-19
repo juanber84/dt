@@ -1,0 +1,17 @@
+{
+  "name": "@digitaltwin/clinical",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Informes médicos en PDF (analíticas, holter, prueba de esfuerzo): texto, datos personales fuera, extracción con LLM y revisión",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

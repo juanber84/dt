@@ -1,0 +1,42 @@
+# Imagen del frontal. Dos usos:
+#  - producción (último stage): compila apps/web con Vite y lo sirve con nginx, que además reenvía
+#    /api a la API (mismo origen, sin CORS). docker build -f Dockerfile.web .
+#  - local (target dev): servidor de desarrollo de Vite con recarga en caliente; el código se monta
+#    como volumen (ver docker-compose.local.yml).
+FROM node:22-alpine AS deps
+WORKDIR /app
+
+# 1. Manifiestos de todos los workspaces (npm ci exige que cuadren con el lockfile)
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/bot/package.json apps/bot/
+COPY apps/web/package.json apps/web/
+COPY apps/worker/package.json apps/worker/
+COPY packages/coach/package.json packages/coach/
+COPY packages/connections/package.json packages/connections/
+COPY packages/db/package.json packages/db/
+COPY packages/logger/package.json packages/logger/
+COPY packages/mcp/package.json packages/mcp/
+COPY packages/nutrition/package.json packages/nutrition/
+COPY packages/queue/package.json packages/queue/
+COPY packages/timeline/package.json packages/timeline/
+COPY packages/google-health/package.json packages/google-health/
+COPY packages/intervals-icu/package.json packages/intervals-icu/
+COPY packages/xiaomi/package.json packages/xiaomi/
+
+# 2. Dependencias solo del frontal (vite va en devDependencies: hacen falta para compilar)
+RUN npm ci --workspace=@digitaltwin/web --include-workspace-root=false && npm cache clean --force
+
+# Desarrollo: el código llega por volumen
+FROM deps AS dev
+WORKDIR /app/apps/web
+CMD ["npx", "vite", "--host", "0.0.0.0"]
+
+FROM deps AS build
+# 3. Código y build
+COPY apps/web ./apps/web
+RUN npm run build -w @digitaltwin/web
+
+FROM nginx:1.29-alpine
+COPY docker/web-nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html

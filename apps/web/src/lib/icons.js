@@ -1,0 +1,44 @@
+import {
+  Moon,
+  Scale,
+  Coffee,
+  Utensils,
+  Bike,
+  Footprints,
+  Dumbbell,
+  PersonStanding,
+  Droplets,
+  NotebookPen,
+  Stethoscope,
+  Activity,
+  FlaskConical,
+  HeartPulse,
+  FileText,
+  Gauge,
+  ScanLine,
+  ClipboardList,
+} from '@lucide/vue';
+
+// Los eventos traen el icono por nombre (vienen de la API); aquí se resuelve el componente
+const ICONS = {
+  Moon,
+  Scale,
+  Coffee,
+  Utensils,
+  Bike,
+  Footprints,
+  Dumbbell,
+  PersonStanding,
+  Droplets,
+  NotebookPen,
+  Stethoscope,
+  FlaskConical,
+  HeartPulse,
+  FileText,
+  Activity,
+  Gauge,
+  ScanLine,
+  ClipboardList,
+};
+
+export const iconFor = (name) => ICONS[name] ?? Activity;

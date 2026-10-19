@@ -1,0 +1,26 @@
+{
+  "name": "@digitaltwin/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Worker del pipeline: sincronizaciones, cargas iniciales, normalización y cron",
+  "main": "./src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@digitaltwin/clinical": "^0.1.0",
+    "@digitaltwin/connections": "^0.1.0",
+    "@digitaltwin/db": "^0.1.0",
+    "@digitaltwin/google-health": "^0.1.0",
+    "@digitaltwin/intervals-icu": "^0.1.0",
+    "@digitaltwin/llm-usage": "^0.1.0",
+    "@digitaltwin/logger": "^0.1.0",
+    "@digitaltwin/queue": "^0.1.0",
+    "@digitaltwin/timeline": "^0.1.0",
+    "@digitaltwin/xiaomi": "^0.1.0",
+    "zod": "^4.6.5"
+  }
+}

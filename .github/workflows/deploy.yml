@@ -1,0 +1,77 @@
+name: digitaltwin deploy
+
+# Construye las imágenes en el propio VPS: no se guardan imágenes en GHCR ni artefactos en GitHub.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: digitaltwin-deploy
+  cancel-in-progress: false
+
+jobs:
+  digitaltwin-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests y lint
+        run: |
+          npm ci
+          npm run lint
+          npm test
+
+      - name: Empaquetar el código (en el runner, se borra al terminar)
+        run: git archive --format=tar.gz -o /tmp/digitaltwin.tar.gz HEAD
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copiar al VPS
+        run: scp /tmp/digitaltwin.tar.gz ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/tmp/digitaltwin.tar.gz
+
+      - name: Desplegar con docker compose
+        run: |
+          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} bash -s << 'DEPLOY_SCRIPT'
+            set -e
+            ROOT=/opt/digitaltwin
+
+            sudo mkdir -p $ROOT
+            sudo chown $USER:$USER $ROOT
+
+            # Código nuevo en limpio
+            rm -rf $ROOT/app.new
+            mkdir -p $ROOT/app.new
+            tar -xzf /tmp/digitaltwin.tar.gz -C $ROOT/app.new
+            rm -rf $ROOT/app
+            mv $ROOT/app.new $ROOT/app
+            rm -f /tmp/digitaltwin.tar.gz
+
+            # Secretos: los contenedores los piden a Infisical al arrancar
+            # Autenticación: INFISICAL_TOKEN o INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET
+            export INFISICAL_TOKEN="${{ secrets.INFISICAL_TOKEN }}"
+            export INFISICAL_CLIENT_ID="${{ secrets.INFISICAL_CLIENT_ID }}"
+            export INFISICAL_CLIENT_SECRET="${{ secrets.INFISICAL_CLIENT_SECRET }}"
+            export INFISICAL_DOMAIN="${{ secrets.INFISICAL_DOMAIN }}"
+            export INFISICAL_PROJECT_ID="${{ secrets.INFISICAL_PROJECT_ID }}"
+            export INFISICAL_ENV="prod"
+            export DIGITALTWIN_DB_PASSWORD="${{ secrets.DIGITALTWIN_DB_PASSWORD }}"
+
+            # Build en el VPS y arranque
+            cd $ROOT/app
+            sudo -E docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+            sudo -E docker compose -f docker-compose.prod.yml ps
+
+            # Limpieza: imágenes viejas y caché de build de más de una semana
+            sudo docker image prune -f
+            sudo docker builder prune -f --filter until=168h
+          DEPLOY_SCRIPT

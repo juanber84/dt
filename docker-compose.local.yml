@@ -1,0 +1,29 @@
+# Se suma a docker-compose.prod.yml para probar en local (make docker-up):
+# publica la API en http://localhost:3080 (para curl), el frontal en http://localhost:3081 y la BD
+# en localhost:5433 (el 5432 suele estar cogido por un Postgres local).
+services:
+  digitaltwin-db:
+    ports:
+      - '127.0.0.1:5433:5432'
+
+  digitaltwin-api:
+    ports:
+      - '127.0.0.1:3080:3000'
+
+  # En local el frontal va en modo desarrollo (Vite con recarga en caliente) en vez de nginx:
+  # el código de apps/web se monta como volumen, así que los cambios se ven al guardar.
+  digitaltwin-web:
+    build:
+      target: dev
+    image: digitaltwin-web:dev
+    environment:
+      # Tiene prioridad sobre apps/web/.env (que es para `make web` fuera de Docker)
+      API_URL: http://digitaltwin-api:3000
+    volumes:
+      - ./apps/web:/app/apps/web
+      # node_modules y la caché de Vite se quedan en el contenedor
+      - /app/apps/web/node_modules
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:5173/']
+    ports:
+      - '127.0.0.1:3081:5173'

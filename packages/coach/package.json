@@ -1,0 +1,17 @@
+{
+  "name": "@digitaltwin/coach",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "El coach: agente con LLM (DeepSeek/OpenAI) que consulta los datos del usuario con herramientas",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

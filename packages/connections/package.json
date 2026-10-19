@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/connections",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Conexiones de cada usuario con proveedores externos (credenciales cifradas en la BD)",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

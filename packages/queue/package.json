@@ -1,0 +1,17 @@
+{
+  "name": "@digitaltwin/queue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cola de trabajos sobre Postgres (pg-boss) con los nombres de los trabajos del pipeline",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pg-boss": "12.35.1"
+  }
+}

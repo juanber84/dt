@@ -1,0 +1,170 @@
+# Producción en el VPS. Lo usa .github/workflows/digitaltwin-deploy.yml, que copia el código a
+# /opt/digitaltwin/app/ y exporta las variables INFISICAL_*. En local: `make docker-up`
+# (mismo compose, entorno dev de Infisical y red local; ver docker-compose.local.yml).
+# El frontal (digitaltwin-web) no tiene secretos: nginx sirve el build y reenvía /api a la API.
+# Los secretos viven en Infisical (proyecto digitaltwin, entorno prod): carpeta /api para la API y
+# /bot para el bot. Con --watch, si cambias un secreto el proceso se reinicia solo.
+# Todo lleva el prefijo digitaltwin para no chocar con otros proyectos de red-n8n.
+name: digitaltwin-stack
+
+x-infisical:
+  &infisical # Autenticación: INFISICAL_TOKEN o INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET (ver docker/digitaltwin-run.sh)
+  INFISICAL_TOKEN: ${INFISICAL_TOKEN:-}
+  INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID:-}
+  INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET:-}
+  INFISICAL_DOMAIN: ${INFISICAL_DOMAIN}
+  INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+  INFISICAL_ENV: ${INFISICAL_ENV:-prod}
+  NODE_ENV: production
+
+services:
+  # TimescaleDB (Postgres 18 + series temporales). Imagen Alpine normal, no la -ha (3-7 veces más
+  # grande); tampoco la -oss, que no trae compresión ni continuous aggregates.
+  # La contraseña no viene de Infisical (la imagen no lo usa): DIGITALTWIN_DB_PASSWORD en
+  # .env.infisical en local y en los secrets de GitHub en producción.
+  digitaltwin-db:
+    image: timescale/timescaledb:2.30.2-pg18
+    container_name: digitaltwin-db
+    environment:
+      POSTGRES_DB: digitaltwin
+      POSTGRES_USER: digitaltwin
+      POSTGRES_PASSWORD: ${DIGITALTWIN_DB_PASSWORD:?Falta DIGITALTWIN_DB_PASSWORD}
+      TIMESCALEDB_TELEMETRY: 'off'
+    # Memoria y CPU para un VPS de 8 GB / 4 cores compartido con otros proyectos: 2 GB y 2 cores
+    # para la BD. Van por línea de comandos (no TS_TUNE_*, que solo se aplica al crear la BD), así
+    # que cambiarlos aquí vale con reiniciar el contenedor.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1536MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - max_connections=100
+      - -c
+      - max_worker_processes=16
+      - -c
+      - timescaledb.max_background_workers=8
+      - -c
+      - max_parallel_workers=2
+      - -c
+      - wal_compression=on
+    volumes:
+      - digitaltwin-db-data:/var/lib/postgresql
+    mem_limit: 2g
+    cpus: 2
+    shm_size: 256m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U digitaltwin -d digitaltwin']
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    restart: always
+    networks:
+      - red-n8n
+
+  digitaltwin-api:
+    build:
+      context: .
+      args:
+        APP: api
+    image: digitaltwin-api:latest
+    container_name: digitaltwin-api
+    command: ['digitaltwin-run', '/api']
+    environment:
+      <<: *infisical
+      PORT: 3000
+      # No va en Infisical: se construye con la misma clave que usa digitaltwin-db
+      DATABASE_URL: postgres://digitaltwin:${DIGITALTWIN_DB_PASSWORD}@digitaltwin-db:5432/digitaltwin
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      digitaltwin-db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - red-n8n
+
+  # Worker del pipeline: sincronizaciones, cargas iniciales, normalización y cron. Usa los secretos
+  # de /api (TOKEN_ENCRYPTION_KEY, GOOGLE_CLIENT_*...): descifra las mismas conexiones.
+  digitaltwin-worker:
+    build:
+      context: .
+      args:
+        APP: worker
+    image: digitaltwin-worker:latest
+    container_name: digitaltwin-worker
+    command: ['digitaltwin-run', '/api']
+    environment:
+      <<: *infisical
+      DATABASE_URL: postgres://digitaltwin:${DIGITALTWIN_DB_PASSWORD}@digitaltwin-db:5432/digitaltwin
+    mem_limit: 512m
+    cpus: 1
+    depends_on:
+      digitaltwin-api:
+        condition: service_healthy
+    restart: always
+    networks:
+      - red-n8n
+
+  digitaltwin-bot:
+    build:
+      context: .
+      args:
+        APP: bot
+    image: digitaltwin-bot:latest
+    container_name: digitaltwin-bot
+    command: ['digitaltwin-run', '/bot']
+    environment:
+      <<: *infisical
+      API_URL: http://digitaltwin-api:3000
+    depends_on:
+      digitaltwin-api:
+        condition: service_healthy
+    restart: always
+    networks:
+      - red-n8n
+
+  digitaltwin-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: digitaltwin-web:latest
+    container_name: digitaltwin-web
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      digitaltwin-api:
+        condition: service_healthy
+    restart: always
+    networks:
+      - red-n8n
+
+volumes:
+  # Los datos sobreviven a los despliegues (el workflow borra el código, no los volúmenes)
+  digitaltwin-db-data:
+    name: digitaltwin-db-data
+
+networks:
+  red-n8n:
+    # En local se usa otra red (DIGITALTWIN_NETWORK, la crea `make docker-up`)
+    name: ${DIGITALTWIN_NETWORK:-red-n8n}
+    external: true

@@ -1,0 +1,297 @@
+<script setup>
+import { computed, ref, watch } from 'vue';
+import { Droplets, Coffee, Scale, Stethoscope, NotebookPen, FileHeart } from '@lucide/vue';
+import Modal from '../ui/Modal.vue';
+import { uploadDocument, uploadProblem } from '../../services/clinical.js';
+import { fmtClock } from '../../lib/format.js';
+import { formatShortDate, minutesOfDay, todayISO } from '../../lib/dates.js';
+
+const props = defineProps({
+  open: { type: Boolean, default: false },
+  /** El día que se está viendo: es el que sale por defecto. */
+  date: { type: String, required: true },
+  /** Con qué tipo se abre ('report' para subir un informe). */
+  initialKind: { type: String, default: null },
+});
+// add: { date, entry } de un registro a mano; uploaded: { document, created } de un informe
+const emit = defineEmits(['close', 'add', 'uploaded']);
+
+const KINDS = [
+  {
+    id: 'water',
+    label: 'Agua',
+    icon: Droplets,
+    unit: 'ml',
+    default: 500,
+    category: 'hydration',
+    iconName: 'Droplets',
+  },
+  {
+    id: 'coffee',
+    label: 'Café',
+    icon: Coffee,
+    unit: 'mg de cafeína',
+    default: 80,
+    category: 'hydration',
+    iconName: 'Coffee',
+  },
+  {
+    id: 'weight',
+    label: 'Peso',
+    icon: Scale,
+    unit: 'kg',
+    default: 78.5,
+    category: 'body',
+    iconName: 'Scale',
+  },
+  {
+    id: 'symptom',
+    label: 'Síntoma',
+    icon: Stethoscope,
+    unit: 'intensidad (1-5)',
+    default: 2,
+    category: 'note',
+    iconName: 'Stethoscope',
+  },
+  {
+    id: 'note',
+    label: 'Nota',
+    icon: NotebookPen,
+    unit: null,
+    category: 'note',
+    iconName: 'NotebookPen',
+  },
+  // Sube el PDF a Clínica: la fecha la saca del informe (si no trae, la de este día)
+  { id: 'report', label: 'Informe', icon: FileHeart, unit: null },
+];
+
+const kind = ref('water');
+const day = ref(props.date);
+const time = ref('12:00');
+const value = ref(500);
+const text = ref('');
+const file = ref(null);
+const uploading = ref(false);
+const uploadError = ref(null);
+const current = computed(() => KINDS.find((k) => k.id === kind.value));
+const today = todayISO();
+
+watch(
+  () => props.open,
+  (open) => {
+    if (!open) return;
+    if (props.initialKind) kind.value = props.initialKind;
+    day.value = props.date;
+    time.value = props.date === todayISO() ? fmtClock(minutesOfDay()) : '12:00';
+    text.value = '';
+    file.value = null;
+    uploadError.value = null;
+    value.value = current.value.default ?? null;
+  },
+);
+watch(kind, () => (value.value = current.value.default ?? null));
+
+const titles = {
+  water: () => `Agua · ${value.value} ml`,
+  coffee: () => `Café · ${value.value} mg de cafeína`,
+  weight: () => `Pesaje manual · ${String(value.value).replace('.', ',')} kg`,
+  symptom: () => `${text.value || 'Síntoma'} · intensidad ${value.value}/5`,
+  note: () => text.value || 'Nota',
+};
+
+async function uploadReport() {
+  uploadError.value = uploadProblem(file.value);
+  if (uploadError.value) return;
+  uploading.value = true;
+  try {
+    const result = await uploadDocument(file.value, props.date);
+    emit('uploaded', result);
+    emit('close');
+  } catch (err) {
+    uploadError.value = `No se ha podido subir: ${err.message}`;
+  } finally {
+    uploading.value = false;
+  }
+}
+
+function submit() {
+  if (kind.value === 'report') return uploadReport();
+  const [h, m] = time.value.split(':').map(Number);
+  const start = h * 60 + m;
+  const k = current.value;
+  emit('add', {
+    date: day.value,
+    entry: {
+      id: `manual-${Date.now()}`,
+      category: k.category,
+      icon: k.iconName,
+      title: k.label,
+      subtitle: titles[k.id](),
+      start,
+      metrics: k.unit
+        ? [
+            {
+              label: k.label,
+              value: Number(value.value),
+              unit: k.unit.split(' ')[0],
+              digits: k.id === 'weight' ? 1 : 0,
+            },
+          ]
+        : [],
+      sources: [
+        {
+          source: 'manual',
+          primary: true,
+          externalId: `manual_${Date.now()}`,
+          recordedAt: new Date().toISOString(),
+          values: {
+            kind: k.id,
+            value: k.unit ? Number(value.value) : undefined,
+            text: text.value || undefined,
+          },
+        },
+      ],
+    },
+  });
+  emit('close');
+}
+</script>
+
+<template>
+  <Modal :open="open" title="Registrar" @close="emit('close')">
+    <div class="kinds" role="radiogroup" aria-label="Tipo de registro">
+      <button
+        v-for="k in KINDS"
+        :key="k.id"
+        role="radio"
+        :aria-checked="kind === k.id"
+        :class="{ active: kind === k.id }"
+        @click="kind = k.id"
+      >
+        <component :is="k.icon" class="icon" />
+        {{ k.label }}
+      </button>
+    </div>
+    <template v-if="kind === 'report'">
+      <label class="field">
+        <span>PDF del informe</span>
+        <input
+          class="input file"
+          type="file"
+          accept="application/pdf,.pdf"
+          @change="file = $event.target.files?.[0] ?? null"
+        />
+      </label>
+      <p class="muted hint">
+        Analítica, prueba (holter, esfuerzo, ECG, ecografía…) o informe médico. Va al día de la
+        prueba, que se saca del propio informe (si no la trae, al {{ formatShortDate(date) }}). Lo
+        revisas en el lateral antes de que entre en tu timeline.
+      </p>
+      <p v-if="uploadError" class="error" role="alert">{{ uploadError }}</p>
+    </template>
+    <template v-else>
+      <div class="row">
+        <label class="field">
+          <span>Día</span>
+          <input v-model="day" class="input num" type="date" :max="today" required />
+        </label>
+        <label class="field">
+          <span>Hora</span>
+          <input v-model="time" class="input num" type="time" required />
+        </label>
+      </div>
+      <label v-if="current.unit" class="field">
+        <span>{{ current.unit[0].toUpperCase() + current.unit.slice(1) }}</span>
+        <input
+          v-model="value"
+          class="input num"
+          type="number"
+          :step="kind === 'weight' ? 0.1 : 1"
+          :min="kind === 'symptom' ? 1 : 0"
+          :max="kind === 'symptom' ? 5 : undefined"
+        />
+      </label>
+    </template>
+    <label v-if="kind === 'symptom' || kind === 'note'" class="field">
+      <span>{{ kind === 'symptom' ? 'Qué notas' : 'Nota' }}</span>
+      <textarea
+        v-model="text"
+        class="input"
+        :placeholder="
+          kind === 'symptom' ? 'Dolor de cabeza, pesadez de piernas…' : 'Lo que quieras apuntar'
+        "
+      />
+    </label>
+    <p v-if="kind !== 'report'" class="muted hint">
+      Se guarda como fuente «Manual». Las comidas mejor por el bot: estima los macros.
+    </p>
+    <template #footer>
+      <button class="btn" @click="emit('close')">Cancelar</button>
+      <button
+        class="btn btn-primary"
+        :disabled="kind === 'report' ? !file || uploading : !day"
+        @click="submit"
+      >
+        {{ kind === 'report' ? (uploading ? 'Subiendo…' : 'Subir y leer') : 'Guardar' }}
+      </button>
+    </template>
+  </Modal>
+</template>
+
+<style scoped>
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.kinds button {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.kinds button:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.kinds button.active {
+  border-color: var(--text);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.row .input {
+  width: 100%;
+  min-width: 0;
+}
+
+.hint {
+  font-size: 12px;
+}
+
+.input.file {
+  height: auto;
+  padding: 8px;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--critical);
+}
+</style>
