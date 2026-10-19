@@ -1,8 +1,9 @@
 # Instalación y despliegue
 
-Guía para poner en marcha Digital Twin (API + worker + bot de Telegram) en local y en el VPS.
+Guía para poner en marcha Digital Twin (web + API + worker + bot de Telegram) en local y en el VPS.
 
 ```
+Navegador ⇄ digitaltwin-web (nginx: el front y /api) ──▶ digitaltwin-api
 Telegram ⇄ digitaltwin-bot ──webhook firmado──▶ digitaltwin-api ──▶ LLM (DeepSeek)
 Google / webhooks ───────────────────────────────▶      │ encola
                                                          ▼
@@ -11,7 +12,9 @@ Xiaomi, Google ◀── digitaltwin-worker ◀── cola (pg-boss) en digitalt
 
 - **API** (`apps/api`): estima macros con el LLM, recibe webhooks (bot, Google) y sirve el
   timeline. No descarga nada: lo encola.
-- **Worker** (`apps/worker`): sincronizaciones, cargas iniciales por trozos, normalización y cron.
+- **Worker** (`apps/worker`): sincronizaciones, cargas iniciales por trozos, normalización, cron y
+  lectura de los informes médicos (PDF → texto con `pdftotext` → LLM).
+- **Web** (`apps/web`): Vue compilado y servido por nginx, que reenvía `/api` a la API.
 - **Bot** (`apps/bot`): solo interfaz. Long polling, no necesita webhook ni puertos abiertos.
 
 ## Índice
@@ -98,15 +101,17 @@ Comprobar la API: `curl localhost:3080/health`.
 
 ## 2. Producción: cómo funciona
 
-Cada push a `main` que toque `digitaltwin/` (o lanzándolo a mano desde Actions) ejecuta
-`.github/workflows/digitaltwin-deploy.yml`, en la raíz del repo. Un único job:
+Cada push a `main` (o lanzándolo a mano desde Actions) ejecuta `.github/workflows/deploy.yml`.
+Un único job:
 
-1. `npm ci`, lint y tests. Si fallan, no se despliega.
-2. `git archive` del código a un tar en `/tmp` del runner (no es un artefacto: se borra con el runner).
-3. `scp` del tar al VPS.
-4. Por SSH en el VPS:
+1. Comprueba que estén los secrets del repo (apartado 3.3); si falta alguno dice cuál.
+2. `npm ci`, lint y tests. Si fallan, no se despliega.
+3. `git archive` del código a un tar en `/tmp` del runner (no es un artefacto: se borra con el runner).
+4. `scp` del tar al VPS.
+5. Por SSH en el VPS:
    - descomprime en `/opt/digitaltwin/app/` (reemplaza la versión anterior);
-   - exporta `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID` y el acceso (token o machine identity);
+   - exporta `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, el acceso (token o machine identity) y
+     `DIGITALTWIN_DB_PASSWORD`;
    - `sudo -E docker compose -f docker-compose.prod.yml up -d --build --remove-orphans`;
    - `docker image prune -f` y limpia la caché de build de más de una semana.
 
@@ -116,12 +121,16 @@ imágenes se construyen en el propio VPS.
 **Contenedores** (`docker-compose.prod.yml`), todos con prefijo `digitaltwin` para no chocar con
 otros proyectos de la red:
 
-| Contenedor        | Qué hace                               | Red       |
-| ----------------- | -------------------------------------- | --------- |
-| `digitaltwin-api` | API en el puerto 3000, con healthcheck | `red-n8n` |
-| `digitaltwin-bot` | Bot; arranca cuando la API está sana   | `red-n8n` |
+| Contenedor           | Qué hace                                                               |
+| -------------------- | ---------------------------------------------------------------------- |
+| `digitaltwin-db`     | TimescaleDB; los datos en el volumen `digitaltwin-db-data`             |
+| `digitaltwin-api`    | API en el puerto 3000; aplica las migraciones al arrancar              |
+| `digitaltwin-worker` | Cola, sincronizaciones, cron e informes; arranca con la API sana       |
+| `digitaltwin-bot`    | Bot; arranca cuando la API está sana                                   |
+| `digitaltwin-web`    | nginx en el puerto 80: el front y `/api` reenviado a `digitaltwin-api` |
 
-El bot habla con la API por `http://digitaltwin-api:3000` (red interna de Docker).
+Todos en la red `red-n8n`. El bot habla con la API por `http://digitaltwin-api:3000` (red interna
+de Docker). Ninguno publica puertos en el VPS: se llega por cloudflared (apartado 3.4).
 
 **Secretos:** viven en **Infisical**. Cada contenedor arranca con `digitaltwin-run /api|/bot`
 (`docker/digitaltwin-run.sh`): se autentica (token o machine identity) y ejecuta
@@ -148,24 +157,27 @@ Crea el proyecto **digitaltwin** con el entorno **`prod`** y dos carpetas:
 
 **`/api`**
 
-| Secreto                | Valor                                                                  |
-| ---------------------- | ---------------------------------------------------------------------- |
-| `DIGITALTWIN_API_KEYS` | `bot:<clave>` — clave **nueva** de producción (`openssl rand -hex 32`) |
-| `LLM_API_KEY`          | clave de DeepSeek                                                      |
-| `TIMEZONE`             | `Europe/Madrid`                                                        |
-| `TRUST_PROXY`          | `1` si la API va detrás de cloudflared                                 |
+| Secreto                                     | Valor                                                                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `DIGITALTWIN_API_KEYS`                      | `bot:<clave>` — clave **nueva** de producción (`openssl rand -hex 32`)                                                             |
+| `LLM_API_KEY`                               | clave de DeepSeek                                                                                                                  |
+| `TIMEZONE`                                  | `Europe/Madrid`                                                                                                                    |
+| `TRUST_PROXY`                               | `2` detrás de cloudflared + nginx (uno por proxy)                                                                                  |
+| `TOKEN_ENCRYPTION_KEY`                      | `openssl rand -hex 32` (cifra las credenciales de las conexiones)                                                                  |
+| `JWT_SECRET`                                | `openssl rand -hex 32` (sesiones de la web; sin él se pierden al reiniciar)                                                        |
+| `DIGITALTWIN_WEBHOOK_SECRET`                | `openssl rand -hex 32` (firma de los eventos del bot; **también en `/bot`**)                                                       |
+| `PUBLIC_URL`                                | URL pública del front (p. ej. `https://twin.tudominio.com`); por defecto `http://localhost:3081`, que en producción rompe el OAuth |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | cliente OAuth de Google; da de alta `<PUBLIC_URL>/api/v1/connections/google-health/callback`                                       |
 
-| `TOKEN_ENCRYPTION_KEY` | `openssl rand -hex 32` (cifra las credenciales de las conexiones) |
-| `JWT_SECRET` | `openssl rand -hex 32` (sesiones de la web) |
-| `DIGITALTWIN_WEBHOOK_SECRET` | `openssl rand -hex 32` (firma de los eventos del bot; **también en `/bot`**) |
+Opcionales: `LLM_BASE_URL` y `LLM_MODEL` (para cambiar de proveedor), `COACH_LLM_*`, `LOG_LEVEL`,
+`CORS_ORIGINS`, `GOOGLE_HEALTH_WEBHOOK_SECRET`, `CLINICAL_UPLOAD_LIMIT` (15mb; nginx deja hasta
+16m)... (ver `apps/api/.env.example`).
 
-Opcionales: `LLM_BASE_URL` y `LLM_MODEL` (para cambiar de proveedor), `LOG_LEVEL`,
-`CORS_ORIGINS`, `GOOGLE_HEALTH_WEBHOOK_SECRET`... (ver `apps/api/.env.example`).
-
-El **worker usa también `/api`** (descifra las mismas conexiones). Sus ajustes opcionales, con
+El **worker usa también `/api`** (descifra las mismas conexiones y lee los informes de Clínica con
+`LLM_API_KEY`: sin ella los PDF quedan en error). Sus ajustes opcionales, con
 valores por defecto: `XIAOMI_SYNC_CRON` (`*/30 * * * *`), `GOOGLE_SYNC_CRON` (`0 * * * *`),
 `GOOGLE_BACKFILL_DAYS` (730), `GOOGLE_BACKFILL_CHUNK_DAYS` (30), `GOOGLE_REQUESTS_PER_MINUTE`
-(120) y `XIAOMI_REQUESTS_PER_MINUTE` (10).
+(120), `XIAOMI_REQUESTS_PER_MINUTE` (10) y los `INTERVALS_*` equivalentes para intervals.icu.
 
 **`/bot`**
 
@@ -188,27 +200,30 @@ Acceso para los contenedores, una de las dos:
 
 ### 3.3 Secrets del repo en GitHub
 
-En _Settings → Secrets and variables → Actions_ del repo `digitaltwinlibraries`:
+En _Settings → Secrets and variables → Actions_ del repo `juanber84/dt`:
 
-| Secret                    | Valor                                                    |
-| ------------------------- | -------------------------------------------------------- |
-| `VPS_HOST`                | host del VPS                                             |
-| `VPS_USERNAME`            | usuario de SSH                                           |
-| `VPS_SSH_KEY`             | clave privada SSH (la misma que en cadenceai sirve)      |
-| `INFISICAL_TOKEN`         | service token (o deja este vacío y usa los dos de abajo) |
-| `INFISICAL_CLIENT_ID`     | machine identity: Client ID                              |
-| `INFISICAL_CLIENT_SECRET` | machine identity: Client Secret                          |
-| `INFISICAL_DOMAIN`        | URL de tu Infisical, sin `/api`                          |
-| `INFISICAL_PROJECT_ID`    | ID del proyecto digitaltwin                              |
+| Secret                    | Valor                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `VPS_HOST`                | host del VPS                                                                         |
+| `VPS_USERNAME`            | usuario de SSH                                                                       |
+| `VPS_SSH_KEY`             | clave privada SSH (la misma que en cadenceai sirve)                                  |
+| `INFISICAL_TOKEN`         | service token (o deja este vacío y usa los dos de abajo)                             |
+| `INFISICAL_CLIENT_ID`     | machine identity: Client ID                                                          |
+| `INFISICAL_CLIENT_SECRET` | machine identity: Client Secret                                                      |
+| `INFISICAL_DOMAIN`        | URL de tu Infisical, sin `/api`                                                      |
+| `INFISICAL_PROJECT_ID`    | ID del proyecto digitaltwin                                                          |
+| `DIGITALTWIN_DB_PASSWORD` | contraseña de la BD (`openssl rand -hex 24`); **no la cambies** una vez creada la BD |
 
-Los secrets son por repo: aunque ya los tengas en cadenceai, hay que añadirlos aquí.
+Los secrets son por repo: aunque ya los tengas en cadenceai o en el repo antiguo, hay que
+añadirlos aquí. Desde la terminal: `gh secret set VPS_SSH_KEY < ~/.ssh/id_rsa` (y `gh secret set
+NOMBRE` para los demás, te pide el valor).
 
-### 3.4 Cloudflared (opcional)
+### 3.4 Cloudflared
 
-El bot **no** necesita nada expuesto. Solo si quieres la API accesible desde fuera (front,
-webhooks de Google Health, Strava...): en el túnel de cloudflared, apunta un hostname a
-`http://digitaltwin-api:3000` (cloudflared tiene que estar en la red `red-n8n`) y pon
-`TRUST_PROXY=1` en `/api`.
+El bot **no** necesita nada expuesto, pero la web sí: en el túnel de cloudflared apunta un hostname
+a `http://digitaltwin-web:80` (cloudflared tiene que estar en la red `red-n8n`). nginx sirve el
+front y reenvía `/api` (y con él los webhooks de Google Health) a la API. Ese hostname es el
+`PUBLIC_URL` de `/api`, y con dos proxies delante, `TRUST_PROXY=2`.
 
 ---
 
@@ -224,33 +239,40 @@ webhooks de Google Health, Strava...): en el túnel de cloudflared, apunta un ho
    sudo docker logs digitaltwin-bot --tail 20               # "Bot @... escuchando (long polling)"
    ```
 
-4. Vincula tu Telegram con tu usuario, para que las comidas del bot queden a tu nombre: en la web,
+4. Crea tu usuario (te pide la contraseña):
+
+   ```bash
+   sudo docker exec -it digitaltwin-api node scripts/create-user.js --email yo@x.com --name Yo --role admin
+   ```
+
+5. Vincula tu Telegram con tu usuario, para que las comidas del bot queden a tu nombre: en la web,
    **Conexiones → Bot de Telegram → Vincular**. Se abre el bot con un código de un solo uso; pulsa
    _Iniciar_ y listo (o escríbele `/vincular <código>`). Atajo de administrador sin web:
    `make telegram email=yo@x.com id=<id de Telegram>`.
 
-5. Escribe al bot de producción lo que has comido.
+6. Escribe al bot de producción lo que has comido.
 
 ---
 
 ## 5. Día a día
 
-| Quiero...                     | Cómo                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------ |
-| Desplegar                     | push a `main` (solo si cambia algo de `digitaltwin/`) o lanzar el workflow a mano          |
-| Cambiar un secreto            | editarlo en Infisical; el proceso se reinicia solo (`--watch`)                             |
-| Ver logs                      | `sudo docker logs -f digitaltwin-api` / `digitaltwin-bot`                                  |
-| Reiniciar                     | `cd /opt/digitaltwin/app && sudo -E docker compose -f docker-compose.prod.yml restart` (*) |
-| Volver a una versión anterior | `git revert` del commit y push (se despliega como cualquier otro cambio)                   |
-| Añadir un cliente de la API   | añadir `nombre:clave` a `DIGITALTWIN_API_KEYS` en `/api` (separado por coma)               |
-| Revocar un cliente            | quitar su entrada de `DIGITALTWIN_API_KEYS`                                                |
-| Construir una imagen en local | `docker build --build-arg APP=api .` (o `APP=bot`, `APP=worker`)                           |
-| Ver qué hace el worker        | `sudo docker logs -f digitaltwin-worker` (con `LOG_LEVEL=debug`, cada trabajo)             |
-| Forzar una sincronización     | botón Sincronizar en Conexiones, o `/sincroniza` (`/sincroniza google`) en el bot          |
+| Quiero...                     | Cómo                                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| Desplegar                     | push a `main` o lanzar el workflow a mano                                                      |
+| Cambiar un secreto            | editarlo en Infisical; el proceso se reinicia solo (`--watch`)                                 |
+| Ver logs                      | `sudo docker logs -f digitaltwin-api` / `digitaltwin-bot`                                      |
+| Reiniciar                     | `cd /opt/digitaltwin/app && sudo -E docker compose -f docker-compose.prod.yml restart` (*)     |
+| Volver a una versión anterior | `git revert` del commit y push (se despliega como cualquier otro cambio)                       |
+| Añadir un cliente de la API   | añadir `nombre:clave` a `DIGITALTWIN_API_KEYS` en `/api` (separado por coma)                   |
+| Revocar un cliente            | quitar su entrada de `DIGITALTWIN_API_KEYS`                                                    |
+| Construir una imagen en local | `docker build --build-arg APP=api .` (o `APP=bot`, `APP=worker`)                               |
+| Ver qué hace el worker        | `sudo docker logs -f digitaltwin-worker` (con `LOG_LEVEL=debug`, cada trabajo)                 |
+| Copia de la BD                | `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > dt-$(date +%F).dump` |
+| Forzar una sincronización     | botón Sincronizar en Conexiones, o `/sincroniza` (`/sincroniza google`) en el bot              |
 
-(*) Para `up`/`restart` a mano, exporta antes `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID` y el
-acceso (`INFISICAL_TOKEN` o `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET`): el compose los
-necesita para arrancar los contenedores.
+(*) Para `up`/`restart` a mano, exporta antes `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, el
+acceso (`INFISICAL_TOKEN` o `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET`) y
+`DIGITALTWIN_DB_PASSWORD`: el compose los necesita para arrancar los contenedores.
 
 ---
 
@@ -267,4 +289,5 @@ necesita para arrancar los contenedores.
 | El contenedor se reinicia en bucle con `Configuración inválida`  | Falta o está mal una variable; el mensaje dice cuál. Revisa la carpeta de Infisical.                |
 | `The provided access token is malformed` / `Invalid credentials` | Token o Client ID/Secret de Infisical mal copiados, o `INFISICAL_DOMAIN` de otra región (US/EU).    |
 | `failed to fetch secrets for path "/api"` con 403/404            | La identidad no tiene acceso a ese entorno, o el slug del entorno o la carpeta no coinciden.        |
+| El deploy falla en _Comprobar los secrets_                       | Falta algún secret del repo (apartado 3.3); el error dice cuáles.                                   |
 | El deploy falla en _Tests y lint_                                | Lo mismo que `make check` en local (salvo formato): arréglalo y vuelve a hacer push.                |

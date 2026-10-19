@@ -1,4 +1,4 @@
-# Producción en el VPS. Lo usa .github/workflows/digitaltwin-deploy.yml, que copia el código a
+# Producción en el VPS. Lo usa .github/workflows/deploy.yml, que copia el código a
 # /opt/digitaltwin/app/ y exporta las variables INFISICAL_*. En local: `make docker-up`
 # (mismo compose, entorno dev de Infisical y red local; ver docker-compose.local.yml).
 # El frontal (digitaltwin-web) no tiene secretos: nginx sirve el build y reenvía /api a la API.

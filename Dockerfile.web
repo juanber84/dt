@@ -12,9 +12,11 @@ COPY apps/api/package.json apps/api/
 COPY apps/bot/package.json apps/bot/
 COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
+COPY packages/clinical/package.json packages/clinical/
 COPY packages/coach/package.json packages/coach/
 COPY packages/connections/package.json packages/connections/
 COPY packages/db/package.json packages/db/
+COPY packages/llm-usage/package.json packages/llm-usage/
 COPY packages/logger/package.json packages/logger/
 COPY packages/mcp/package.json packages/mcp/
 COPY packages/nutrition/package.json packages/nutrition/
