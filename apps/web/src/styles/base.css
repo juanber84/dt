@@ -11,6 +11,15 @@ html {
   touch-action: manipulation;
 }
 
+/* Nunca se desplaza en horizontal: si algo sobresale unos píxeles (en iOS la fuente es más ancha
+   que en otros sistemas), Safari deja arrastrar toda la página de lado. clip y no hidden: hidden
+   convierte el elemento en contenedor de scroll y rompe position: sticky. */
+html,
+body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
   background: var(--page);
