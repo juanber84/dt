@@ -57,7 +57,7 @@ const { message, hide } = useToast();
   .toast {
     left: 16px;
     right: 16px;
-    bottom: 76px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
 </style>

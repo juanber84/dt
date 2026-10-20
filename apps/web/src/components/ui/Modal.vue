@@ -99,4 +99,37 @@ footer {
 .pop-enter-from .modal {
   transform: translateY(6px) scale(0.99);
 }
+
+/* En el móvil, hoja inferior: los botones quedan a mano del pulgar y no tapa el teclado */
+@media (max-width: 860px) {
+  .backdrop {
+    place-items: end stretch;
+  }
+
+  .modal {
+    width: 100% !important;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - 12px);
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+  }
+
+  footer {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .modal:not(:has(footer)) .body {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .pop-enter-active .modal,
+  .pop-leave-active .modal {
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .pop-enter-from .modal,
+  .pop-leave-to .modal {
+    transform: translateY(100%);
+  }
+}
 </style>

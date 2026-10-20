@@ -6,6 +6,9 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Sin el recuadro gris de iOS al tocar ni la espera del doble toque para hacer zoom */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 body {
@@ -225,6 +228,25 @@ textarea.input {
 
 ::selection {
   background: color-mix(in srgb, var(--sleep) 30%, transparent);
+}
+
+/* Pantallas táctiles (el iPhone, sobre todo instalada como app) */
+@media (pointer: coarse) {
+  /* iOS hace zoom al enfocar un campo con letra de menos de 16 px */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Los botones no se seleccionan como texto al mantenerlos pulsados */
+  .btn,
+  button,
+  nav a {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

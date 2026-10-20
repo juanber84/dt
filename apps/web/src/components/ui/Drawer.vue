@@ -100,4 +100,42 @@ header {
 .slide-leave-to {
   transform: translateX(100%);
 }
+
+/* En el móvil, hoja que sube desde abajo (como en iOS) en vez de panel lateral */
+@media (max-width: 860px) {
+  .drawer {
+    top: auto;
+    left: 0;
+    width: 100% !important;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - 12px);
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Asa para indicar que es una hoja */
+  .drawer::before {
+    content: '';
+    align-self: center;
+    flex: none;
+    width: 36px;
+    height: 5px;
+    margin-top: 8px;
+    border-radius: 3px;
+    background: var(--border-strong);
+  }
+
+  header {
+    padding: 10px 16px 12px;
+  }
+
+  .body {
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .slide-enter-from,
+  .slide-leave-to {
+    transform: translateY(100%);
+  }
+}
 </style>

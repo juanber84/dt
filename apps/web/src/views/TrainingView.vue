@@ -439,9 +439,26 @@ const dayLabel = (iso) =>
     align-items: flex-start;
   }
 
+  /* El nombre a todo el ancho y las cifras en una fila debajo (no caben al lado) */
   .row {
-    grid-template-columns: 34px minmax(0, 1fr) repeat(3, auto);
-    gap: 10px;
+    grid-template-columns: 34px repeat(3, minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 10px 8px;
+  }
+
+  .sport {
+    grid-row: span 2;
+    align-self: start;
+  }
+
+  .main {
+    grid-column: 2 / -1;
+  }
+
+  .cell {
+    justify-items: start;
+    min-width: 0;
   }
 
   .hide-sm,

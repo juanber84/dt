@@ -529,8 +529,17 @@ function onXiaomiConnected(connection) {
     grid-template-columns: auto 1fr;
   }
 
-  .actions {
+  .actions,
+  .row > :nth-child(n + 3) {
     grid-column: 2;
+    justify-self: start;
+  }
+
+  .row,
+  .row.compact {
+    gap: 12px 14px;
+    align-items: start;
+    padding: 16px;
   }
 }
 </style>

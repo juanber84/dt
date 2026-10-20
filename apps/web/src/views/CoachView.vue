@@ -766,7 +766,7 @@ const isEmpty = computed(() => !chat.value.length && !loadingChat.value);
 @media (max-width: 860px) {
   .coach {
     grid-template-columns: 1fr;
-    height: calc(100dvh - 114px);
+    height: calc(100dvh - var(--content-top) - var(--content-bottom));
   }
 
   .conversations {
@@ -774,7 +774,8 @@ const isEmpty = computed(() => !chat.value.length && !loadingChat.value);
     inset: 0 auto 0 0;
     z-index: 40;
     width: min(300px, 85vw);
-    padding: 16px 12px;
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
     background: var(--page);
     border-right: 1px solid var(--border);
     transform: translateX(-100%);

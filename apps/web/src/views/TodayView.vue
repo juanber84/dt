@@ -307,7 +307,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
         title="Pregúntale al coach por este día"
       >
         <Sparkles class="icon" />
-        Pregúntale
+        <span class="label">Pregúntale</span>
       </RouterLink>
       <button class="btn btn-primary" @click="addOpen = true">
         <Plus class="icon" />
@@ -779,8 +779,68 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 }
 
 @media (max-width: 860px) {
+  /* Cabecera: el título primero y las flechas a su derecha; "Pregúntale" se queda en icono */
+  .page-head {
+    gap: 8px;
+  }
+
+  .page-head .ask {
+    width: 34px;
+    padding: 0;
+  }
+
+  .page-head .ask .label {
+    display: none;
+  }
+
+  /* Los tres anillos en fila, como un resumen de un vistazo */
   .scores {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .score {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 8px 12px;
+    text-align: center;
+  }
+
+  .score :deep(.ring) {
+    width: 76px !important;
+    height: 76px !important;
+  }
+
+  .score :deep(.ring svg) {
+    width: 100%;
+    height: 100%;
+  }
+
+  .score :deep(.ring .value) {
+    font-size: 22px;
+  }
+
+  .score-text {
+    justify-items: center;
+    gap: 4px;
+  }
+
+  .score-text .section-label {
+    font-size: 11px;
+  }
+
+  .score-text p {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .big {
+    font-size: 16px;
+  }
+
+  .insight {
+    padding: 2px;
+    font-size: 13px;
   }
 
   .vitals {
@@ -790,7 +850,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   .page-head .btn-primary {
     position: fixed;
     right: 16px;
-    bottom: 80px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
     z-index: 20;
     height: 44px;
     border-radius: 999px;

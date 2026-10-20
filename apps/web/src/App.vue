@@ -315,8 +315,13 @@ nav {
     display: none;
   }
 
+  /* Márgenes con las zonas seguras del iPhone (isla, esquinas, indicador de inicio). Las vistas
+     a pantalla completa (Coach) restan --content-top y --content-bottom de 100dvh. */
   .content {
-    padding: 18px 16px 96px;
+    --content-top: max(18px, env(safe-area-inset-top));
+    --content-bottom: calc(84px + env(safe-area-inset-bottom));
+    padding: var(--content-top) max(16px, env(safe-area-inset-right)) var(--content-bottom)
+      max(16px, env(safe-area-inset-left));
   }
 
   .tabbar {
@@ -327,7 +332,8 @@ nav {
     z-index: 30;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding: 6px max(4px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom))
+      max(4px, env(safe-area-inset-left));
     background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
@@ -336,10 +342,16 @@ nav {
   .tabbar a {
     display: grid;
     justify-items: center;
-    gap: 2px;
+    gap: 3px;
     padding: 6px 0;
-    font-size: 11px;
+    font-size: 10.5px;
+    font-weight: 500;
     color: var(--muted);
+  }
+
+  .tabbar .icon {
+    width: 22px;
+    height: 22px;
   }
 
   .tabbar a.active {
