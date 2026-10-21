@@ -57,6 +57,9 @@ describe('dates', () => {
 describe('scale', () => {
   it('ticks redondos que cubren el rango', () => {
     expect(niceTicks(3, 97, 4).ticks).toEqual([0, 25, 50, 75, 100]);
+    // Lo que se cuenta: sin cuartos aunque la escala sea de 0 a 1
+    expect(niceTicks(0, 1, 4, { integer: true }).ticks).toEqual([0, 1]);
+    expect(niceTicks(0, 1, 4).ticks).toEqual([0, 0.25, 0.5, 0.75, 1]);
   });
 
   it('las líneas saltan los huecos', () => {

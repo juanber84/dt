@@ -5,14 +5,16 @@ export function linear([d0, d1], [r0, r1]) {
 }
 
 /** Ticks "redondos" que cubren [min, max]. */
-export function niceTicks(min, max, count = 4) {
+export function niceTicks(min, max, count = 4, { integer = false } = {}) {
   if (min === max) {
     min -= 1;
     max += 1;
   }
   const raw = (max - min) / count;
   const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw);
+  const nice = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw);
+  // Lo que se cuenta (pasos, sesiones) no lleva marcas de 0,25: con 0 a 1 salían "1 1 1 0 0"
+  const step = integer ? Math.max(1, Math.round(nice)) : nice;
   const start = Math.floor(min / step) * step;
   const end = Math.ceil(max / step) * step;
   const ticks = [];

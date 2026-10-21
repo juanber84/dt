@@ -280,6 +280,16 @@ const vitals = computed(() => {
       goodWhen: 'none',
       trend: series('skinTemp'),
     },
+    // Forma cardiovascular (la estima el reloj): va con las constantes, no con la báscula
+    {
+      label: 'VO2 máx.',
+      value: fmtDec(d.vo2max, 1),
+      unit: 'mL/kg/min',
+      delta: vs('vo2max'),
+      deltaDigits: 1,
+      goodWhen: 'up',
+      trend: series('vo2max'),
+    },
   ];
 });
 
@@ -344,7 +354,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
         </div>
       </section>
       <section class="vitals">
-        <div v-for="n in 5" :key="n" class="card vital-skeleton">
+        <div v-for="n in 6" :key="n" class="card vital-skeleton">
           <Skeleton width="60%" height="10px" />
           <Skeleton width="45%" height="26px" />
           <Skeleton width="70%" height="10px" />
@@ -494,6 +504,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
               :x-tick-every="6"
               :format="fmtInt"
               :tick-format="fmtCompact"
+              integer
             />
           </section>
 
@@ -580,10 +591,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
               <div>
                 <dt>Músculo</dt>
                 <dd>{{ fmtDec(body.muscle, 1) }} <small>kg</small></dd>
-              </div>
-              <div>
-                <dt>VO2 máx.</dt>
-                <dd>{{ fmtDec(day.vo2max, 1) }}</dd>
               </div>
             </dl>
           </section>
@@ -725,7 +732,8 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
 .vitals {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Seis en dos filas de tres, alineadas con los anillos de arriba */
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
@@ -837,10 +845,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 }
 
 @media (max-width: 1180px) {
-  .vitals {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .columns {
     grid-template-columns: 1fr;
   }
@@ -922,6 +926,11 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
   .vitals {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Con un número impar, el último no se queda solo a media fila */
+  .vitals > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .page-head .btn-primary {

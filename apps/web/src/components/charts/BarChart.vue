@@ -20,6 +20,7 @@ const props = defineProps({
   tooltipLabels: { type: Array, default: null },
   xTickEvery: { type: Number, default: 0 },
   yTicks: { type: Array, default: null }, // marcas fijas (p. ej. cada 2 h)
+  integer: { type: Boolean, default: false }, // valores que se cuentan: marcas enteras
 });
 
 const root = ref(null);
@@ -36,7 +37,7 @@ const geometry = computed(() => {
   const max = Math.max(...totals, props.target ?? 0, 1);
   const nice = props.yTicks
     ? { ticks: props.yTicks, min: props.yTicks[0], max: props.yTicks.at(-1) }
-    : niceTicks(min, max, 4);
+    : niceTicks(min, max, 4, { integer: props.integer });
   const y = linear([nice.min, nice.max], [props.height - pad.bottom, pad.top]);
   const band = (width.value - pad.left - pad.right) / n;
   const barWidth = Math.max(2, Math.min(24, band * 0.62));
