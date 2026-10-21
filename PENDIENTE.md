@@ -20,6 +20,10 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
       VPS, se pierde todo. Por ejemplo, un cron diario en el VPS:
       `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > /opt/digitaltwin/backups/dt-$(date +%F).dump`,
       y llevarse la copia fuera del VPS, cifrada (lleva datos de salud).
+- [ ] **Ver las peticiones a la API (observabilidad).** Ahora solo están en `docker logs`. Nada de
+      guardar el tráfico en nuestra BD (más puntos de fallo en la API y no escala): mandar los
+      logs de pino a un servicio hecho para eso (Grafana Cloud/Loki, Axiom o Better Stack, plan
+      gratis) con un transport. Lo que llega de fuera ya queda en la tabla `inbox` (30 días).
 
 ## App en el móvil (PWA)
 
