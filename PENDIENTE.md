@@ -39,6 +39,11 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
     contenedores y logs), y las trazas si convence. **Parado** por decisión del usuario.
   - Falta: decidir herramienta y alcance; luego, la cuenta y sus credenciales.
 
+- [ ] **Rediseñar Sistema (es enorme y no dice lo importante).** Propuesta: arriba una frase de
+      estado ("Todo funciona" / "2 cosas a mirar" con enlaces), servicios en una rejilla compacta,
+      4 cifras de las últimas 24 h, y el detalle plegado (solo colas con algo, entradas agrupadas,
+      trabajos fallidos por defecto). Aparcado por el usuario.
+
 ## IA (guardarraíles)
 
 - [ ] **Seguridad médica en el coach.** Hoy solo hay una línea en el prompt ("no eres médico").
