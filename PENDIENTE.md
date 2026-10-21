@@ -13,19 +13,6 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 - [ ] **Afinar el margen entre reloj e iPhone en los pasos.** Ahora son 15 minutos (`WATCH_GAP_MS` en
       `packages/timeline/src/normalizers/google.js`) y solo está ajustado con el 19/10. Comparar
       con los pasos de Salud del 10, 15, 17 y 18/10.
-- [ ] **Suscribirse a los cambios de Google Health (webhooks).** Ahora Google entra solo por el
-      cron de cada hora; con el webhook, Google avisa en cuanto hay datos nuevos. Pasos:
-  1. nginx (`docker/web-nginx.conf`) solo reenvía `/api/` a la API, y el webhook está en
-     `/webhooks/google-health`: añadir un `location /webhooks/` igual que el de `/api/`.
-  2. `GOOGLE_HEALTH_WEBHOOK_SECRET` en Infisical `prod` `/api`: la clave sola (el `Bearer ` lo añade la API)
-     (clave de `openssl rand -hex 32`). Sin él, la API no monta la ruta.
-  3. El suscriptor lo crea el worker (job `google-subscriber`, al arrancar y a diario) si en `/api`
-     está `GOOGLE_HEALTH_SERVICE_ACCOUNT` (el JSON de la cuenta de servicio con rol
-     _Google Health API Editor_). A mano sería:
-     `make google-subscriber args="create --id digitaltwin --url https://dt.cadenceai.ovh/webhooks/google-health"`
-     (con `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT_NUMBER=579742134918` y el mismo
-     `GOOGLE_HEALTH_WEBHOOK_SECRET`). Google llama a la URL para verificarla: prod tiene que estar
-     arriba.
 
 ## Producción
 
