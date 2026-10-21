@@ -1,4 +1,5 @@
 import { notificationToQuery } from '@digitaltwin/google-health';
+import { createEntries } from './entries.js';
 import { JOBS, PRIORITY } from '@digitaltwin/queue';
 import { utcDay, DAY_MS } from '@digitaltwin/timeline';
 import { HttpError } from '../utils/http-error.js';
@@ -26,6 +27,7 @@ const DEBOUNCE_SECONDS = 30;
  */
 export function createInbox({ pipeline, queue, connections, telegramLink, logger }) {
   const { store } = pipeline;
+  const entries = createEntries({ pipeline, queue });
 
   async function settle(id, fn) {
     try {
@@ -98,7 +100,7 @@ export function createInbox({ pipeline, queue, connections, telegramLink, logger
       const userId = connection?.userId ?? null;
       const id = await store.recordInbox({
         provider: 'digitaltwin',
-        kind: event.type === 'meal.logged' ? 'data' : 'command',
+        kind: event.type === 'meal.logged' || event.type === 'entry.logged' ? 'data' : 'command',
         type: event.type,
         userId,
         payload: event,
@@ -126,6 +128,12 @@ export function createInbox({ pipeline, queue, connections, telegramLink, logger
             'Tu Telegram no está vinculado: en la web, Conexiones → Bot de Telegram → Vincular',
             { code: 'TELEGRAM_NOT_LINKED' },
           );
+        }
+
+        if (event.type === 'entry.logged') {
+          const { id: entryId, ...entry } = event.data;
+          const saved = await entries.add(userId, entry, { channel: TELEGRAM, id: entryId });
+          return { status: 'routed', id: saved.id };
         }
 
         if (event.type === 'meal.logged') {

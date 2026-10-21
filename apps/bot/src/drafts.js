@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
  * (los botones de esas propuestas avisan de que han caducado).
  *
  * Estados: pending → saving → saved | pending, y pending → replaced | discarded.
+ * asking: el bot ha preguntado algo (cuánta agua) y la respuesta rehace la propuesta.
  */
 export class DraftStore {
   constructor({ ttlMs = 24 * 60 * 60 * 1000, now = () => Date.now() } = {}) {
@@ -53,7 +54,7 @@ export class DraftStore {
     const id = this.awaiting.get(chatId);
     this.awaiting.delete(chatId);
     const draft = id && this.drafts.get(id);
-    return draft?.status === 'pending' ? draft : undefined;
+    return draft?.status === 'pending' || draft?.status === 'asking' ? draft : undefined;
   }
 
   prune() {

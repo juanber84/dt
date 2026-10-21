@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Bot, InlineKeyboard } from 'grammy';
 import { DraftStore } from './drafts.js';
 import { HELP, escapeHtml, formatAnalysis } from './format.js';
@@ -128,7 +129,8 @@ export function createBot({
     // Es una corrección si contesta a una propuesta o si antes pulsó ✏️
     const fromReply = replyTo !== undefined ? drafts.findByMessage(chatId, replyTo) : undefined;
     const awaiting = drafts.takeAwaiting(chatId);
-    const previous = photoId ? undefined : fromReply?.status === 'pending' ? fromReply : awaiting;
+    const open = fromReply?.status === 'pending' || fromReply?.status === 'asking';
+    const previous = photoId ? undefined : open ? fromReply : awaiting;
 
     await ctx.replyWithChatAction('typing').catch(() => {});
 
@@ -149,18 +151,31 @@ export function createBot({
       return;
     }
 
-    if (analysis.dishes.length === 0) {
+    const water = analysis.water ?? [];
+    const fullText = previous ? `${previous.text}\nCorrección: ${text}` : text;
+
+    // Le falta algo que solo sabe el usuario (cuánta agua...): se pregunta y la respuesta
+    // rehace la propuesta, como una corrección
+    if (analysis.question) {
+      const pending = drafts.create({ chatId, text: fullText, analysis });
+      drafts.awaitCorrection(chatId, pending.id);
+      const sent = await ctx.reply(`💧 ${escapeHtml(analysis.question)}`, { parse_mode: 'HTML' });
+      pending.messageId = sent.message_id;
+      pending.status = 'asking';
+      if (previous) previous.status = 'replaced';
+      return;
+    }
+
+    if (analysis.dishes.length === 0 && water.length === 0) {
       await ctx.reply(escapeHtml(analysis.notes || 'No he encontrado comida en el mensaje.'), {
         parse_mode: 'HTML',
       });
       return;
     }
 
-    const draft = drafts.create({
-      chatId,
-      text: previous ? `${previous.text}\nCorrección: ${text}` : text,
-      analysis,
-    });
+    // Cada vaso con su id desde ya: si se reintenta guardar, la API no lo duplica
+    analysis.water = water.map((w) => ({ ...w, id: randomUUID() }));
+    const draft = drafts.create({ chatId, text: fullText, analysis });
     draft.html = formatAnalysis(analysis, { timeZone, now: now() });
     const sent = await ctx.reply(draft.html, {
       parse_mode: 'HTML',
@@ -168,7 +183,7 @@ export function createBot({
     });
     draft.messageId = sent.message_id;
 
-    if (previous) {
+    if (previous && previous.status !== 'asking') {
       previous.status = 'replaced';
       await closeDraft(previous);
     }
@@ -213,7 +228,13 @@ export function createBot({
     };
 
     try {
-      await api.saveEntry(entry, { telegramUserId: ctx.from.id });
+      if (entry.dishes.length) await api.saveEntry(entry, { telegramUserId: ctx.from.id });
+      for (const w of draft.analysis.water ?? []) {
+        await api.logEntry(
+          { id: w.id, kind: 'water', at: w.drunkAt, value: w.ml },
+          { telegramUserId: ctx.from.id },
+        );
+      }
     } catch (error) {
       draft.status = 'pending';
       logger.error({ err: error, draftId: draft.id }, 'error guardando la comida');
@@ -225,7 +246,10 @@ export function createBot({
     }
 
     draft.status = 'saved';
-    logger.info({ draftId: draft.id, dishes: entry.dishes.length }, 'comida guardada');
+    logger.info(
+      { draftId: draft.id, dishes: entry.dishes.length, water: draft.analysis.water?.length ?? 0 },
+      'comida guardada',
+    );
     await ctx.answerCallbackQuery({ text: STATUS_TEXT.saved });
     await closeDraft(draft);
   }

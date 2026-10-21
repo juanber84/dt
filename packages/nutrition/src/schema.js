@@ -56,5 +56,17 @@ export const modelOutputSchema = z.object({
         .min(1),
     }),
   ),
+  // Agua sola (no café, ni refrescos: eso son platos). ml null si no dice cuánta
+  water: z
+    .array(
+      z.object({
+        ml: z.coerce.number().positive().max(5000).nullable().catch(null),
+        drunk_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/),
+      }),
+    )
+    .catch([])
+    .default([]),
+  // Lo que hay que preguntar antes de apuntar (cuánta agua...). Vacío si está todo claro
+  question: z.string().catch('').default(''),
   notes: z.string().catch(''),
 });

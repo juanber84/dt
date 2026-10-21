@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { mealEntrySchema } from '@digitaltwin/nutrition';
 import { HttpError } from '../utils/http-error.js';
+import { entrySchema } from '../services/entries.js';
 
 export const SIGNATURE_HEADER = 'x-digitaltwin-signature';
 const TOLERANCE_SECONDS = 300;
@@ -12,6 +13,12 @@ const eventSchema = z.discriminatedUnion('type', [
     type: z.literal('meal.logged'),
     telegramUserId: z.number().int().positive(),
     data: mealEntrySchema,
+  }),
+  // Un registro suelto desde el bot (de momento, agua): `id` es el del bot, para no duplicar
+  z.object({
+    type: z.literal('entry.logged'),
+    telegramUserId: z.number().int().positive(),
+    data: z.intersection(entrySchema, z.object({ id: z.uuid() })),
   }),
   z.object({
     type: z.literal('account.link'),

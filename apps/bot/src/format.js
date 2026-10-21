@@ -23,14 +23,18 @@ const quantity = (item) =>
 /**
  * Mensaje (HTML de Telegram) con lo que ha entendido el modelo: cada plato con su subtotal y
  * sus ingredientes, y el total. Un plato de un solo ingrediente (un café) va en una línea.
- * @param {{ dishes: object[], notes: string }} analysis
+ * El agua va aparte, sin macros.
+ * @param {{ dishes: object[], water?: { ml: number, drunkAt: string }[], notes: string }} analysis
  * @param {{ timeZone: string, now?: Date }} options
  */
-export function formatAnalysis({ dishes, notes }, { timeZone, now = new Date() }) {
+export function formatAnalysis({ dishes, water = [], notes }, { timeZone, now = new Date() }) {
   const today = toLocalDateTime(now, timeZone).split('T')[0];
   const sorted = [...dishes].sort((a, b) => a.eatenAt.localeCompare(b.eatenAt));
 
-  const lines = ['🍽 <b>Esto es lo que he entendido</b>'];
+  const lines = [`${dishes.length ? '🍽' : '💧'} <b>Esto es lo que he entendido</b>`];
+  for (const w of water) {
+    lines.push('', `💧 <b>${when(w.drunkAt, timeZone, today)} · Agua</b> · ${w.ml} ml`);
+  }
   for (const dish of sorted) {
     const title = `<b>${when(dish.eatenAt, timeZone, today)} · ${escapeHtml(dish.name)}</b>`;
     const subtotal = sumItems(dish.items);
@@ -49,6 +53,10 @@ export function formatAnalysis({ dishes, notes }, { timeZone, now = new Date() }
     }
   }
 
+  if (!dishes.length) {
+    if (notes) lines.push('', `<i>${escapeHtml(notes)}</i>`);
+    return lines.join('\n');
+  }
   const total = sumDishes(dishes);
   lines.push(
     '',
@@ -61,7 +69,7 @@ export function formatAnalysis({ dishes, notes }, { timeZone, now = new Date() }
 }
 
 export const HELP = [
-  '🍽 <b>Cuéntame lo que comes</b> y te calculo las macros.',
+  '🍽 <b>Cuéntame lo que comes</b> y te calculo las macros. El agua también: <i>medio litro de agua</i>.',
   '',
   'Ejemplo: <i>a las 8 bol de frutos rojos 150 g con 40 g de avena y 200 ml de leche, a las 11 café con leche</i>',
   '',

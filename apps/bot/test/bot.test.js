@@ -41,6 +41,7 @@ function setup({ api, allowedUserIds = [USER] } = {}) {
     analyze: vi.fn().mockResolvedValue(analysis()),
     refine: vi.fn().mockResolvedValue(analysis('Avena', 225)),
     saveEntry: vi.fn().mockResolvedValue({}),
+    logEntry: vi.fn().mockResolvedValue({}),
     ...api,
   };
 
@@ -210,7 +211,7 @@ describe('bot', () => {
     await press(bot, `fix:${first}`);
     await message(bot, { text: 'eran 60 g' });
 
-    expect(api.refine).toHaveBeenCalledWith(analysis(), 'eran 60 g');
+    expect(api.refine).toHaveBeenCalledWith({ ...analysis(), water: [] }, 'eran 60 g');
     const proposal = sent('sendMessage').at(-1);
     expect(proposal.text).toContain('Total: 225 kcal');
     expect(sent('editMessageText')[0].text).toContain('Corregido');
@@ -279,5 +280,57 @@ describe('bot', () => {
     const { bot } = setup({ api: { analyze } });
     await message(bot, { text: 'avena' });
     expect(sent('sendMessage')[0].text).toContain('402: Insufficient Balance');
+  });
+
+  describe('agua', () => {
+    const water = (ml, extra = {}) => ({
+      dishes: [],
+      water: [{ ml, drunkAt: '2026-10-13T12:30:00.000Z' }],
+      question: '',
+      notes: '',
+      messages: [],
+      ...extra,
+    });
+
+    it('con cantidad: propuesta solo de agua y al guardar va como registro, no como comida', async () => {
+      const { bot, api } = setup({ api: { analyze: vi.fn().mockResolvedValue(water(500)) } });
+      await message(bot, { text: 'medio litro de agua' });
+      const reply = sent('sendMessage')[0];
+      expect(reply.text).toContain('💧 <b>14:30 · Agua</b> · 500 ml');
+      expect(reply.text).not.toContain('Total');
+
+      await press(bot, `save:${draftId()}`);
+      expect(api.saveEntry).not.toHaveBeenCalled();
+      expect(api.logEntry).toHaveBeenCalledWith(
+        { id: expect.any(String), kind: 'water', at: '2026-10-13T12:30:00.000Z', value: 500 },
+        { telegramUserId: USER },
+      );
+    });
+
+    it('sin cantidad pregunta, y la respuesta completa la propuesta', async () => {
+      const { bot, api } = setup({
+        api: {
+          analyze: vi.fn().mockResolvedValue(water(null, { question: '¿Cuánta agua has bebido?' })),
+          refine: vi.fn().mockResolvedValue(water(250)),
+        },
+      });
+      await message(bot, { text: 'he bebido agua' });
+      expect(sent('sendMessage')[0].text).toBe('💧 ¿Cuánta agua has bebido?');
+      expect(sent('sendMessage')[0].reply_markup).toBeUndefined();
+
+      await message(bot, { text: 'un vaso' });
+      expect(api.refine).toHaveBeenCalledWith(expect.anything(), 'un vaso');
+      expect(sent('sendMessage')[1].text).toContain('· Agua</b> · 250 ml');
+      expect(buttons(sent('sendMessage')[1])[0]).toMatch(/^save:/);
+    });
+
+    it('comida y agua juntas: cada una por su lado', async () => {
+      const both = { ...analysis(), water: [{ ml: 250, drunkAt: '2026-10-13T06:00:00.000Z' }] };
+      const { bot, api } = setup({ api: { analyze: vi.fn().mockResolvedValue(both) } });
+      await message(bot, { text: 'avena y un vaso de agua' });
+      await press(bot, `save:${draftId()}`);
+      expect(api.saveEntry).toHaveBeenCalledTimes(1);
+      expect(api.logEntry).toHaveBeenCalledTimes(1);
+    });
   });
 });

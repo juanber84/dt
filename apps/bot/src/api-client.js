@@ -71,6 +71,11 @@ export function createApiClient({
       }
       return post('nutrition/entries', entry);
     },
+    /** Un registro suelto (agua): { id, kind, at, value }. Solo por el webhook firmado. */
+    logEntry(entry, { telegramUserId }) {
+      if (!webhookSecret) throw new Error('falta DIGITALTWIN_WEBHOOK_SECRET en el bot');
+      return sendEvent({ type: 'entry.logged', telegramUserId, data: entry });
+    },
     /** Vincula esta cuenta de Telegram con el código que da la web. */
     linkAccount(code, { telegramUserId, username }) {
       if (!webhookSecret) throw new Error('falta DIGITALTWIN_WEBHOOK_SECRET en el bot');
