@@ -32,6 +32,9 @@ const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / DAY_M
 /** Huecos más largos que esto no se rellenan: unir pesajes de hace semanas inventaría una tendencia. */
 export const MAX_GAP_DAYS = 7;
 
+/** Días apuntados que hacen falta para avisar de que lo apuntado no cuadra con el peso. */
+export const MISMATCH_MIN_DAYS = 14;
+
 /**
  * Peso de la báscula día a día: los días sin pesaje, en línea recta entre el anterior y el
  * siguiente (como MacroFactor), si el hueco no pasa de MAX_GAP_DAYS. Antes del primero, nada;
@@ -171,8 +174,8 @@ export function predictExpenditure({ days, initial, since, today, density }) {
     confidence:
       updates === 0 ? 'none' : loggedDays < 7 ? 'low' : loggedDays < 21 ? 'medium' : 'high',
     // Lo apuntado no cuadra con lo que hace el peso: o falta comida por apuntar o el peso va con
-    // agua (enfermedad, sal, retención)
-    mismatch: last ? last.observed < initial * 0.75 : false,
+    // agua (enfermedad, sal, retención). Con menos de dos semanas el agua lo domina todo: no se dice
+    mismatch: last && loggedDays >= MISMATCH_MIN_DAYS ? last.observed < initial * 0.75 : false,
     history,
   };
 }

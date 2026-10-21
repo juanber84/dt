@@ -55,4 +55,4 @@ estimado  = estimado + paso × (observado − estimado)
 
 ## Aviso: lo apuntado no cuadra
 
-Si según lo apuntado comes bastante menos de lo que tu cuerpo debería gastar y aun así no bajas (lo observado queda por debajo del 75 % del punto de partida), el motor lo avisa: o se escapa comida al apuntar, o el peso va con agua (enfermedad, sal, retención). El coach te ayuda a encontrar qué.
+Si según lo apuntado comes bastante menos de lo que tu cuerpo debería gastar y aun así no bajas (lo observado queda por debajo del 75 % del punto de partida), el motor lo avisa, pero solo con al menos 14 días apuntados: antes, el agua de unos días (o estar enfermo) lo puede todo: o se escapa comida al apuntar, o el peso va con agua (enfermedad, sal, retención). El coach te ayuda a encontrar qué.

@@ -125,6 +125,20 @@ describe('gasto', () => {
     });
     expect(state.expenditure.mismatch).toBe(true);
   });
+
+  it('con pocos días apuntados no avisa: el agua de una semana lo puede todo', () => {
+    const days = series('2026-10-01', 21, (i) => ({
+      weight: 82 + 0.02 * i,
+      kcal: i >= 16 ? 1500 : null,
+      dishes: i >= 16 ? 6 : 0,
+    }));
+    const state = computeState({
+      profile: { age: 42, sex: 'male', heightCm: 185 },
+      days,
+      today: '2026-10-21',
+    });
+    expect(state.expenditure.mismatch).toBe(false);
+  });
 });
 
 describe('objetivos', () => {

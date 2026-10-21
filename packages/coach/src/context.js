@@ -70,29 +70,32 @@ export function buildContext({ profile = {}, health = [], engine, timeZone }) {
 }
 
 const CONFIDENCE = {
-  none: 'sin datos suficientes aún (es el de partida, por fórmula)',
-  low: 'confianza baja (pocos días apuntados)',
-  medium: 'confianza media',
-  high: 'confianza alta',
+  none: 'aún sin días suficientes: es una estimación por fórmula',
+  low: 'con muy pocos días apuntados, todavía orientativo',
+  medium: 'con unas semanas de datos, bastante fiable',
+  high: 'con datos de sobra, fiable',
 };
 
-/** Las cifras del motor, en pocas líneas: son las buenas y el coach no calcula otras. */
+/**
+ * Las cifras calculadas por la app (@digitaltwin/engine), en pocas líneas: son las buenas y el
+ * coach no calcula otras. Van como hechos sobre la persona: el "motor" es cosa interna.
+ */
 function engineLines(engine) {
   if (!engine?.ready) return [];
   const e = engine.expenditure;
   const t = engine.targets;
   const fat = engine.weight.bodyFat ? `, grasa ${engine.weight.bodyFat} %` : '';
   const eating = e.intakeAvg
-    ? `, come de media ${e.intakeAvg} kcal y su tendencia cambia ${e.trendKgPerWeek} kg/semana`
+    ? `, come de media ${e.intakeAvg} kcal y su peso real cambia ${e.trendKgPerWeek} kg/semana`
     : '';
   const lines = [
-    `Motor (cálculo propio con su comida y su báscula; NO uses las kcal del reloj): peso tendencia ${engine.weight.trend} kg (último pesaje ${engine.weight.last} kg${fat}).`,
-    `Gasto real estimado: ${e.kcal} kcal/día, ${CONFIDENCE[e.confidence]}; ${e.loggedDays} días apuntados de verdad${eating}.`,
-    `Objetivo (ritmo ${engine.weeklyRatePct} % del peso por semana = ${t.kgPerWeek} kg/semana): ${t.kcal} kcal, proteína ${t.proteinG} g, grasa ${t.fatG} g, hidratos ${t.carbsG} g al día.`,
+    `Peso real (tendencia, sin el agua de cada día): ${engine.weight.trend} kg (último pesaje ${engine.weight.last} kg${fat}).`,
+    `Gasto real: ${e.kcal} kcal/día, ${CONFIDENCE[e.confidence]}; ${e.loggedDays} días con la comida apuntada entera${eating}.`,
+    `Objetivo diario (ritmo ${engine.weeklyRatePct} % del peso por semana = ${t.kgPerWeek} kg/semana): ${t.kcal} kcal, proteína ${t.proteinG} g, grasa ${t.fatG} g, hidratos ${t.carbsG} g.`,
   ];
   if (e.mismatch) {
     lines.push(
-      'Aviso del motor: lo apuntado no cuadra con su peso (según lo apuntado come poco y no baja): o se escapa comida al apuntar o el peso va con agua. Dilo con tacto y ayúdale a apuntar mejor; no le recomiendes comer menos por eso.',
+      'Tras semanas apuntando, lo apuntado no cuadra con su peso (según lo apuntado come poco y no baja): o se escapa comida al apuntar o el peso va con agua. Sácalo solo si habla de peso o comida, una vez, con tacto; no le recomiendes comer menos por eso.',
     );
   }
   return lines;
