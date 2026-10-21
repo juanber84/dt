@@ -16,10 +16,20 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## Producción
 
-- [ ] **Ver las peticiones a la API (observabilidad).** Ahora solo están en `docker logs`. Nada de
-      guardar el tráfico en nuestra BD (más puntos de fallo en la API y no escala): mandar los
-      logs de pino a un servicio hecho para eso (Grafana Cloud/Loki, Axiom o Better Stack, plan
-      gratis) con un transport. Lo que llega de fuera ya queda en la tabla `inbox` (30 días).
+- [ ] **Observabilidad (como Elastic antes, sin pagar ni instalarlo).** Nada de guardar el tráfico
+      en nuestra BD. Plan decidido: medir con **OpenTelemetry** (estándar: el código vale para
+      cualquier proveedor) y mandarlo a **Grafana Cloud** (plan gratis: logs, métricas, trazas,
+      alertas y comprobaciones desde fuera). Volumen real: ~4 MB de logs al día (~120 MB/mes).
+  - Agente Grafana Alloy en el VPS: CPU/RAM/disco del servidor y de cada contenedor, y los logs de
+    Docker (solo nuestros contenedores, sin los /health).
+  - OpenTelemetry en la API (cada endpoint) y en el worker (una traza por trabajo: sync, fetch,
+    normalize, clinical-extract, push, db-backup…), con las llamadas a Google, Xiaomi,
+    intervals.icu y DeepSeek. Ojo: `postgres.js` no se mide solo (pg-boss sí, usa `pg`).
+  - Métricas de la cola (pendientes, en marcha, fallidos por cola) cada minuto.
+  - Alertas: API caída, errores disparados, cola atascada, worker sin latido, backup que no sale.
+  - Alternativa valorada: New Relic gratis (100 GB/mes, APM ya hecho, 8 días; solo 500
+    comprobaciones desde fuera al mes → UptimeRobot aparte). Con OpenTelemetry se puede cambiar.
+  - Falta: que el usuario cree la cuenta de Grafana Cloud y pase el endpoint OTLP y el token.
 
 ## IA (guardarraíles)
 
