@@ -25,6 +25,20 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
       logs de pino a un servicio hecho para eso (Grafana Cloud/Loki, Axiom o Better Stack, plan
       gratis) con un transport. Lo que llega de fuera ya queda en la tabla `inbox` (30 días).
 
+## IA (guardarraíles)
+
+- [ ] **Seguridad médica en el coach.** Hoy solo hay una línea en el prompt ("no eres médico").
+      Faltan: síntomas de alarma (dolor de pecho, falta de aire, fiebre muy alta, autolesión) →
+      siempre "112 / urgencias" y nada más; no recomendar dosis ni cambios de medicación; no
+      dietas extremas (tope de déficit). Mejor con una comprobación propia antes de responder que
+      fiándolo solo al prompt.
+- [ ] **Inyección de instrucciones.** Marcar en los prompts que lo que viene de PDFs, comidas o
+      notas son datos, no órdenes (el coach solo lee, así que el daño posible es poco).
+- [ ] **Tope de gasto de LLM por usuario** (diario o mensual). Ahora se apunta en llm_usage pero
+      no se corta.
+- [ ] **Privacidad con DeepSeek.** Lo que se habla con el coach y los datos de salud van tal cual
+      (los PDFs sin datos personales). Con más usuarios: avisar y pedir consentimiento.
+
 ## App en el móvil (PWA)
 
 - [ ] **Más avisos push.** La base está (Ajustes → Cuenta → Notificaciones; reglas en
