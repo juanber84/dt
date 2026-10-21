@@ -173,3 +173,18 @@ export function fetchSystemActivity({ failed, name, limit } = {}) {
   const qs = params.toString();
   return apiFetch(`/api/v1/admin/system/activity${qs ? `?${qs}` : ''}`);
 }
+
+/** Registrar: agua, café, peso, síntoma o nota apuntados a mano. */
+export async function createEntry(entry) {
+  const created = await apiFetch('/api/v1/entries', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  });
+  clearTimelineCache();
+  return created;
+}
+
+export async function deleteEntry(id) {
+  await apiFetch(`/api/v1/entries/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  clearTimelineCache();
+}

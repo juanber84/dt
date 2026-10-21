@@ -430,4 +430,53 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
       .set('Cookie', cookie)
       .expect(400);
   });
+
+  it('Registrar: agua, síntoma y peso entran en el timeline y se pueden borrar', async () => {
+    const post = (body) =>
+      request(app).post('/api/v1/entries').set('Cookie', cookie).send(body).expect(201);
+    const water = await post({ kind: 'water', at: '2026-10-21T10:00:00+02:00', value: 500 });
+    await post({ kind: 'water', at: '2026-10-21T13:00:00+02:00', value: 250 });
+    await post({ kind: 'symptom', at: '2026-10-21T09:00:00+02:00', text: 'Mocos', value: 3 });
+    await post({ kind: 'weight', at: '2026-10-21T08:00:00+02:00', value: 82.4 });
+    await request(app)
+      .post('/api/v1/entries')
+      .set('Cookie', cookie)
+      .send({ kind: 'symptom', at: '2026-10-21T09:00:00+02:00', text: '' })
+      .expect(400);
+
+    const range = { from: '2026-10-20T22:00:00Z', to: '2026-10-21T22:00:00Z' };
+    const episodes = async () =>
+      (
+        await request(app)
+          .get('/api/v1/timeline/episodes')
+          .query({ ...range, kinds: 'drink,symptom,weigh-in' })
+          .set('Cookie', cookie)
+          .expect(200)
+      ).body.items;
+    expect((await episodes()).map((e) => [e.kind, e.title])).toEqual([
+      ['weigh-in', '82.4 kg'],
+      ['symptom', 'Mocos'],
+      ['drink', 'Agua'],
+      ['drink', 'Agua'],
+    ]);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await db`call refresh_continuous_aggregate('observations_hourly', null, null)`;
+        break;
+      } catch (err) {
+        if (attempt >= 10 || !/concurrent refresh/.test(err.message)) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+    const series = await request(app)
+      .get('/api/v1/timeline/series')
+      .query({ ...range, bucket: 'day', metrics: 'intake.water', tz: 'Europe/Madrid' })
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(series.body.series['intake.water'].points.map((p) => p.value)).toEqual([750]);
+
+    await request(app).delete(`/api/v1/entries/${water.body.id}`).set('Cookie', cookie).expect(204);
+    await request(app).delete(`/api/v1/entries/${water.body.id}`).set('Cookie', cookie).expect(404);
+    expect((await episodes()).filter((e) => e.kind === 'drink')).toHaveLength(1);
+  });
 });

@@ -124,6 +124,8 @@ export function createTimelineQueries({ db, catalog }) {
       return rows.map((r) => ({
         id: r.id,
         kind: r.kind,
+        // El id en su origen (el de un registro a mano sirve para borrarlo)
+        externalId: r.external_id,
         start: r.start_time.toISOString(),
         end: r.end_time?.toISOString() ?? null,
         title: r.title,

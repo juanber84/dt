@@ -7,6 +7,8 @@ export {
   normalizeXiaomiScale,
   normalizeGoogleDay,
   normalizeMeal,
+  normalizeEntry,
+  ENTRY_KINDS,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
   normalizeClinical,

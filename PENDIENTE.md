@@ -29,8 +29,8 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 - [ ] **Más avisos push.** La base está (Ajustes → Cuenta → Notificaciones; reglas en
       `apps/worker/src/notifications.js`). Faltan los que dependen de datos que aún no llegan bien:
-  - Agua ("llevas 0,5 L de 3 L"): antes, que Registrar guarde en la API (ahora el agua, los
-    síntomas y las notas solo viven en memoria y se pierden al recargar).
+  - Agua ("llevas 0,5 L de 3 L"): Registrar ya guarda en la API; falta que el bot apunte agua y
+    decidir cuándo avisar (el usuario lo ha dejado para más adelante).
   - Pasos al final del día: los pasos llegan cuando se abre la app de Google en el iPhone, así
     que hay que decir "según lo último sincronizado" o esperar a otra fuente.
   - Ideas: proteína a media tarde, varias noches durmiendo poco, días sin pesarse, y que el coach

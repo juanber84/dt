@@ -29,7 +29,18 @@ const CLINICAL_KIND_OF_TYPE = {
 };
 
 /** Bloques de los días que ya salen de datos reales (el resto sigue siendo de ejemplo). */
-export const REAL_KINDS = ['meal', 'weigh-in', 'workout', 'sleep', ...CLINICAL_KINDS];
+export const REAL_KINDS = [
+  'meal',
+  'weigh-in',
+  'workout',
+  'sleep',
+  // Lo apuntado a mano (Registrar o el bot)
+  'drink',
+  'symptom',
+  'note',
+  ...CLINICAL_KINDS,
+];
+const ENTRY_KINDS = ['drink', 'symptom', 'note'];
 
 /** Métrica del timeline → campo del resumen diario (con su conversión). */
 const DAILY_METRICS = {
@@ -124,7 +135,14 @@ export function byDay(episodes) {
   const out = new Map();
   const get = (date) => {
     if (!out.has(date)) {
-      out.set(date, { meals: [], weighIns: [], workouts: [], clinical: [], sleep: null });
+      out.set(date, {
+        meals: [],
+        weighIns: [],
+        workouts: [],
+        clinical: [],
+        entries: [],
+        sleep: null,
+      });
     }
     return out.get(date);
   };
@@ -139,12 +157,20 @@ export function byDay(episodes) {
       if (e.kind === 'weigh-in') day.weighIns.push(e);
       if (e.kind === 'workout') day.workouts.push(e);
       if (CLINICAL_KINDS.includes(e.kind)) day.clinical.push(e);
+      if (ENTRY_KINDS.includes(e.kind)) day.entries.push(e);
     }
   }
   return out;
 }
 
-const EMPTY_DAY = { meals: [], weighIns: [], workouts: [], clinical: [], sleep: null };
+const EMPTY_DAY = {
+  meals: [],
+  weighIns: [],
+  workouts: [],
+  clinical: [],
+  entries: [],
+  sleep: null,
+};
 
 // --- Eventos del timeline -------------------------------------------------------------------
 
@@ -193,6 +219,65 @@ export function mealEvent(episode) {
   };
 }
 
+/**
+ * Lo apuntado a mano (agua, café, síntoma, nota): `entryId` deja borrarlo desde el lateral.
+ */
+export function entryEvent(episode) {
+  const s = episode.summary ?? {};
+  const base = {
+    id: episode.id,
+    entryId: episode.externalId,
+    start: minutesOfDay(new Date(episode.start)),
+    sources: [
+      {
+        source: sourceOf(episode),
+        primary: true,
+        externalId: episode.externalId ?? episode.id,
+        recordedAt: episode.details?.createdAt ?? episode.start,
+        values: episode.details?.text ? { texto: episode.details.text } : {},
+      },
+    ],
+  };
+  if (episode.kind === 'drink' && s.waterMl != null) {
+    return {
+      ...base,
+      category: 'hydration',
+      icon: 'Droplets',
+      title: 'Agua',
+      subtitle: `${fmtInt(s.waterMl)} ml`,
+      metrics: [{ label: 'Agua', value: s.waterMl, unit: 'ml' }],
+    };
+  }
+  if (episode.kind === 'drink') {
+    return {
+      ...base,
+      category: 'hydration',
+      icon: 'Coffee',
+      title: 'Café',
+      subtitle: `${fmtInt(s.caffeineMg)} mg de cafeína`,
+      metrics: [{ label: 'Cafeína', value: s.caffeineMg, unit: 'mg' }],
+    };
+  }
+  if (episode.kind === 'symptom') {
+    return {
+      ...base,
+      category: 'note',
+      icon: 'Stethoscope',
+      title: episode.title,
+      subtitle: s.intensity ? `Síntoma · intensidad ${s.intensity}/5` : 'Síntoma',
+      metrics: s.intensity ? [{ label: 'Intensidad', value: s.intensity, unit: '/ 5' }] : [],
+    };
+  }
+  return {
+    ...base,
+    category: 'note',
+    icon: 'NotebookPen',
+    title: 'Nota',
+    subtitle: episode.title,
+    metrics: [],
+  };
+}
+
 export function weighInEvent(episode) {
   // Fuera el perfil de la báscula (nombre, nacimiento...): no es del pesaje
   const values = { ...episode.details };
@@ -206,8 +291,13 @@ export function weighInEvent(episode) {
     { label: 'Músculo', value: values.muscleMass, unit: 'kg', digits: 1 },
     { label: 'Agua', value: values.bodyWater, unit: '%', digits: 1 },
   ].filter((m) => m.value != null);
+  delete values.manual;
+  delete values.text;
+  delete values.createdAt;
   return {
     id: episode.id,
+    // Apuntado a mano: se puede borrar
+    ...(episode.details?.manual && { entryId: episode.externalId }),
     category: 'body',
     icon: 'Scale',
     title: 'Pesaje',
@@ -695,6 +785,7 @@ export function mergeDay(day, { episodes, daily, stepsByHour, hr }) {
   const events = [
     ...(mine.sleep ? [sleepEvent(day.date, mine.sleep, sleep)] : []),
     ...mine.weighIns.map(weighInEvent),
+    ...(mine.entries ?? []).map(entryEvent),
     ...mine.meals.map(mealEvent),
     ...mine.workouts.map(workoutEvent),
     ...(mine.clinical ?? []).map(clinicalEvent),

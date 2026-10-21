@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Droplets, Coffee, Scale, Stethoscope, NotebookPen, FileHeart } from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { uploadDocument, uploadProblem } from '../../services/clinical.js';
+import { createEntry } from '../../services/twin.js';
 import { fmtClock } from '../../lib/format.js';
 import { formatShortDate, minutesOfDay, todayISO } from '../../lib/dates.js';
 
@@ -13,7 +14,7 @@ const props = defineProps({
   /** Con qué tipo se abre ('report' para subir un informe). */
   initialKind: { type: String, default: null },
 });
-// add: { date, entry } de un registro a mano; uploaded: { document, created } de un informe
+// add: { date, subtitle } de un registro ya guardado; uploaded: { document, created } de un informe
 const emit = defineEmits(['close', 'add', 'uploaded']);
 
 const KINDS = [
@@ -22,6 +23,7 @@ const KINDS = [
     label: 'Agua',
     icon: Droplets,
     unit: 'ml',
+    field: 'Cantidad (ml)',
     default: 500,
     category: 'hydration',
     iconName: 'Droplets',
@@ -31,6 +33,7 @@ const KINDS = [
     label: 'Café',
     icon: Coffee,
     unit: 'mg de cafeína',
+    field: 'Cafeína (mg)',
     default: 80,
     category: 'hydration',
     iconName: 'Coffee',
@@ -40,7 +43,9 @@ const KINDS = [
     label: 'Peso',
     icon: Scale,
     unit: 'kg',
-    default: 78.5,
+    field: 'Peso (kg)',
+    // Sin valor de partida: un peso que no has escrito no se guarda
+    default: null,
     category: 'body',
     iconName: 'Scale',
   },
@@ -49,6 +54,7 @@ const KINDS = [
     label: 'Síntoma',
     icon: Stethoscope,
     unit: 'intensidad (1-5)',
+    field: 'Intensidad (1 leve – 5 fuerte)',
     default: 2,
     category: 'note',
     iconName: 'Stethoscope',
@@ -114,46 +120,35 @@ async function uploadReport() {
   }
 }
 
-function submit() {
+const saving = ref(false);
+// Síntomas y notas sin texto no dicen nada; el resto necesita su número
+const canSave = computed(() => {
+  if (!day.value) return false;
+  if (kind.value === 'symptom' || kind.value === 'note') return Boolean(text.value.trim());
+  return value.value != null && value.value !== '' && Number(value.value) > 0;
+});
+
+async function submit() {
   if (kind.value === 'report') return uploadReport();
-  const [h, m] = time.value.split(':').map(Number);
-  const start = h * 60 + m;
   const k = current.value;
-  emit('add', {
-    date: day.value,
-    entry: {
-      id: `manual-${Date.now()}`,
-      category: k.category,
-      icon: k.iconName,
-      title: k.label,
-      subtitle: titles[k.id](),
-      start,
-      metrics: k.unit
-        ? [
-            {
-              label: k.label,
-              value: Number(value.value),
-              unit: k.unit.split(' ')[0],
-              digits: k.id === 'weight' ? 1 : 0,
-            },
-          ]
-        : [],
-      sources: [
-        {
-          source: 'manual',
-          primary: true,
-          externalId: `manual_${Date.now()}`,
-          recordedAt: new Date().toISOString(),
-          values: {
-            kind: k.id,
-            value: k.unit ? Number(value.value) : undefined,
-            text: text.value || undefined,
-          },
-        },
-      ],
-    },
-  });
-  emit('close');
+  // La hora es la local del día elegido
+  const at = new Date(`${day.value}T${time.value}:00`).toISOString();
+  saving.value = true;
+  uploadError.value = null;
+  try {
+    await createEntry({
+      kind: k.id,
+      at,
+      ...(k.unit && value.value != null && { value: Number(value.value) }),
+      ...(text.value.trim() && { text: text.value.trim() }),
+    });
+    emit('add', { date: day.value, subtitle: titles[k.id]() });
+    emit('close');
+  } catch (err) {
+    uploadError.value = `No se ha podido guardar: ${err.message}`;
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 
@@ -201,7 +196,7 @@ function submit() {
         </label>
       </div>
       <label v-if="current.unit" class="field">
-        <span>{{ current.unit[0].toUpperCase() + current.unit.slice(1) }}</span>
+        <span>{{ current.field }}</span>
         <input
           v-model="value"
           class="input num"
@@ -218,10 +213,13 @@ function submit() {
         v-model="text"
         class="input"
         :placeholder="
-          kind === 'symptom' ? 'Dolor de cabeza, pesadez de piernas…' : 'Lo que quieras apuntar'
+          kind === 'symptom'
+            ? 'Mocos, dolor de garganta, 37,8 de fiebre…'
+            : 'Lo que quieras apuntar'
         "
       />
     </label>
+    <p v-if="kind !== 'report' && uploadError" class="error" role="alert">{{ uploadError }}</p>
     <p v-if="kind !== 'report'" class="muted hint">
       Se guarda como fuente «Manual». Las comidas mejor por el bot: estima los macros.
     </p>
@@ -229,10 +227,18 @@ function submit() {
       <button class="btn" @click="emit('close')">Cancelar</button>
       <button
         class="btn btn-primary"
-        :disabled="kind === 'report' ? !file || uploading : !day"
+        :disabled="kind === 'report' ? !file || uploading : !canSave || saving"
         @click="submit"
       >
-        {{ kind === 'report' ? (uploading ? 'Subiendo…' : 'Subir y leer') : 'Guardar' }}
+        {{
+          kind === 'report'
+            ? uploading
+              ? 'Subiendo…'
+              : 'Subir y leer'
+            : saving
+              ? 'Guardando…'
+              : 'Guardar'
+        }}
       </button>
     </template>
   </Modal>

@@ -18,7 +18,6 @@ import Delta from '../components/ui/Delta.vue';
 import { STAGE_COLOR, STAGE_LABEL } from '../components/charts/colors.js';
 import { useAsync } from '../composables/useAsync.js';
 import Skeleton from '../components/ui/Skeleton.vue';
-import { useManualEntries } from '../composables/useManualEntries.js';
 import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchSummaries } from '../services/twin.js';
 import { documentDay, documentEvent, withDocuments } from '../services/timeline.js';
@@ -48,7 +47,6 @@ const stale = computed(() => day.value && day.value.date !== date.value);
 const skeleton = computed(
   () => !dayError.value && (!day.value || (dayLoading.value && stale.value)),
 );
-const manual = useManualEntries();
 const toast = useToast();
 
 // --- Informes de Clínica: salen en su día, también los que faltan por revisar ----------------
@@ -95,13 +93,7 @@ async function loadDocuments({ quiet } = {}) {
 loadDocuments();
 onBeforeUnmount(() => clearTimeout(pollTimer));
 
-const events = computed(() =>
-  withDocuments(
-    [...(day.value?.events ?? []), ...manual.forDate(date.value)],
-    documents.value,
-    date.value,
-  ),
-);
+const events = computed(() => withDocuments(day.value?.events ?? [], documents.value, date.value));
 
 const selected = ref(null);
 const drawerOpen = ref(false);
@@ -143,10 +135,14 @@ function changeDate(value) {
   router.push(dayRoute(value));
 }
 
-function addEntry({ date: entryDate, entry }) {
-  manual.add(entryDate, entry);
-  if (entryDate === date.value) return toast.show(`Guardado: ${entry.subtitle}`);
-  toast.show(`Guardado el ${formatShortDate(entryDate)}: ${entry.subtitle}`, 'neutral', {
+/** Registrar ya lo ha guardado en la API: se vuelve a pedir el día para que salga. */
+function addEntry({ date: entryDate, subtitle }) {
+  if (entryDate === date.value) {
+    reloadDay();
+    reloadHistory();
+    return toast.show(`Guardado: ${subtitle}`);
+  }
+  toast.show(`Guardado el ${formatShortDate(entryDate)}: ${subtitle}`, 'neutral', {
     action: { label: 'Ver ese día', to: dayRoute(entryDate) },
   });
 }

@@ -10,6 +10,7 @@ import {
   sleepFrom,
   workoutEvent,
   emptySummary,
+  entryEvent,
 } from '../src/services/timeline.js';
 
 const local = (h, m = 0, d = 6) => new Date(2026, 9, d, h, m).toISOString();
@@ -233,5 +234,41 @@ describe('entrenos reales en la lista de Entrenos', () => {
       tss: 52,
     });
     expect(activityFrom(run).id).toBe(workoutEvent(run).id);
+  });
+});
+
+describe('registros a mano', () => {
+  const ep = (kind, summary, extra = {}) => ({
+    id: `ep-${kind}`,
+    kind,
+    externalId: `entry-${kind}`,
+    start: '2026-10-21T08:30:00Z',
+    title: extra.title ?? kind,
+    summary,
+    details: { text: extra.text ?? '' },
+    origin: { channel: 'manual' },
+  });
+
+  it('agua, síntoma y nota: su evento, borrables por su id de registro', () => {
+    expect(entryEvent(ep('drink', { waterMl: 500 }))).toMatchObject({
+      category: 'hydration',
+      title: 'Agua',
+      subtitle: '500 ml',
+      entryId: 'entry-drink',
+    });
+    expect(entryEvent(ep('symptom', { intensity: 3 }, { title: 'Mocos' }))).toMatchObject({
+      category: 'note',
+      title: 'Mocos',
+      subtitle: 'Síntoma · intensidad 3/5',
+    });
+    expect(entryEvent(ep('note', {}, { title: 'Me noto cansado' }))).toMatchObject({
+      title: 'Nota',
+      subtitle: 'Me noto cansado',
+    });
+  });
+
+  it('van a su día con el resto', () => {
+    const days = byDay([ep('drink', { waterMl: 250 }), ep('symptom', { intensity: 2 })]);
+    expect(days.get('2026-10-21').entries).toHaveLength(2);
   });
 });

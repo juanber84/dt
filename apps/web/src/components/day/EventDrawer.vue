@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ArrowRight, Info } from '@lucide/vue';
+import { ArrowRight, Info, Trash2 } from '@lucide/vue';
 import Drawer from '../ui/Drawer.vue';
 import ClinicalPanel from '../clinical/ClinicalPanel.vue';
 import { TYPE_ICON, TYPE_LABEL, fmtDocDate } from '../../services/clinical.js';
@@ -11,6 +11,7 @@ import { fmtClock, fmtDec, fmtDuration, fmtInt } from '../../lib/format.js';
 import { CATEGORY_COLOR, STAGE_COLOR, STAGE_LABEL } from '../charts/colors.js';
 import { sourceName } from '../../data/sources.js';
 import { useConfirm } from '../../composables/useConfirm.js';
+import { deleteEntry } from '../../services/twin.js';
 
 const props = defineProps({
   event: { type: Object, default: null },
@@ -61,6 +62,25 @@ async function close() {
 function deleted() {
   dirty.value = false;
   emit('deleted');
+}
+
+// Lo apuntado a mano (Registrar o el bot) se puede borrar desde aquí
+const removing = ref(false);
+async function removeEntry() {
+  const ok = await ask({
+    title: `¿Borrar ${props.event.title.toLowerCase()}?`,
+    message: 'Se quita de tu día y de tus totales.',
+    confirmLabel: 'Borrar',
+    danger: true,
+  });
+  if (!ok) return;
+  removing.value = true;
+  try {
+    await deleteEntry(props.event.entryId);
+    emit('deleted');
+  } finally {
+    removing.value = false;
+  }
 }
 
 const color = computed(() => CATEGORY_COLOR[props.event?.category] ?? 'var(--text-2)');
@@ -218,6 +238,16 @@ const fmtStamp = (iso) =>
           </li>
         </ul>
       </section>
+
+      <button
+        v-if="event.entryId"
+        class="btn btn-danger remove"
+        :disabled="removing"
+        @click="removeEntry"
+      >
+        <Trash2 class="icon icon-sm" />
+        {{ removing ? 'Borrando…' : 'Borrar este registro' }}
+      </button>
     </template>
   </Drawer>
 </template>
@@ -456,5 +486,12 @@ code {
   margin: 0;
   color: var(--text-2);
   word-break: break-word;
+}
+.remove {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 24px;
 }
 </style>

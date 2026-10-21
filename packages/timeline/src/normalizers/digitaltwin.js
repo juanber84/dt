@@ -58,3 +58,100 @@ export function normalizeMeal(entry) {
   }
   return { mode: 'exact', observations, episodes };
 }
+
+/** Lo que se apunta a mano (app o bot) además de las comidas. */
+export const ENTRY_KINDS = Object.freeze(['water', 'coffee', 'weight', 'symptom', 'note']);
+
+/**
+ * Un registro suelto (Registrar en la app: canal `manual`; o el bot: `telegram`):
+ * { id, kind, at, value?, text?, channel }.
+ *   water   ml de agua → intake.water + episodio `drink`
+ *   coffee  mg de cafeína → intake.caffeine + episodio `drink`
+ *   weight  kg → body.weight + episodio `weigh-in` (como un pesaje de la báscula)
+ *   symptom texto + intensidad 1-5 → episodio `symptom`
+ *   note    texto → episodio `note`
+ */
+export function normalizeEntry(entry) {
+  const origin = entry.channel ?? 'manual';
+  const originDetails = { channel: origin };
+  const time = new Date(entry.at).toISOString();
+  const base = {
+    origin,
+    originDetails,
+    externalId: entry.id,
+    start: time,
+    end: null,
+    details: { text: entry.text ?? '', createdAt: entry.createdAt ?? null },
+  };
+  const observation = (metric, value) => [{ origin, originDetails, metric, time, value }];
+
+  switch (entry.kind) {
+    case 'water':
+      return {
+        mode: 'exact',
+        observations: observation('intake.water', entry.value),
+        episodes: [
+          {
+            ...base,
+            kind: 'drink',
+            title: 'Agua',
+            summary: { waterMl: entry.value },
+            schema: 'drink@1',
+          },
+        ],
+      };
+    case 'coffee':
+      return {
+        mode: 'exact',
+        observations: observation('intake.caffeine', entry.value),
+        episodes: [
+          {
+            ...base,
+            kind: 'drink',
+            title: 'Café',
+            summary: { caffeineMg: entry.value },
+            schema: 'drink@1',
+          },
+        ],
+      };
+    case 'weight':
+      return {
+        mode: 'exact',
+        observations: observation('body.weight', entry.value),
+        episodes: [
+          {
+            ...base,
+            kind: 'weigh-in',
+            title: `${entry.value} kg`,
+            summary: { weight: entry.value, bodyFat: null },
+            schema: 'weigh-in@1',
+            details: { ...base.details, weight: entry.value, manual: true },
+          },
+        ],
+      };
+    case 'symptom':
+      return {
+        mode: 'exact',
+        observations: [],
+        episodes: [
+          {
+            ...base,
+            kind: 'symptom',
+            title: entry.text || 'Síntoma',
+            summary: { intensity: entry.value ?? null },
+            schema: 'symptom@1',
+          },
+        ],
+      };
+    case 'note':
+      return {
+        mode: 'exact',
+        observations: [],
+        episodes: [
+          { ...base, kind: 'note', title: entry.text || 'Nota', summary: {}, schema: 'note@1' },
+        ],
+      };
+    default:
+      return { mode: 'exact', observations: [], episodes: [] };
+  }
+}

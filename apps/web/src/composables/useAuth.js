@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue';
 import { fetchSession, login, loginWithPasskey, logout } from '../services/auth.js';
 import { clearTimelineCache } from '../services/twin.js';
-import { clearManualEntries } from './useManualEntries.js';
 
 // Usuario de la sesión (la cookie la gestiona el navegador: aquí solo quién es y su rol)
 const user = ref(null);
@@ -47,5 +46,4 @@ export function forgetSession() {
   checked = Promise.resolve(null);
   // Lo que se guardó en memoria era de ese usuario: que no lo vea el siguiente en esta pestaña
   clearTimelineCache();
-  clearManualEntries();
 }

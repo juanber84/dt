@@ -73,6 +73,7 @@ export const METRICS = Object.freeze(
     m('intake.fat', 'g', 'sum', 'Grasa'),
     m('intake.fiber', 'g', 'sum', 'Fibra'),
     m('intake.water', 'mL', 'sum', 'Agua'),
+    m('intake.caffeine', 'mg', 'sum', 'Cafeína'),
     // Informes médicos (analíticas, holter, prueba de esfuerzo): un valor por prueba
     ...CLINICAL_METRICS.map((c) => m(c.code, c.unit, 'last', c.label, c.loinc ?? null)),
   ].map(Object.freeze),

@@ -13,6 +13,8 @@ import { createClinicalRouter } from './clinical.routes.js';
 import { createSystemAdminRouter } from './system-admin.routes.js';
 import { createPasskeysRouter } from './passkeys.routes.js';
 import { createPushRouter } from './push.routes.js';
+import { createEntriesRouter } from './entries.routes.js';
+import { createEntries } from '../services/entries.js';
 import {
   authenticate,
   requireApiClient,
@@ -94,6 +96,14 @@ export function createApiRouter({
       requireUser,
       createTimelineRouter({ queries: pipeline.queries, timeZone: config.TIMEZONE }),
     );
+    // Registrar: agua, café, peso, síntomas y notas apuntados a mano
+    if (queue) {
+      router.use(
+        '/entries',
+        requireUser,
+        createEntriesRouter({ entries: createEntries({ pipeline, queue }) }),
+      );
+    }
   }
   if (clinical) {
     router.use(

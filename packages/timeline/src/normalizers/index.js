@@ -1,6 +1,6 @@
 import { normalizeXiaomiScale } from './xiaomi.js';
 import { normalizeGoogleDay, isGoogleNormalized } from './google.js';
-import { normalizeMeal } from './digitaltwin.js';
+import { normalizeEntry, normalizeMeal } from './digitaltwin.js';
 import { normalizeIntervalsActivity, normalizeIntervalsWellness } from './intervals.js';
 import { normalizeClinical } from './clinical.js';
 
@@ -19,6 +19,7 @@ export function normalizerFor(provider, kind) {
   if (provider === 'xiaomi' && kind === 'scale') return normalizeXiaomiScale;
   if (provider === 'google-health' && isGoogleNormalized(kind)) return normalizeGoogleDay;
   if (provider === 'digitaltwin' && kind === 'meal') return normalizeMeal;
+  if (provider === 'digitaltwin' && kind === 'entry') return normalizeEntry;
   if (provider === 'intervals-icu' && kind === 'activity') return normalizeIntervalsActivity;
   if (provider === 'intervals-icu' && kind === 'wellness') return normalizeIntervalsWellness;
   if (provider === 'clinical') return normalizeClinical;
@@ -29,6 +30,7 @@ export {
   normalizeXiaomiScale,
   normalizeGoogleDay,
   normalizeMeal,
+  normalizeEntry,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
   normalizeClinical,
@@ -41,4 +43,5 @@ export {
   isGoogleNormalized,
 } from './google.js';
 export { XIAOMI_METRICS } from './xiaomi.js';
+export { ENTRY_KINDS } from './digitaltwin.js';
 export { CLINICAL_EPISODES, clinicalPeriod, customMetricCode } from './clinical.js';
