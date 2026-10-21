@@ -9,6 +9,8 @@
 :root {
   color-scheme: light;
   --page: #f4f4f1;
+  /* Franja bajo la barra de estado del iPhone (app instalada): su texto siempre es blanco */
+  --status-shade: #0f0f0e;
   --surface: #fcfcfb;
   --surface-2: #f4f3ef;
   --surface-hover: #f0efea;
@@ -52,6 +54,7 @@
   :root:where(:not([data-theme='light'])) {
     color-scheme: dark;
     --page: #0f0f0e;
+    --status-shade: transparent;
     --surface: #1a1a19;
     --surface-2: #212120;
     --surface-hover: #242423;
@@ -86,6 +89,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
   --page: #0f0f0e;
+  --status-shade: transparent;
   --surface: #1a1a19;
   --surface-2: #212120;
   --surface-hover: #242423;

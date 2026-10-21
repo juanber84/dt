@@ -15,6 +15,7 @@ defineProps({
     <h1>{{ title }}</h1>
     <p v-if="description" class="secondary">{{ description }}</p>
     <nav class="tabs" aria-label="Administración">
+      <RouterLink to="/settings" active-class="active">Cuenta</RouterLink>
       <RouterLink to="/admin/connections" active-class="active">Conexiones</RouterLink>
       <template v-if="isAdmin">
         <RouterLink to="/admin/sources" active-class="active">Fuentes</RouterLink>

@@ -30,10 +30,6 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 - [ ] **Estados de carga al navegar.** Al cambiar de pantalla (o de día en Hoy) no se ve que esté
       cargando y parece roto: hueco en blanco o datos viejos hasta que llega la respuesta. Poner
       esqueletos (skeletons) en cada vista mientras carga y una barra fina arriba al navegar.
-- [ ] **Tema y cerrar sesión en el móvil.** Solo están en la barra lateral, que en el móvil no se
-      ve. Ponerlos en Ajustes con un selector Sistema / Claro / Oscuro (el botón actual fija claro u
-      oscuro y nunca vuelve a "sistema"). Con el iPhone en oscuro la app instalada sale en blanco:
-      ver si es el tema guardado o la barra de estado (`apple-mobile-web-app-status-bar-style`).
 - [ ] **Entrar con Face ID.** Con passkeys (WebAuthn): el iPhone las guarda en el llavero y pide
       Face ID al usarlas. Hace falta registrar la passkey desde la web ya con sesión y un login
       alternativo con ella. Solo funciona con HTTPS y el dominio de producción.

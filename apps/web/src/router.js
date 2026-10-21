@@ -34,6 +34,11 @@ export const router = createRouter({
     { path: '/clinical/:id', redirect: '/clinical' },
     { path: '/admin', redirect: '/admin/connections' },
     {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('./views/admin/AccountView.vue'),
+    },
+    {
       path: '/admin/connections',
       name: 'connections',
       component: () => import('./views/admin/ConnectionsView.vue'),

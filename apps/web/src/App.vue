@@ -13,6 +13,7 @@ import {
   MoonStar,
   Settings,
   LogOut,
+  UserRound,
   Sparkles,
   BrainCircuit,
   FileHeart,
@@ -49,7 +50,10 @@ const main = [
   { to: '/clinical', label: 'Clínica', icon: FileHeart, match: '/clinical' },
   { to: '/coach', label: 'Coach', icon: Sparkles, match: '/coach' },
 ];
-const settings = [{ to: '/admin/connections', label: 'Conexiones', icon: Plug }];
+const settings = [
+  { to: '/settings', label: 'Cuenta', icon: UserRound },
+  { to: '/admin/connections', label: 'Conexiones', icon: Plug },
+];
 // Solo admin: qué fuentes entran y en qué orden, y el estado del sistema
 const admin = [
   { to: '/admin/sources', label: 'Fuentes', icon: Layers },
@@ -157,12 +161,16 @@ const admin = [
         <component :is="item.icon" class="icon" />
         {{ item.label }}
       </RouterLink>
-      <RouterLink to="/admin/connections" :class="{ active: $route.path.startsWith('/admin') }">
+      <RouterLink
+        to="/settings"
+        :class="{ active: $route.path.startsWith('/admin') || $route.path === '/settings' }"
+      >
         <Settings class="icon" />
         Ajustes
       </RouterLink>
     </nav>
   </div>
+  <div class="status-shade" aria-hidden="true" />
   <Toast />
   <ConfirmDialog />
 </template>
@@ -304,6 +312,18 @@ nav {
 
 .tabbar {
   display: none;
+}
+
+/* Detrás de la barra de estado de la app instalada (fuera de ella mide 0) */
+.status-shade {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: env(safe-area-inset-top);
+  background: var(--status-shade);
+  pointer-events: none;
 }
 
 @media (max-width: 860px) {

@@ -15,12 +15,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Twin" />
-    <!-- default y no black-translucent: con esta el texto de la barra de estado sale siempre blanco
-         y en el tema claro no se ve -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- black-translucent: la app pinta también bajo la barra de estado (con default sale una franja
+         blanca encima del tema oscuro). Su texto es siempre blanco: en el tema claro va sobre
+         .status-shade (App.vue) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f0f0e" media="(prefers-color-scheme: dark)" />
     <meta name="format-detection" content="telephone=no" />
+    <!-- El tema antes de pintar nada (si no, se ve un destello claro al abrir): ver useTheme.js -->
+    <script>
+      try {
+        var theme = localStorage.getItem('digitaltwin:theme') || 'dark';
+        if (theme !== 'system') document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
