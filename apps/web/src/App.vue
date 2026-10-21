@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   UserRound,
+  BookOpen,
   Sparkles,
   BrainCircuit,
   FileHeart,
@@ -112,6 +113,12 @@ const admin = [
           {{ item.label }}
         </RouterLink>
       </nav>
+
+      <!-- Solo en la web (en el móvil no hay barra lateral): la documentación, aparte -->
+      <a href="/docs/" class="nav-item docs-link">
+        <BookOpen class="icon" />
+        Documentación
+      </a>
 
       <div class="sidebar-foot">
         <div v-if="user" class="me">
@@ -237,8 +244,11 @@ nav {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
-.sidebar-foot {
+.docs-link {
   margin-top: auto;
+}
+
+.sidebar-foot {
   display: grid;
   gap: 10px;
   padding: 0 4px;

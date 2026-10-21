@@ -6,6 +6,7 @@ import AdminHeader from '../../components/admin/AdminHeader.vue';
 import Segmented from '../../components/ui/Segmented.vue';
 import NotificationSettings from '../../components/admin/NotificationSettings.vue';
 import ProfileSettings from '../../components/admin/ProfileSettings.vue';
+import McpTokens from '../../components/admin/McpTokens.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
 import { useTheme } from '../../composables/useTheme.js';
 import { useConfirm } from '../../composables/useConfirm.js';
@@ -135,6 +136,8 @@ async function exit() {
     <p v-else class="muted">Este navegador no admite passkeys.</p>
 
     <NotificationSettings />
+
+    <McpTokens />
 
     <button class="btn btn-danger logout" :disabled="leaving" @click="exit">
       <LogOut class="icon icon-sm" />

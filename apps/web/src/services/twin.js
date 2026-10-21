@@ -199,3 +199,10 @@ export const saveProfile = (patch) =>
 
 /** El motor: peso tendencia, gasto real y objetivos de comida (los calcula la API). */
 export const fetchEngine = () => apiFetch('/api/v1/engine');
+
+/** Tokens personales para conectar tu IA por MCP (el token en claro solo sale al crearlo). */
+export const listTokens = () => apiFetch('/api/v1/tokens').then((r) => r.items);
+export const createToken = (name) =>
+  apiFetch('/api/v1/tokens', { method: 'POST', body: JSON.stringify({ name }) });
+export const revokeToken = (id) =>
+  apiFetch(`/api/v1/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });

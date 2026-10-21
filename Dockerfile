@@ -25,6 +25,7 @@ RUN if [ "$APP" = "worker" ]; then \
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/bot/package.json apps/bot/
+COPY apps/docs/package.json apps/docs/
 COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
 COPY packages/clinical/package.json packages/clinical/
