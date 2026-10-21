@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import { fetchSession, login, logout } from '../services/auth.js';
+import { fetchSession, login, loginWithPasskey, logout } from '../services/auth.js';
 import { clearTimelineCache } from '../services/twin.js';
 import { clearManualEntries } from './useManualEntries.js';
 
@@ -21,6 +21,13 @@ export function ensureSession() {
 
 export async function signIn(credentials) {
   const { user: me } = await login(credentials);
+  user.value = me;
+  checked = Promise.resolve(me);
+  return me;
+}
+
+export async function signInWithPasskey() {
+  const { user: me } = await loginWithPasskey();
   user.value = me;
   checked = Promise.resolve(me);
   return me;

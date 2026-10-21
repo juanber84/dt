@@ -11,6 +11,7 @@ import { createCoachRouter } from './coach.routes.js';
 import { createAiAdminRouter } from './ai-admin.routes.js';
 import { createClinicalRouter } from './clinical.routes.js';
 import { createSystemAdminRouter } from './system-admin.routes.js';
+import { createPasskeysRouter } from './passkeys.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -44,13 +45,14 @@ export function createApiRouter({
   llmBalance,
   llmModels,
   clinical,
+  passkeys,
 }) {
   const router = Router();
 
   router.use('/health', createHealthRouter({ db, heartbeats, queue, pipeline }));
   router.use(
     '/auth',
-    createAuthRouter({ users, sessions, limitAttempts: config.NODE_ENV !== 'test' }),
+    createAuthRouter({ users, sessions, passkeys, limitAttempts: config.NODE_ENV !== 'test' }),
   );
 
   const secureCookies = config.NODE_ENV === 'production';
@@ -64,6 +66,7 @@ export function createApiRouter({
   // Todo lo que va después exige API key (clientes) o sesión (personas)
   router.use(authenticate({ apiKeys: config.DIGITALTWIN_API_KEYS, sessions, users }));
   router.use('/heartbeat', requireApiClient, createHeartbeatRouter({ heartbeats }));
+  if (passkeys) router.use('/passkeys', requireUser, createPasskeysRouter({ passkeys }));
   router.use(
     '/connections',
     requireUser,

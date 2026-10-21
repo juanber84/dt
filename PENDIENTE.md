@@ -27,9 +27,6 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## App en el móvil (PWA)
 
-- [ ] **Entrar con Face ID.** Con passkeys (WebAuthn): el iPhone las guarda en el llavero y pide
-      Face ID al usarlas. Hace falta registrar la passkey desde la web ya con sesión y un login
-      alternativo con ella. Solo funciona con HTTPS y el dominio de producción.
 - [ ] **Notificaciones.** Web Push: en iOS solo con la app instalada en la pantalla de inicio
       (iOS 16.4+). Necesita un service worker, que ahora no hay a propósito para que no haya
       caché: al añadirlo, que no cachee nada (solo push), o habrá que pensar cómo se actualiza.

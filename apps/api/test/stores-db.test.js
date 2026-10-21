@@ -6,6 +6,7 @@ import { createDbConnectionStore, createSecretBox } from '@digitaltwin/connectio
 import { createDbCoachStore } from '../src/services/coach-store.js';
 import { createDbLlmUsageRows, createLlmUsage, parsePrices } from '../src/services/llm-usage.js';
 import { buildExtraction, createDbClinicalStore, modelOutputSchema } from '@digitaltwin/clinical';
+import { createDbPasskeyStore } from '../src/services/passkeys.js';
 
 // Necesita una BD de verdad (make test-db). Cada ejecución usa un schema propio que se borra al final.
 const url = process.env.TEST_DATABASE_URL;
@@ -282,6 +283,38 @@ describe.skipIf(!url)('stores en la BD', () => {
       await store.saveAliases(me.id, [['antigeno raro', 'lab.ferritin']]);
       expect(await store.aliases(me.id)).toEqual(new Map([['antigeno raro', 'lab.ferritin']]));
       expect(await store.userNames(me.id)).toEqual(['Yo', 'Yo']);
+    });
+  });
+
+  describe('passkeys', () => {
+    it('guarda la clave pública, apunta el uso y solo la borra su dueño', async () => {
+      const store = createDbPasskeyStore({ db });
+      await store.save({
+        id: 'cred-abc',
+        userId: me.id,
+        publicKey: new Uint8Array([1, 2, 3, 250]),
+        counter: 0,
+        transports: ['internal', 'hybrid'],
+        deviceType: 'multiDevice',
+        backedUp: true,
+        name: 'iPhone',
+      });
+      const saved = await store.get('cred-abc');
+      expect(saved).toMatchObject({
+        userId: me.id,
+        counter: 0,
+        transports: ['internal', 'hybrid'],
+      });
+      expect([...saved.publicKey]).toEqual([1, 2, 3, 250]);
+      await store.used('cred-abc', 5);
+      expect(await store.get('cred-abc')).toMatchObject({
+        counter: 5,
+        lastUsedAt: expect.any(String),
+      });
+      expect(await store.remove('00000000-0000-0000-0000-000000000000', 'cred-abc')).toBe(false);
+      expect(await store.listByUser(me.id)).toHaveLength(1);
+      expect(await store.remove(me.id, 'cred-abc')).toBe(true);
+      expect(await store.get('cred-abc')).toBeNull();
     });
   });
 });

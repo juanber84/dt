@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowRight, CircleAlert, LoaderCircle, Lock } from '@lucide/vue';
+import { ArrowRight, CircleAlert, LoaderCircle, Lock, ScanFace } from '@lucide/vue';
 import LoginGallery from '../components/login/LoginGallery.vue';
 import BrandMark from '../components/ui/BrandMark.vue';
 import PasswordInput from '../components/ui/PasswordInput.vue';
-import { signIn } from '../composables/useAuth.js';
+import { signIn, signInWithPasskey } from '../composables/useAuth.js';
+import { cancelled, passkeyHere, supportsPasskeys } from '../services/auth.js';
 import { safeNext } from '../lib/navigation.js';
 
 const route = useRoute();
@@ -17,7 +18,30 @@ const remember = ref(true);
 const busy = ref(false);
 const error = ref(null);
 
-const vFocus = { mounted: (el) => el.focus() };
+// v-focus o v-focus="false" (con Face ID primero no se abre el teclado)
+const vFocus = { mounted: (el, { value }) => value !== false && el.focus() };
+
+const passkeys = supportsPasskeys();
+// Si ya lo usas en este dispositivo, Face ID va primero y la contraseña queda como alternativa
+const passkeyFirst = passkeys && passkeyHere();
+const passkeyBusy = ref(false);
+
+async function submitPasskey() {
+  passkeyBusy.value = true;
+  error.value = null;
+  try {
+    await signInWithPasskey();
+    router.replace(safeNext(route.query.next) ?? { name: 'day' });
+  } catch (err) {
+    if (!cancelled(err)) {
+      error.value =
+        MESSAGES[err.code] ??
+        (err.status ? err.message : 'No se ha podido entrar con Face ID. Usa tu contraseña.');
+    }
+  } finally {
+    passkeyBusy.value = false;
+  }
+}
 
 const MESSAGES = {
   INVALID_CREDENTIALS: 'Usuario o contraseña incorrectos.',
@@ -84,12 +108,30 @@ async function submit() {
         <h2>Hola de nuevo</h2>
         <p class="lead">Entra para ver cómo vas hoy.</p>
 
+        <template v-if="passkeyFirst">
+          <button
+            class="btn submit passkey-first"
+            type="button"
+            :disabled="busy || passkeyBusy"
+            @click="submitPasskey"
+          >
+            <LoaderCircle v-if="passkeyBusy" class="icon icon-sm spin" />
+            <ScanFace v-else class="icon icon-sm" />
+            Entrar con Face ID
+          </button>
+          <p v-if="error" class="error" role="alert">
+            <CircleAlert class="icon icon-sm" />
+            {{ error }}
+          </p>
+          <p class="or"><span>o con tu contraseña</span></p>
+        </template>
+
         <form class="form" novalidate @submit.prevent="submit">
           <label class="field">
             <span>Usuario</span>
             <input
               v-model="username"
-              v-focus
+              v-focus="!passkeyFirst"
               class="input"
               type="text"
               name="username"
@@ -110,12 +152,17 @@ async function submit() {
             <span>Mantener la sesión iniciada 30 días</span>
           </label>
 
-          <p v-if="error" class="error" role="alert">
+          <p v-if="error && !passkeyFirst" class="error" role="alert">
             <CircleAlert class="icon icon-sm" />
             {{ error }}
           </p>
 
-          <button class="btn submit" type="submit" :disabled="busy">
+          <button
+            class="btn submit"
+            :class="{ secondary: passkeyFirst }"
+            type="submit"
+            :disabled="busy || passkeyBusy"
+          >
             <template v-if="busy">
               <LoaderCircle class="icon icon-sm spin" />
               Entrando…
@@ -126,6 +173,21 @@ async function submit() {
             </template>
           </button>
         </form>
+
+        <!-- Solo vale si ya lo activaste en Cuenta desde este dispositivo (o tu llavero de iCloud) -->
+        <template v-if="passkeys && !passkeyFirst">
+          <p class="or"><span>o</span></p>
+          <button
+            class="btn passkey"
+            type="button"
+            :disabled="busy || passkeyBusy"
+            @click="submitPasskey"
+          >
+            <LoaderCircle v-if="passkeyBusy" class="icon icon-sm spin" />
+            <ScanFace v-else class="icon icon-sm" />
+            Entrar con Face ID
+          </button>
+        </template>
       </div>
 
       <footer class="foot">
@@ -361,6 +423,47 @@ h2 {
 
 .spin {
   animation: spin 0.9s linear infinite;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.passkey-first {
+  width: 100%;
+  gap: 8px;
+}
+
+.submit.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.submit.secondary:hover:not(:disabled) {
+  background: var(--surface-hover);
+  box-shadow: none;
+}
+
+.passkey {
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 46px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 @keyframes spin {

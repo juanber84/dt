@@ -27,6 +27,7 @@ import { createDigitaltwinWebhookRouter } from './routes/digitaltwin-webhook.rou
 import { createUserStore } from './services/users.js';
 import { createSessions } from './services/sessions.js';
 import { createDbUserStore } from './services/users-db.js';
+import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -84,6 +85,8 @@ import { createClinical } from './services/clinical.js';
  *   (null = no se consulta). Por defecto, el de DeepSeek si es DeepSeek.
  * @param {ReturnType<typeof createMemoryClinicalStore>} [deps.clinicalStore]  Informes médicos.
  *   Por defecto, en la BD si la hay; si no, en memoria.
+ * @param {ReturnType<typeof createPasskeys>} [deps.passkeys]  Entrar con Face ID. Por defecto, con
+ *   la BD si la hay; sin BD no se ofrece.
  */
 export function createApp({
   config = loadConfig(),
@@ -110,6 +113,7 @@ export function createApp({
   llmUsage,
   llmBalance,
   clinicalStore,
+  passkeys,
 } = {}) {
   const log = logger ?? createLogger({ name: 'api', level: config.LOG_LEVEL });
   if (!config.JWT_SECRET && config.NODE_ENV !== 'test') {
@@ -196,10 +200,21 @@ export function createApp({
   measurements ??= pipeline
     ? createTimelineMeasurements(pipeline.queries)
     : createMemoryMeasurementStore();
+  const sessionSecret = config.JWT_SECRET ?? randomBytes(32).toString('hex');
   const sessions = createSessions({
-    secret: config.JWT_SECRET ?? randomBytes(32).toString('hex'),
+    secret: sessionSecret,
     secure: config.NODE_ENV === 'production',
   });
+  passkeys ??= db
+    ? createPasskeys({
+        store: createDbPasskeyStore({ db }),
+        publicUrl: config.PUBLIC_URL,
+        // En desarrollo el front de Vite (5173) también vale; el dominio es localhost igual
+        extraOrigins: config.NODE_ENV === 'production' ? [] : ['http://localhost:5173'],
+        secret: sessionSecret,
+        secure: config.NODE_ENV === 'production',
+      })
+    : undefined;
   const xiaomiLogin = createXiaomiLogin({
     store: connections,
     onConnected: inbox?.connected,
@@ -369,6 +384,7 @@ export function createApp({
       llmBalance,
       llmModels,
       clinical,
+      passkeys,
     }),
   );
 
