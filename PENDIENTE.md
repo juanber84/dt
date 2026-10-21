@@ -56,13 +56,19 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
       4 cifras de las últimas 24 h, y el detalle plegado (solo colas con algo, entradas agrupadas,
       trabajos fallidos por defecto). Aparcado por el usuario.
 
-- [ ] **Envío de correos. SIN DECIDIR:** para qué y con qué. Usos posibles: recuperar la
-      contraseña y el alta cuando haya registro, verificar el email, avisos importantes cuando no
-      haya push (backup fallido, conexión rota), un resumen semanal, o mandar al médico un informe
-      de Clínica. Proveedor transaccional con plan gratis (Resend, Brevo, Postmark, Amazon SES…)
-      mejor que un SMTP propio en el VPS (se acaba en spam). Hace falta dominio verificado
-      (SPF, DKIM, DMARC), la clave en Infisical, un job `email` en el worker (como `push`) con su
-      registro, y preferencias por usuario (qué correos quiere).
+- [ ] **Envío de correos: informe del día.** El uso principal: cada día (o por la mañana, del
+      día anterior) un correo con el resumen: peso real y gasto, lo comido frente al objetivo
+      (kcal y macros), sueño, pasos, entreno, salud (síntomas, medicación) y unas frases del coach
+      con lo importante y qué hacer hoy. Las cifras salen del motor y del timeline (nada inventado,
+      "sin datos" si falta algo); el texto, del coach. Más adelante, también semanal. Otros usos
+      que pueden venir: contraseña y alta cuando haya registro, avisos sin push, informes de
+      Clínica.
+  - Con qué: proveedor transaccional con plan gratis (Resend, Brevo, Postmark, Amazon SES…), no
+    un SMTP propio en el VPS (se acaba en spam). Dominio verificado (SPF, DKIM, DMARC) y la clave
+    en Infisical.
+  - Cómo: job `email` en el worker (como `push`), un cron `daily-report` a la hora que elija cada
+    usuario, registro de lo enviado, y en Cuenta activarlo, la hora y a qué correo.
+  - Falta decidir: proveedor, hora y qué lleva exactamente.
 
 ## IA (guardarraíles)
 
