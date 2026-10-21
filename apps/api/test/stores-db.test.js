@@ -8,6 +8,9 @@ import { createDbLlmUsageRows, createLlmUsage, parsePrices } from '../src/servic
 import { buildExtraction, createDbClinicalStore, modelOutputSchema } from '@digitaltwin/clinical';
 import { createDbPasskeyStore } from '../src/services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
+import { createProfiles } from '../src/services/profile.js';
+import { createPipeline } from '@digitaltwin/timeline';
+import { createMemoryQueue } from '@digitaltwin/queue';
 
 // Necesita una BD de verdad (make test-db). Cada ejecución usa un schema propio que se borra al final.
 const url = process.env.TEST_DATABASE_URL;
@@ -349,6 +352,55 @@ describe.skipIf(!url)('stores en la BD', () => {
       expect(await push.notify(me.id, n)).toEqual({ status: 'duplicate' });
       expect((await push.devices(me.id)).map((d) => d.device)).toEqual(['iPhone']);
       expect(await push.history(me.id)).toMatchObject([{ kind: 'meals-missing', delivered: 1 }]);
+    });
+  });
+
+  describe('perfil', () => {
+    it('sale de la báscula si no lo ha escrito; lo escrito manda; null vuelve a la báscula', async () => {
+      const profiles = createProfiles({ db, timeZone: 'Europe/Madrid' });
+      expect(await profiles.get(me.id)).toMatchObject({ sex: null, age: null, sources: {} });
+
+      // Un pesaje de Xiaomi con el perfil de su app
+      const pipeline = createPipeline({
+        db,
+        queue: createMemoryQueue(),
+        timeZone: 'Europe/Madrid',
+      });
+      await pipeline.catalog.ready();
+      const raw = await pipeline.ingest({
+        userId: me.id,
+        provider: 'xiaomi',
+        kind: 'scale',
+        externalId: 'w1',
+        periodStart: Date.parse('2026-10-21T06:00:00Z'),
+        periodEnd: Date.parse('2026-10-21T06:00:01Z'),
+        // Como llega de Xiaomi (fromSource 2): el perfil va en data.user
+        payload: {
+          did: 'scale-1',
+          model: 'yunmai.scales.ms103',
+          fromSource: 2,
+          createTime: Date.parse('2026-10-21T06:00:00Z'),
+          data: JSON.stringify({
+            weight: 82.7,
+            user: { sex: '1', birth: '443919600000', height: 185, weightTarget: 81.6 },
+          }),
+        },
+      });
+      await pipeline.normalize(raw.id);
+
+      const fromScale = await profiles.get(me.id);
+      expect(fromScale).toMatchObject({
+        sex: 'male',
+        birthDate: '1984-01-26',
+        heightCm: 185,
+        weightGoalKg: 81.6,
+        sources: { sex: 'scale', heightCm: 'scale' },
+      });
+      expect(fromScale.age).toBeGreaterThanOrEqual(42);
+
+      const own = await profiles.save(me.id, { heightCm: 184.5 });
+      expect(own).toMatchObject({ heightCm: 184.5, sources: { heightCm: 'manual', sex: 'scale' } });
+      expect((await profiles.save(me.id, { heightCm: null })).heightCm).toBe(185);
     });
   });
 });

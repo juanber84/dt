@@ -29,6 +29,7 @@ import { createSessions } from './services/sessions.js';
 import { createDbUserStore } from './services/users-db.js';
 import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
+import { createProfiles } from './services/profile.js';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -219,6 +220,7 @@ export function createApp({
         secure: config.NODE_ENV === 'production',
       })
     : undefined;
+  const profiles = db ? createProfiles({ db, timeZone: config.TIMEZONE }) : undefined;
   push ??=
     db && config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
       ? createPush({
@@ -375,6 +377,7 @@ export function createApp({
       createMcpRouter({
         tokens: personalTokens,
         queries: pipeline.queries,
+        profiles,
         timeZone: config.TIMEZONE,
       }),
     );
@@ -408,6 +411,7 @@ export function createApp({
       clinical,
       passkeys,
       push,
+      profiles,
     }),
   );
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createChartTool } from '@digitaltwin/coach';
+import { buildContext, createChartTool } from '@digitaltwin/coach';
 import { createTools } from '@digitaltwin/mcp';
 import { validate } from '../middlewares/validate.js';
 import { HttpError } from '../utils/http-error.js';
@@ -43,7 +43,7 @@ const PING_MS = 15_000;
  * @param {string} deps.timeZone
  * @param {ReturnType<typeof import('../services/llm-usage.js').createLlmUsage>} [deps.usage]
  */
-export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
+export function createCoachRouter({ coach, store, queries, profiles, timeZone, usage }) {
   const router = Router();
 
   router.get('/conversations', async (req, res) => {
@@ -100,7 +100,8 @@ export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
     send('user', question);
 
     // Las de lectura (las mismas del MCP) y show_chart, que solo tiene sentido en la app
-    const tools = createTools({ queries, userId, timeZone });
+    const getProfile = profiles && (() => profiles.get(userId));
+    const tools = createTools({ queries, userId, timeZone, getProfile });
     const getSeries = tools.find((tool) => tool.name === 'get_series').handler;
     tools.push(createChartTool({ getSeries }));
 
@@ -109,6 +110,7 @@ export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
         history: toModelHistory([...conversation.messages, question]),
         tools,
         userName: req.user.name ?? undefined,
+        context: await coachContext({ queries, userId, getProfile, timeZone }),
         signal: abort.signal,
         onEvent: ({ type, ...data }) => send(type, data),
         onMessage: async (message) => {
@@ -145,4 +147,31 @@ export function createCoachRouter({ coach, store, queries, timeZone, usage }) {
   });
 
   return router;
+}
+
+/**
+ * Perfil y salud de los últimos 14 días: el coach lo recibe siempre, antes de cada respuesta. Si
+ * algo falla, el coach contesta igual (sin ese contexto).
+ */
+async function coachContext({ queries, userId, getProfile, timeZone }) {
+  const now = Date.now();
+  const safe = (fn, fallback) =>
+    Promise.resolve()
+      .then(fn)
+      .catch(() => fallback);
+  const [profile, health] = await Promise.all([
+    safe(() => getProfile?.() ?? {}, {}),
+    safe(
+      () =>
+        queries.episodes({
+          userId,
+          from: new Date(now - 14 * 24 * 3600 * 1000),
+          to: new Date(now + 3600 * 1000),
+          kinds: ['note', 'symptom', 'medication'],
+          timeZone,
+        }),
+      [],
+    ),
+  ]);
+  return buildContext({ profile, health, timeZone });
 }

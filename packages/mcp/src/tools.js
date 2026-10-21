@@ -2,7 +2,24 @@ import { z } from 'zod';
 import { localMidnight } from '@digitaltwin/timeline';
 
 const DAY_MS = 24 * 3600 * 1000;
-const EPISODE_KINDS = ['meal', 'workout', 'sleep', 'scale', 'ecg'];
+// Lo que guarda el timeline (weigh-in = pesaje; los clínicos, de los informes confirmados)
+const EPISODE_KINDS = [
+  'meal',
+  'workout',
+  'sleep',
+  'weigh-in',
+  'drink',
+  'symptom',
+  'note',
+  'medication',
+  'lab',
+  'holter',
+  'stress-test',
+  'ecg',
+  'imaging',
+  'medical-test',
+  'medical-report',
+];
 
 const date = z
   .string()
@@ -28,8 +45,9 @@ const range = {
  * @param {string} deps.userId
  * @param {string} deps.timeZone  zona de los días (Europe/Madrid)
  * @param {() => Date} [deps.now]
+ * @param {() => Promise<object>} [deps.getProfile]  Edad, sexo, altura... (sin ella no hay get_profile)
  */
-export function createTools({ queries, userId, timeZone, now = () => new Date() }) {
+export function createTools({ queries, userId, timeZone, now = () => new Date(), getProfile }) {
   const today = () => localDate(now(), timeZone);
   /** [from 00:00, día siguiente a `to` 00:00) en la zona del usuario */
   const window = (from, to) => ({
@@ -38,7 +56,19 @@ export function createTools({ queries, userId, timeZone, now = () => new Date() 
   });
   const days = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS) + 1;
 
+  const profileTool = getProfile && {
+    name: 'get_profile',
+    title: 'Perfil',
+    description: 'Edad, sexo, altura y peso objetivo del usuario.',
+    inputSchema: {},
+    handler: async () => {
+      const { age, sex, heightCm, weightGoalKg } = await getProfile();
+      return { age, sex, heightCm, weightGoalKg };
+    },
+  };
+
   return [
+    ...(profileTool ? [profileTool] : []),
     {
       name: 'list_metrics',
       title: 'Métricas disponibles',
@@ -115,10 +145,12 @@ export function createTools({ queries, userId, timeZone, now = () => new Date() 
 
     {
       name: 'get_episodes',
-      title: 'Comidas, entrenos, sueño y pesajes',
+      title: 'Comidas, entrenos, sueño, pesajes, síntomas, medicación…',
       description:
         'Episodios del usuario entre dos días (hasta 31): comidas (meal), entrenos (workout), ' +
-        'noches de sueño (sleep), pesajes de la báscula (scale) y ECG (ecg). Devuelve el resumen ' +
+        'noches de sueño (sleep), pesajes (weigh-in), agua y café (drink), síntomas (symptom, con ' +
+        'intensidad 1-5), notas (note), tomas de medicación (medication) y pruebas médicas ' +
+        '(lab, holter, stress-test, ecg, imaging, medical-test, medical-report). Devuelve el resumen ' +
         'de cada uno; con details=true, también el detalle completo (platos y alimentos, ' +
         'vueltas...), que ocupa mucho: pídelo solo para rangos cortos.',
       inputSchema: {

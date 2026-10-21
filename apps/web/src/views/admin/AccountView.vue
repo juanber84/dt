@@ -5,6 +5,7 @@ import { LogOut, ScanFace, Trash2 } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import Segmented from '../../components/ui/Segmented.vue';
 import NotificationSettings from '../../components/admin/NotificationSettings.vue';
+import ProfileSettings from '../../components/admin/ProfileSettings.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
 import { useTheme } from '../../composables/useTheme.js';
 import { useConfirm } from '../../composables/useConfirm.js';
@@ -95,6 +96,8 @@ async function exit() {
         <span v-if="isAdmin" class="muted">Administrador</span>
       </div>
     </section>
+
+    <ProfileSettings />
 
     <h2 class="sub">Apariencia</h2>
     <p class="secondary sub-desc">"Sistema" sigue el modo claro u oscuro del dispositivo.</p>

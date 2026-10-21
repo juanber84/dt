@@ -39,6 +39,7 @@ export function createCoach({ llm, timeZone, maxSteps = 8, now = () => new Date(
      * @param {object[]} input.history  Mensajes en formato OpenAI, sin el de sistema.
      * @param {Array<{ name: string, description: string, inputSchema: object, handler: Function }>} input.tools
      * @param {string} [input.userName]
+     * @param {string} [input.context]  Perfil y salud de la persona (buildContext): va siempre.
      * @param {(event: object) => void} [input.onEvent]
      *   { type: 'delta', text } | { type: 'tool', id, name, args } |
      *   { type: 'tool_result', id, ok, display? } (display: lo que la app enseña, p. ej. una gráfica)
@@ -49,11 +50,11 @@ export function createCoach({ llm, timeZone, maxSteps = 8, now = () => new Date(
      * @param {AbortSignal} [input.signal]
      * @returns {Promise<object>} el mensaje final del asistente
      */
-    async run({ history, tools, userName, onEvent, onMessage, onUsage, signal }) {
+    async run({ history, tools, userName, context, onEvent, onMessage, onUsage, signal }) {
       const byName = new Map(tools.map((tool) => [tool.name, tool]));
       const definitions = toolDefinitions(tools);
       const messages = [
-        { role: 'system', content: systemPrompt({ now: now(), timeZone, userName }) },
+        { role: 'system', content: systemPrompt({ now: now(), timeZone, userName, context }) },
         ...history,
       ];
 

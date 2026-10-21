@@ -191,3 +191,8 @@ export async function deleteEntry(id) {
 
 /** Medicamentos ya apuntados, para sugerirlos en Registrar. */
 export const fetchMedications = () => apiFetch('/api/v1/entries/medications').then((r) => r.items);
+
+/** Tu perfil: edad, sexo, altura y peso objetivo (lo no escrito sale de la báscula). */
+export const fetchProfile = () => apiFetch('/api/v1/profile');
+export const saveProfile = (patch) =>
+  apiFetch('/api/v1/profile', { method: 'PUT', body: JSON.stringify(patch) });

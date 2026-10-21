@@ -15,6 +15,7 @@ import { createPasskeysRouter } from './passkeys.routes.js';
 import { createPushRouter } from './push.routes.js';
 import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
+import { createProfileRouter } from './profile.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -50,6 +51,7 @@ export function createApiRouter({
   clinical,
   passkeys,
   push,
+  profiles,
 }) {
   const router = Router();
 
@@ -72,6 +74,7 @@ export function createApiRouter({
   router.use('/heartbeat', requireApiClient, createHeartbeatRouter({ heartbeats }));
   if (passkeys) router.use('/passkeys', requireUser, createPasskeysRouter({ passkeys }));
   if (push) router.use('/push', requireUser, createPushRouter({ push }));
+  if (profiles) router.use('/profile', requireUser, createProfileRouter({ profiles }));
   router.use(
     '/connections',
     requireUser,
@@ -121,6 +124,7 @@ export function createApiRouter({
         coach,
         store: coachStore,
         queries: pipeline.queries,
+        profiles,
         timeZone: config.TIMEZONE,
         usage: llmUsage,
       }),
