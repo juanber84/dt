@@ -16,7 +16,6 @@ import { createPushRouter } from './push.routes.js';
 import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
-import { createEngine } from '../services/engine.js';
 import {
   authenticate,
   requireApiClient,
@@ -53,6 +52,7 @@ export function createApiRouter({
   passkeys,
   push,
   profiles,
+  engine,
 }) {
   const router = Router();
 
@@ -77,10 +77,6 @@ export function createApiRouter({
   if (push) router.use('/push', requireUser, createPushRouter({ push }));
   if (profiles) router.use('/profile', requireUser, createProfileRouter({ profiles }));
   // El motor: peso tendencia, gasto real y objetivos de comida
-  const engine =
-    profiles && pipeline
-      ? createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE })
-      : undefined;
   if (engine) {
     router.get('/engine', requireUser, async (req, res) =>
       res.json(await engine.state(req.user.id)),

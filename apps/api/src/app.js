@@ -30,6 +30,7 @@ import { createDbUserStore } from './services/users-db.js';
 import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createProfiles } from './services/profile.js';
+import { createEngine } from './services/engine.js';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -221,6 +222,10 @@ export function createApp({
       })
     : undefined;
   const profiles = db ? createProfiles({ db, timeZone: config.TIMEZONE }) : undefined;
+  const engine =
+    profiles && pipeline
+      ? createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE })
+      : undefined;
   push ??=
     db && config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
       ? createPush({
@@ -378,6 +383,7 @@ export function createApp({
         tokens: personalTokens,
         queries: pipeline.queries,
         profiles,
+        engine,
         timeZone: config.TIMEZONE,
       }),
     );
@@ -412,6 +418,7 @@ export function createApp({
       passkeys,
       push,
       profiles,
+      engine,
     }),
   );
 

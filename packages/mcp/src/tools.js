@@ -46,8 +46,16 @@ const range = {
  * @param {string} deps.timeZone  zona de los días (Europe/Madrid)
  * @param {() => Date} [deps.now]
  * @param {() => Promise<object>} [deps.getProfile]  Edad, sexo, altura... (sin ella no hay get_profile)
+ * @param {() => Promise<object>} [deps.getEngine]  Estado del motor (sin él no hay get_engine)
  */
-export function createTools({ queries, userId, timeZone, now = () => new Date(), getProfile }) {
+export function createTools({
+  queries,
+  userId,
+  timeZone,
+  now = () => new Date(),
+  getProfile,
+  getEngine,
+}) {
   const today = () => localDate(now(), timeZone);
   /** [from 00:00, día siguiente a `to` 00:00) en la zona del usuario */
   const window = (from, to) => ({
@@ -67,8 +75,38 @@ export function createTools({ queries, userId, timeZone, now = () => new Date(),
     },
   };
 
+  const engineTool = getEngine && {
+    name: 'get_engine',
+    title: 'Motor: peso real, gasto real y objetivos',
+    description:
+      'Lo que calcula el motor de Digital Twin con la comida apuntada y la báscula (no con el ' +
+      'reloj): peso tendencia, gasto real estimado (con su confianza y días apuntados), objetivos ' +
+      'de kcal y macros para el ritmo elegido, aviso si lo apuntado no cuadra con el peso, y el ' +
+      'historial de las últimas semanas (tendencia del peso y gasto estimado día a día). Son las ' +
+      'cifras buenas: úsalas en vez de las kcal activas de los relojes.',
+    inputSchema: {},
+    handler: async () => {
+      const state = await getEngine();
+      if (!state?.ready) return { ready: false, missing: state?.missing ?? [] };
+      const { history, ...expenditure } = state.expenditure;
+      return {
+        ...state,
+        expenditure,
+        // Una fila por día: menos tokens que dos listas por separado
+        history: state.trend.map((d) => ({
+          date: d.date,
+          weight: d.weight,
+          trend: d.trend,
+          expenditure: history.find((h) => h.date === d.date)?.kcal ?? null,
+        })),
+        trend: undefined,
+      };
+    },
+  };
+
   return [
     ...(profileTool ? [profileTool] : []),
+    ...(engineTool ? [engineTool] : []),
     {
       name: 'list_metrics',
       title: 'Métricas disponibles',

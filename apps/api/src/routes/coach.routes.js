@@ -101,7 +101,8 @@ export function createCoachRouter({ coach, store, queries, profiles, engine, tim
 
     // Las de lectura (las mismas del MCP) y show_chart, que solo tiene sentido en la app
     const getProfile = profiles && (() => profiles.get(userId));
-    const tools = createTools({ queries, userId, timeZone, getProfile });
+    const getEngine = engine && (() => engine.state(userId));
+    const tools = createTools({ queries, userId, timeZone, getProfile, getEngine });
     const getSeries = tools.find((tool) => tool.name === 'get_series').handler;
     tools.push(createChartTool({ getSeries }));
 

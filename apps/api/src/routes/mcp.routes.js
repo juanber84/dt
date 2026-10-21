@@ -13,7 +13,7 @@ import { createMcpServer } from '@digitaltwin/mcp';
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
  * @param {string} deps.timeZone
  */
-export function createMcpRouter({ tokens, queries, profiles, timeZone }) {
+export function createMcpRouter({ tokens, queries, profiles, engine, timeZone }) {
   const router = Router();
 
   router.use(async (req, res, next) => {
@@ -34,6 +34,7 @@ export function createMcpRouter({ tokens, queries, profiles, timeZone }) {
       userId: req.mcpUserId,
       timeZone,
       ...(profiles && { getProfile: () => profiles.get(req.mcpUserId) }),
+      ...(engine && { getEngine: () => engine.state(req.mcpUserId) }),
       logger: req.log,
     });
     const transport = new StreamableHTTPServerTransport({
