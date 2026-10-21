@@ -19,6 +19,7 @@ services:
     environment:
       # Tiene prioridad sobre apps/web/.env (que es para `make web` fuera de Docker)
       API_URL: http://digitaltwin-api:3000
+      DOCS_URL: http://digitaltwin-docs:5174
     volumes:
       - ./apps/web:/app/apps/web
       # node_modules y la caché de Vite se quedan en el contenedor
@@ -27,3 +28,18 @@ services:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:5173/']
     ports:
       - '127.0.0.1:3081:5173'
+
+  # La documentación en modo desarrollo: Vite (digitaltwin-web) le reenvía /docs, así que se ve en
+  # http://localhost:3081/docs/ como en producción. Solo existe en local.
+  digitaltwin-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      target: docs-dev
+    image: digitaltwin-docs:dev
+    container_name: digitaltwin-docs
+    volumes:
+      - ./apps/docs:/app/apps/docs
+      - /app/apps/docs/node_modules
+    networks:
+      - red-n8n

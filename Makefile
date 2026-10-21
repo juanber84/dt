@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: test-db user telegram mcp-token renormalize worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
+.PHONY: docs test-db user telegram mcp-token renormalize worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
 
 API_ENV := apps/api/.env
 BOT_ENV := apps/bot/.env
@@ -91,6 +91,9 @@ web: web-env ## Arranca el frontal (Vue 3) en http://localhost:5173
 
 web-build: ## Compila el frontal en apps/web/dist
 	npm run build -w @digitaltwin/web
+
+docs: ## Documentación (VitePress) en http://localhost:5174/docs/ (con `make web`, también en :5173/docs/)
+	npm run dev -w @digitaltwin/docs
 
 up: env bot-env web-env ## Arranca API + bot + frontal a la vez (Ctrl+C para todos)
 	@$(MAKE) --no-print-directory -j3 dev bot web

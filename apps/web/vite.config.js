@@ -4,6 +4,9 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiUrl = env.API_URL ?? 'http://localhost:3000';
+  // En producción nginx sirve /docs; en desarrollo, el servidor de VitePress (npm run dev -w
+  // @digitaltwin/docs, o el contenedor digitaltwin-docs en Docker local)
+  const docsUrl = env.DOCS_URL ?? 'http://localhost:5174';
 
   return {
     plugins: [vue()],
@@ -17,6 +20,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': apiUrl,
         '/health': apiUrl,
+        '/docs': { target: docsUrl, ws: true },
       },
     },
   };

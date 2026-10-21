@@ -40,6 +40,11 @@ FROM deps AS dev
 WORKDIR /app/apps/web
 CMD ["npx", "vite", "--host", "0.0.0.0"]
 
+# Desarrollo de la documentación (VitePress con recarga en caliente; Vite le reenvía /docs)
+FROM deps AS docs-dev
+WORKDIR /app/apps/docs
+CMD ["npx", "vitepress", "dev", "--host", "0.0.0.0", "--port", "5174"]
+
 FROM deps AS build
 # 3. Código y build
 COPY apps/web ./apps/web

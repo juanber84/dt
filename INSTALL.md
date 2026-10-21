@@ -71,6 +71,13 @@ A partir de ahí solo responde a esos IDs.
 > (long polling). Si el bot del VPS y el local usan el mismo token, chocan (error 409). Crea un
 > segundo bot en @BotFather (p. ej. `digital_twin_dev_bot`) para desarrollo.
 
+### Documentación
+
+La documentación de producto (`apps/docs`, VitePress) se sirve en `/docs`. En local: `make docs`
+(http://localhost:5174/docs/); con `make web` o en Docker local, Vite la reenvía y se ve en
+`/docs/` igual que en producción. Cada cambio de la plataforma actualiza su página en el mismo
+commit.
+
 ### Probar en Docker como en el VPS
 
 `make docker-up` levanta **el mismo `docker-compose.prod.yml` que producción**: mismas imágenes,
