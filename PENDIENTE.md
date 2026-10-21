@@ -1,6 +1,6 @@
 # Pendiente
 
-Cosas por hacer que no son del deploy (eso está en [DEPLOY-PENDIENTE.md](DEPLOY-PENDIENTE.md)).
+Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## Datos
 
@@ -24,6 +24,13 @@ Cosas por hacer que no son del deploy (eso está en [DEPLOY-PENDIENTE.md](DEPLOY
      (con `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT_NUMBER=579742134918` y el mismo
      `GOOGLE_HEALTH_WEBHOOK_SECRET`). Google llama a la URL para verificarla: prod tiene que estar
      arriba.
+
+## Producción
+
+- [ ] **Copia automática de la BD (aparcado).** Ahora no hay ninguna: si se pierde el volumen del
+      VPS, se pierde todo. Por ejemplo, un cron diario en el VPS:
+      `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > /opt/digitaltwin/backups/dt-$(date +%F).dump`,
+      y llevarse la copia fuera del VPS, cifrada (lleva datos de salud).
 
 ## App en el móvil (PWA)
 
