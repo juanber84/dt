@@ -27,12 +27,13 @@ export function createSystemAdminRouter({ store }) {
     const parsed = query.safeParse(req.query);
     if (!parsed.success) return res.status(400).json({ error: 'Parámetros no válidos' });
     const { limit, failed, name } = parsed.data;
-    const [inbox, jobs, counts] = await Promise.all([
+    const [inbox, jobs, counts, backups] = await Promise.all([
       store.recentInbox({ limit: Math.min(limit, 15) }),
       store.recentJobs({ limit, failed, name }),
       store.jobCounts({ hours: 24 }),
+      store.recentBackups({ limit: 5 }),
     ]);
-    res.json({ inbox, jobs, counts });
+    res.json({ inbox, jobs, counts, backups });
   });
 
   return router;

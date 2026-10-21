@@ -13,6 +13,7 @@ import { PgBoss } from 'pg-boss';
  *   google-subscriber deja el suscriptor de webhooks de Google como toca  { force? }
  *   push            manda un aviso a un usuario (o lo aplaza a después del silencio) { userId, notification }
  *   push-rules      el cron de los avisos: mira cada usuario con notificaciones  { rule }
+ *   db-backup       copia de seguridad de la BD a Google Drive (cifrada)          {}
  */
 export const JOBS = Object.freeze({
   SYNC: 'sync',
@@ -25,6 +26,7 @@ export const JOBS = Object.freeze({
   GOOGLE_SUBSCRIBER: 'google-subscriber',
   PUSH: 'push',
   PUSH_RULES: 'push-rules',
+  DB_BACKUP: 'db-backup',
 });
 
 /** Prioridad (mayor = antes): lo del día a día pasa por delante del histórico. */
@@ -73,6 +75,13 @@ const QUEUES = {
   // Un aviso: si el servicio de push falla, un par de reintentos; más tarde ya no tiene sentido
   [JOBS.PUSH]: { retryLimit: 2, retryDelay: 60, expireInSeconds: 120 },
   [JOBS.PUSH_RULES]: { retryLimit: 1, retryDelay: 120 },
+  // Si falla (Drive caído, red), se reintenta dos veces con 10 min de margen; luego se avisa
+  [JOBS.DB_BACKUP]: {
+    policy: 'singleton',
+    retryLimit: 2,
+    retryDelay: 600,
+    expireInSeconds: 1800,
+  },
 };
 
 /**

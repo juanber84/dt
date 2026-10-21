@@ -18,6 +18,8 @@ export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
  * @param {import('@digitaltwin/google-health').GoogleHealthSubscribers} [deps.googleSubscribers]
  * @param {ReturnType<typeof import('@digitaltwin/push').createPush>} [deps.push]
  * @param {ReturnType<typeof import('./notifications.js').createPushRules>} [deps.pushRules]
+ * @param {ReturnType<typeof import('./backup.js').createBackup>} [deps.backup]
+ * @param {(error: Error) => Promise<unknown>} [deps.onBackupFailed]  En el último intento.
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} deps.logger
@@ -31,6 +33,8 @@ export function createJobs({
   googleSubscribers,
   push,
   pushRules,
+  backup,
+  onBackupFailed,
   config,
   now = Date.now,
   logger,
@@ -201,6 +205,17 @@ export function createJobs({
       return result;
     },
 
+    /** Copia de seguridad de la BD; si falla del todo, se avisa a los administradores. */
+    async [JOBS.DB_BACKUP]({ retryCount, retryLimit }) {
+      if (!backup) return { skipped: 'unconfigured' };
+      try {
+        return await backup.run();
+      } catch (err) {
+        if (retryCount >= retryLimit) await onBackupFailed?.(err);
+        throw err;
+      }
+    },
+
     /** El cron de los avisos (una regla cada vez: comidas sin apuntar...). */
     async [JOBS.PUSH_RULES]({ data }) {
       if (!pushRules) return { skipped: 'unconfigured' };
@@ -301,6 +316,11 @@ export function createJobs({
           { rule: 'meals-missing' },
           { tz, key: 'meals-missing' },
         );
+      }
+
+      if (backup) {
+        await queue.work(JOBS.DB_BACKUP, {}, wrap(JOBS.DB_BACKUP, handlers[JOBS.DB_BACKUP]));
+        await queue.schedule(JOBS.DB_BACKUP, config.BACKUP_CRON, {}, { tz, key: 'db-backup' });
       }
 
       if (googleSubscribers) {

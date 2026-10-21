@@ -418,6 +418,21 @@ export function createTimelineStore({ db, catalog }) {
       }));
     },
 
+    /** Últimas copias de seguridad (job db-backup). */
+    async recentBackups({ limit = 5 } = {}) {
+      const rows = await db`select * from backup_runs order by started_at desc limit ${limit}`;
+      return rows.map((r) => ({
+        id: Number(r.id),
+        startedAt: r.started_at.toISOString(),
+        finishedAt: r.finished_at?.toISOString() ?? null,
+        status: r.status,
+        file: r.file,
+        sizeBytes: r.size_bytes == null ? null : Number(r.size_bytes),
+        pruned: r.pruned,
+        error: r.error,
+      }));
+    },
+
     /** Trabajos acabados por cola en las últimas `hours` horas (sobrevive a reinicios). */
     async jobCounts({ hours = 24 } = {}) {
       const rows = await db`

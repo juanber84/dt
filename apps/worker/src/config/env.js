@@ -36,6 +36,17 @@ const schema = z.object({
   VAPID_SUBJECT: z.string().min(1).optional(),
   // Cuándo se mira si alguien no ha apuntado ninguna comida en el día (hora de TIMEZONE)
   PUSH_MEALS_CRON: cron.default('0 16 * * *'),
+  // Copia de seguridad diaria a Google Drive, cifrada con age. Sin las dos, no se hace.
+  // BACKUP_DRIVE_TOKEN: el JSON de `rclone authorize drive` (permiso drive.file)
+  BACKUP_DRIVE_TOKEN: z.string().min(1).optional(),
+  // Clave PÚBLICA de age (age1...): la privada, para restaurar, solo la tiene el dueño
+  BACKUP_AGE_RECIPIENT: z
+    .string()
+    .regex(/^age1[0-9a-z]{58}$/, 'clave pública de age (age1…)')
+    .optional(),
+  BACKUP_CRON: cron.default('0 4 * * *'),
+  BACKUP_DRIVE_FOLDER: z.string().min(1).default('digitaltwin-backups'),
+  BACKUP_KEEP_DAYS: z.coerce.number().int().positive().default(30),
   // JSON de la cuenta de servicio con rol "Google Health API Editor" (el fichero entero)
   GOOGLE_HEALTH_SERVICE_ACCOUNT: z
     .string()

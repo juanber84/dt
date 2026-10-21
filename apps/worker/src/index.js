@@ -22,6 +22,7 @@ import {
 import { ClinicalExtractor, createDbClinicalStore } from '@digitaltwin/clinical';
 import { createDbLlmUsageRows, createUsageRecorder } from '@digitaltwin/llm-usage';
 import { createClinicalProcessor } from './clinical.js';
+import { createBackup } from './backup.js';
 import pkg from '../package.json' with { type: 'json' };
 
 const HEARTBEAT_MS = 30_000;
@@ -148,6 +149,34 @@ const googleSubscribers =
     : undefined;
 if (!googleSubscribers) logger.info('Sin suscriptor de webhooks de Google: solo el cron');
 
+// Copia de seguridad diaria (sin token de Drive o sin clave de age, no se hace)
+const backup =
+  config.BACKUP_DRIVE_TOKEN && config.BACKUP_AGE_RECIPIENT
+    ? createBackup({
+        db,
+        databaseUrl: config.DATABASE_URL,
+        recipient: config.BACKUP_AGE_RECIPIENT,
+        driveToken: config.BACKUP_DRIVE_TOKEN,
+        folder: config.BACKUP_DRIVE_FOLDER,
+        keepDays: config.BACKUP_KEEP_DAYS,
+        logger: logger.child({ module: 'backup' }),
+      })
+    : undefined;
+if (!backup) logger.warn('Sin BACKUP_DRIVE_TOKEN/BACKUP_AGE_RECIPIENT: no hay copia de seguridad');
+// Si falla del todo, aviso push a los administradores
+async function onBackupFailed(err) {
+  const admins = await db`select id from users where role = 'admin'`;
+  for (const { id } of admins) {
+    await notify(id, {
+      kind: 'backup-failed',
+      dedupeKey: localDate(new Date(), config.TIMEZONE),
+      title: 'Ha fallado la copia de seguridad',
+      body: String(err.message).slice(0, 150),
+      url: '/admin/system',
+    });
+  }
+}
+
 const jobs = createJobs({
   queue,
   pipeline,
@@ -156,6 +185,8 @@ const jobs = createJobs({
   clinical,
   googleSubscribers,
   push,
+  backup,
+  onBackupFailed,
   pushRules: push
     ? createPushRules({ push, queries: pipeline.queries, notify, timeZone: config.TIMEZONE })
     : undefined,

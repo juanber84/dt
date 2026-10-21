@@ -1,11 +1,19 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { RefreshCw, Server, Database, Bot, Cog, BrainCircuit } from '@lucide/vue';
+import {
+  RefreshCw,
+  Server,
+  Database,
+  Bot,
+  Cog,
+  BrainCircuit,
+  HardDriveDownload,
+} from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import StatusPill from '../../components/ui/StatusPill.vue';
 import Segmented from '../../components/ui/Segmented.vue';
 import { fetchSystemActivity, fetchSystemStatus } from '../../services/twin.js';
-import { fmtDuration, fmtInt, fmtRelativeTime } from '../../lib/format.js';
+import { fmtDec, fmtDuration, fmtInt, fmtRelativeTime } from '../../lib/format.js';
 import { balanceStatus, fetchAiStatus } from '../../services/ai.js';
 
 const status = ref(null);
@@ -123,6 +131,8 @@ const QUEUES = [
   ['maintenance', 'Mantenimiento', 'Limpieza diaria'],
   ['clinical-extract', 'Informes médicos', 'Leer un PDF subido'],
   ['google-subscriber', 'Avisos de Google', 'Revisar el suscriptor de webhooks'],
+  ['push', 'Notificaciones', 'Avisos al móvil'],
+  ['db-backup', 'Copia de seguridad', 'La BD a Google Drive, cada noche'],
 ];
 const QUEUE_NAMES = Object.fromEntries(QUEUES.map(([id, name]) => [id, name]));
 const queues = computed(() => {
@@ -141,6 +151,40 @@ const queues = computed(() => {
 });
 
 const llm = computed(() => balanceStatus(ai.value));
+
+/** La última copia de seguridad: si hay, si salió bien y si es de hace menos de un día y medio. */
+const backup = computed(() => {
+  const last = activity.value?.backups?.[0];
+  if (!activity.value) return { tone: 'neutral', label: 'Sin datos', text: 'Comprobando…' };
+  if (!last) {
+    return {
+      tone: 'critical',
+      label: 'Sin copias',
+      text: 'Aún no se ha hecho ninguna copia de la base de datos.',
+    };
+  }
+  if (last.status === 'running') {
+    return {
+      tone: 'neutral',
+      label: 'Haciéndose',
+      text: `Empezó ${fmtRelativeTime(last.startedAt)}`,
+    };
+  }
+  if (last.status === 'error') {
+    return {
+      tone: 'critical',
+      label: 'Falló',
+      text: `${fmtRelativeTime(last.startedAt)}: ${last.error}`,
+    };
+  }
+  const old = Date.now() - Date.parse(last.finishedAt) > 36 * 3600 * 1000;
+  const mb = last.sizeBytes == null ? '' : ` · ${fmtDec(last.sizeBytes / 1024 / 1024, 1)} MB`;
+  return {
+    tone: old ? 'warning' : 'good',
+    label: old ? 'Atrasada' : 'Al día',
+    text: `Última ${fmtRelativeTime(last.finishedAt)} en Google Drive, cifrada${mb}`,
+  };
+});
 
 const JOB_FILTERS = [
   { value: 'all', label: 'Todos', params: {} },
@@ -275,6 +319,14 @@ const pill = (ok) =>
           </p>
         </div>
         <StatusPill :tone="worker.tone" :label="worker.label" />
+      </li>
+      <li class="row">
+        <HardDriveDownload class="icon" />
+        <div class="info">
+          <strong>Copias de seguridad</strong>
+          <p class="secondary">{{ backup.text }}</p>
+        </div>
+        <StatusPill :tone="backup.tone" :label="backup.label" />
       </li>
       <li class="row">
         <BrainCircuit class="icon" />

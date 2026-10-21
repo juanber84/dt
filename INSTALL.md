@@ -24,7 +24,8 @@ Xiaomi, Google ◀── digitaltwin-worker ◀── cola (pg-boss) en digitalt
 3. [Producción: preparación (una sola vez)](#3-producción-preparación-una-sola-vez)
 4. [Primer despliegue](#4-primer-despliegue)
 5. [Día a día](#5-día-a-día)
-6. [Problemas frecuentes](#6-problemas-frecuentes)
+6. [Copias de seguridad](#6-copias-de-seguridad)
+7. [Problemas frecuentes](#7-problemas-frecuentes)
 
 ---
 
@@ -256,19 +257,19 @@ front y reenvía `/api` (y con él los webhooks de Google Health) a la API. Ese 
 
 ## 5. Día a día
 
-| Quiero...                     | Cómo                                                                                           |
-| ----------------------------- | ---------------------------------------------------------------------------------------------- |
-| Desplegar                     | push a `main` o lanzar el workflow a mano                                                      |
-| Cambiar un secreto            | editarlo en Infisical; el proceso se reinicia solo (`--watch`)                                 |
-| Ver logs                      | `sudo docker logs -f digitaltwin-api` / `digitaltwin-bot`                                      |
-| Reiniciar                     | `cd /opt/digitaltwin/app && sudo -E docker compose -f docker-compose.prod.yml restart` (*)     |
-| Volver a una versión anterior | `git revert` del commit y push (se despliega como cualquier otro cambio)                       |
-| Añadir un cliente de la API   | añadir `nombre:clave` a `DIGITALTWIN_API_KEYS` en `/api` (separado por coma)                   |
-| Revocar un cliente            | quitar su entrada de `DIGITALTWIN_API_KEYS`                                                    |
-| Construir una imagen en local | `docker build --build-arg APP=api .` (o `APP=bot`, `APP=worker`)                               |
-| Ver qué hace el worker        | `sudo docker logs -f digitaltwin-worker` (con `LOG_LEVEL=debug`, cada trabajo)                 |
-| Copia de la BD                | `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > dt-$(date +%F).dump` |
-| Forzar una sincronización     | botón Sincronizar en Conexiones, o `/sincroniza` (`/sincroniza google`) en el bot              |
+| Quiero...                     | Cómo                                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desplegar                     | push a `main` o lanzar el workflow a mano                                                                                                                      |
+| Cambiar un secreto            | editarlo en Infisical; el proceso se reinicia solo (`--watch`)                                                                                                 |
+| Ver logs                      | `sudo docker logs -f digitaltwin-api` / `digitaltwin-bot`                                                                                                      |
+| Reiniciar                     | `cd /opt/digitaltwin/app && sudo -E docker compose -f docker-compose.prod.yml restart` (*)                                                                     |
+| Volver a una versión anterior | `git revert` del commit y push (se despliega como cualquier otro cambio)                                                                                       |
+| Añadir un cliente de la API   | añadir `nombre:clave` a `DIGITALTWIN_API_KEYS` en `/api` (separado por coma)                                                                                   |
+| Revocar un cliente            | quitar su entrada de `DIGITALTWIN_API_KEYS`                                                                                                                    |
+| Construir una imagen en local | `docker build --build-arg APP=api .` (o `APP=bot`, `APP=worker`)                                                                                               |
+| Ver qué hace el worker        | `sudo docker logs -f digitaltwin-worker` (con `LOG_LEVEL=debug`, cada trabajo)                                                                                 |
+| Copia de la BD                | sola cada noche a Drive ([§6](#6-copias-de-seguridad)); a mano: `sudo docker exec digitaltwin-db pg_dump -U digitaltwin -Fc digitaltwin > dt-$(date +%F).dump` |
+| Forzar una sincronización     | botón Sincronizar en Conexiones, o `/sincroniza` (`/sincroniza google`) en el bot                                                                              |
 
 (*) Para `up`/`restart` a mano, exporta antes `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, el
 acceso (`INFISICAL_TOKEN` o `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET`) y
@@ -276,7 +277,49 @@ acceso (`INFISICAL_TOKEN` o `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET`) y
 
 ---
 
-## 6. Problemas frecuentes
+## 6. Copias de seguridad
+
+Cada noche (`BACKUP_CRON`, por defecto a las 4:00) el worker hace `pg_dump` de toda la BD, lo
+cifra con [age](https://age-encryption.org) y lo sube a Google Drive, a la carpeta
+`digitaltwin-backups` (`BACKUP_DRIVE_FOLDER`). Se guardan los últimos 30 días
+(`BACKUP_KEEP_DAYS`) y la del día 1 de cada mes durante un año. Cómo va la última: en la web,
+Sistema → Copias de seguridad. Si falla del todo, llega un aviso push a los administradores.
+
+Secretos en Infisical `prod` → `/api`:
+
+| Secreto                | Qué es                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `BACKUP_DRIVE_TOKEN`   | el JSON que da `rclone authorize drive` (permiso `drive.file`: solo ve lo suyo) |
+| `BACKUP_AGE_RECIPIENT` | la clave **pública** de age (`age1…`)                                           |
+
+La clave **privada** (`AGE-SECRET-KEY-…`) no está en el servidor: la guarda el dueño (gestor de
+contraseñas). Sin ella las copias no se pueden abrir.
+
+### Restaurar
+
+1. Descarga el fichero de Drive (`dt-AAAA-MM-DDTHHMMZ.dump.age`).
+2. Descífralo con la clave privada (en un fichero `clave.agekey`):
+
+   ```bash
+   age --decrypt --identity clave.agekey dt-2026-10-22T0200Z.dump.age > dt.dump
+   ```
+
+3. Cárgalo en una BD vacía con TimescaleDB, entre `timescaledb_pre_restore()` y
+   `timescaledb_post_restore()`:
+
+   ```bash
+   sudo docker cp dt.dump digitaltwin-db:/tmp/dt.dump
+   sudo docker exec -it digitaltwin-db psql -U digitaltwin -d digitaltwin \
+     -c "select timescaledb_pre_restore();"
+   sudo docker exec -it digitaltwin-db pg_restore -U digitaltwin -d digitaltwin \
+     --no-owner --clean --if-exists /tmp/dt.dump
+   sudo docker exec -it digitaltwin-db psql -U digitaltwin -d digitaltwin \
+     -c "select timescaledb_post_restore();"
+   ```
+
+---
+
+## 7. Problemas frecuentes
 
 | Síntoma                                                          | Causa / solución                                                                                    |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |

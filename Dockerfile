@@ -14,8 +14,11 @@ COPY --chmod=755 docker/digitaltwin-run.sh /usr/local/bin/digitaltwin-run
 
 # El worker lee los informes médicos en PDF con pdftotext (poppler-utils) y los escaneados con OCR
 # (pdftoppm los pasa a imagen y tesseract los lee, con el modelo de español)
+# y hace la copia de seguridad diaria: pg_dump (misma versión que la BD), cifrada con age y a
+# Google Drive con rclone
 RUN if [ "$APP" = "worker" ]; then \
-      apk add --no-cache poppler-utils tesseract-ocr tesseract-ocr-data-spa; \
+      apk add --no-cache poppler-utils tesseract-ocr tesseract-ocr-data-spa \
+        postgresql18-client age rclone; \
     fi
 
 # 1. Manifiestos (capa cacheada mientras no cambien las dependencias)

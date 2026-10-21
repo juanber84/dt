@@ -40,7 +40,10 @@ export function createPushRouter({ push }) {
     ]);
     res.json({
       publicKey: push.publicKey,
-      kinds: Object.entries(KINDS).map(([id, k]) => ({ id, ...k })),
+      // El de las copias de seguridad solo les llega a los administradores
+      kinds: Object.entries(KINDS)
+        .filter(([id]) => id !== 'backup-failed' || req.user.role === 'admin')
+        .map(([id, k]) => ({ id, ...k })),
       settings,
       // El endpoint no sale entero: basta con reconocer el propio
       devices: devices.map(({ id, endpoint, device, createdAt, lastSentAt }) => ({

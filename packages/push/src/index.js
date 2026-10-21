@@ -13,6 +13,11 @@ export const KINDS = Object.freeze({
     label: 'Conexiones caídas',
     description: 'Si Google, Xiaomi o intervals.icu dejan de sincronizar y hay que reconectar.',
   },
+  'backup-failed': {
+    label: 'Copias de seguridad',
+    description:
+      'Si falla la copia de seguridad diaria de la base de datos (solo administradores).',
+  },
   'meals-missing': {
     label: 'Comidas sin apuntar',
     description: 'A media tarde, si no has apuntado nada en todo el día.',
