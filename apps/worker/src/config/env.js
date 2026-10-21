@@ -25,6 +25,9 @@ const schema = z.object({
     .optional()
     .transform((url) => url?.replace(/\/+$/, '')),
   GOOGLE_HEALTH_WEBHOOK_SECRET: z.string().min(16).optional(),
+  // Número (no ID) del proyecto de Google Cloud: con el ID la API responde PERMISSION_DENIED. Por
+  // defecto, el del cliente OAuth (su ID empieza por él), que es donde tiene que estar el suscriptor
+  GOOGLE_CLOUD_PROJECT_NUMBER: z.string().regex(/^\d+$/, 'solo dígitos').optional(),
   // JSON de la cuenta de servicio con rol "Google Health API Editor" (el fichero entero)
   GOOGLE_HEALTH_SERVICE_ACCOUNT: z
     .string()

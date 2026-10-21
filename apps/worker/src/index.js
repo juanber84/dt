@@ -94,13 +94,16 @@ const clinical = createClinicalProcessor({
 });
 if (!config.LLM_API_KEY) logger.warn('Sin LLM_API_KEY: los informes médicos no se leen');
 
-// Solo con URL pública (Google no avisa a localhost), secreto y cuenta de servicio
+// Solo con URL pública (Google no avisa a localhost), secreto, cuenta de servicio y proyecto
+const googleProject =
+  config.GOOGLE_CLOUD_PROJECT_NUMBER ?? config.GOOGLE_CLIENT_ID?.match(/^(\d+)-/)?.[1];
 const googleSubscribers =
   config.PUBLIC_URL?.startsWith('https://') &&
   config.GOOGLE_HEALTH_WEBHOOK_SECRET &&
-  config.GOOGLE_HEALTH_SERVICE_ACCOUNT
+  config.GOOGLE_HEALTH_SERVICE_ACCOUNT &&
+  googleProject
     ? new GoogleHealthSubscribers({
-        projectId: config.GOOGLE_HEALTH_SERVICE_ACCOUNT.project_id,
+        projectId: googleProject,
         credentials: config.GOOGLE_HEALTH_SERVICE_ACCOUNT,
       })
     : undefined;
