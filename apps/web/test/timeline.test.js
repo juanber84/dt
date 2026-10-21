@@ -171,17 +171,17 @@ describe('timeline real', () => {
     expect(summary.nutrition.kcal).toBeNull();
   });
 
-  it('en la vista del día, lo que falta se ve como 0', () => {
+  it('en la vista del día, lo que falta sigue en null (no son 0 pasos ni 0 kcal)', () => {
     const day = mergeDay(emptySummary('2026-10-06'), {
       episodes: new Map(),
       daily: new Map(),
       stepsByHour: Array(24).fill(0),
       hr: [],
     });
-    expect(day).toMatchObject({ steps: 0, activeKcal: 0, recovery: null });
+    expect(day).toMatchObject({ steps: null, activeKcal: null, floors: null, recovery: null });
     // Sin noche registrada no hay sueño de 0 minutos con puntuación 0: no hay sueño
     expect(day.sleep).toMatchObject({ minutes: null, score: null, efficiency: null });
-    expect(day.nutrition.kcal).toBe(0);
+    expect(day.nutrition).toMatchObject({ kcal: null, protein: null });
     expect(day.events).toEqual([]);
   });
 

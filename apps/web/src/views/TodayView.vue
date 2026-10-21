@@ -475,37 +475,47 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
             <header class="col-head">
               <h2>Actividad</h2>
             </header>
-            <div class="headline">
-              <strong class="big">{{ fmtInt(day.steps) }}</strong>
-              <span class="muted">pasos de 10.000</span>
-            </div>
-            <Meter :value="day.steps" :max="10000" color="var(--activity)" />
-            <dl class="stats">
-              <div>
-                <dt>Distancia</dt>
-                <dd>{{ fmtDec(day.distanceKm, 1) }} km</dd>
+            <p v-if="day.steps == null && day.activeKcal == null" class="secondary">
+              Sin datos de actividad este día.
+            </p>
+            <template v-else>
+              <div class="headline">
+                <strong class="big">{{ fmtInt(day.steps) }}</strong>
+                <span class="muted">pasos de 10.000</span>
               </div>
-              <div>
-                <dt>Kcal activas</dt>
-                <dd>{{ fmtInt(day.activeKcal) }}</dd>
-              </div>
-              <div>
-                <dt>Pisos</dt>
-                <dd>{{ day.floors }}</dd>
-              </div>
-            </dl>
-            <BarChart
-              :labels="hours"
-              :tooltip-labels="hourLabels"
-              :series="[
-                { id: 'steps', label: 'Pasos', color: 'var(--activity)', values: day.stepsByHour },
-              ]"
-              :height="110"
-              :x-tick-every="6"
-              :format="fmtInt"
-              :tick-format="fmtCompact"
-              integer
-            />
+              <Meter :value="day.steps ?? 0" :max="10000" color="var(--activity)" />
+              <dl class="stats">
+                <div>
+                  <dt>Distancia</dt>
+                  <dd>{{ fmtDec(day.distanceKm, 1) }} km</dd>
+                </div>
+                <div>
+                  <dt>Kcal activas</dt>
+                  <dd>{{ fmtInt(day.activeKcal) }}</dd>
+                </div>
+                <div>
+                  <dt>Pisos</dt>
+                  <dd>{{ fmtInt(day.floors) }}</dd>
+                </div>
+              </dl>
+              <BarChart
+                :labels="hours"
+                :tooltip-labels="hourLabels"
+                :series="[
+                  {
+                    id: 'steps',
+                    label: 'Pasos',
+                    color: 'var(--activity)',
+                    values: day.stepsByHour,
+                  },
+                ]"
+                :height="110"
+                :x-tick-every="6"
+                :format="fmtInt"
+                :tick-format="fmtCompact"
+                integer
+              />
+            </template>
           </section>
 
           <section class="card card-pad">
@@ -515,36 +525,41 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
                 >{{ fmtInt(day.nutrition.target) }} kcal gastadas</span
               >
             </header>
-            <div class="headline">
-              <strong class="big">{{ fmtInt(day.nutrition.kcal) }}</strong>
-              <span v-if="day.nutrition.target" class="muted"
-                >kcal · quedan
-                {{ fmtInt(Math.max(0, day.nutrition.target - day.nutrition.kcal)) }}</span
-              >
-              <span v-else class="muted">kcal</span>
-            </div>
-            <Meter
-              v-if="day.nutrition.target"
-              :value="day.nutrition.kcal"
-              :max="day.nutrition.target"
-              color="var(--nutrition)"
-            />
-            <dl class="stats">
-              <div>
-                <dt>Proteína</dt>
-                <dd>
-                  {{ day.nutrition.protein }} <small>/ {{ day.nutrition.proteinTarget }} g</small>
-                </dd>
+            <p v-if="day.nutrition.kcal == null" class="secondary nutrition-empty">
+              Sin comidas apuntadas este día.
+            </p>
+            <template v-else>
+              <div class="headline">
+                <strong class="big">{{ fmtInt(day.nutrition.kcal) }}</strong>
+                <span v-if="day.nutrition.target" class="muted"
+                  >kcal · quedan
+                  {{ fmtInt(Math.max(0, day.nutrition.target - day.nutrition.kcal)) }}</span
+                >
+                <span v-else class="muted">kcal</span>
               </div>
-              <div>
-                <dt>Hidratos</dt>
-                <dd>{{ day.nutrition.carbs }} <small>g</small></dd>
-              </div>
-              <div>
-                <dt>Grasa</dt>
-                <dd>{{ day.nutrition.fat }} <small>g</small></dd>
-              </div>
-            </dl>
+              <Meter
+                v-if="day.nutrition.target"
+                :value="day.nutrition.kcal"
+                :max="day.nutrition.target"
+                color="var(--nutrition)"
+              />
+              <dl class="stats">
+                <div>
+                  <dt>Proteína</dt>
+                  <dd>
+                    {{ day.nutrition.protein }} <small>/ {{ day.nutrition.proteinTarget }} g</small>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Hidratos</dt>
+                  <dd>{{ day.nutrition.carbs }} <small>g</small></dd>
+                </div>
+                <div>
+                  <dt>Grasa</dt>
+                  <dd>{{ day.nutrition.fat }} <small>g</small></dd>
+                </div>
+              </dl>
+            </template>
             <div class="water">
               <span class="section-label">Agua</span>
               <span class="num"
@@ -831,6 +846,10 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   font-weight: 400;
   color: var(--muted);
   font-size: 12px;
+}
+
+.nutrition-empty {
+  margin-bottom: 14px;
 }
 
 .water {

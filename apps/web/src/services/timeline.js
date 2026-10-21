@@ -699,22 +699,12 @@ export function mergeDay(day, { episodes, daily, stepsByHour, hr }) {
     ...mine.workouts.map(workoutEvent),
     ...(mine.clinical ?? []).map(clinicalEvent),
   ].sort((a, b) => a.start - b.start);
-  // En la vista del día sí se ven los ceros (llevas 0 pasos, 0 kcal); el sueño no: sin noche
-  // registrada no hay puntuación ni eficiencia
+  // Lo que no ha llegado sigue en null también aquí: un día sin pasos sincronizados no es "0
+  // pasos" (la vista dice "sin datos"). Sin noche registrada no hay puntuación ni eficiencia.
   return {
     ...summary,
-    steps: summary.steps ?? 0,
-    activeKcal: summary.activeKcal ?? 0,
-    floors: summary.floors ?? 0,
-    distanceKm: summary.distanceKm ?? 0,
     sleep: mine.sleep ? sleep.totals : { ...NO_SLEEP },
-    nutrition: {
-      ...n,
-      kcal: n.kcal ?? 0,
-      protein: n.protein ?? 0,
-      carbs: n.carbs ?? 0,
-      fat: n.fat ?? 0,
-    },
+    nutrition: n,
     sleepDetail: sleep.detail,
     stepsByHour: day.isToday
       ? stepsByHour.map((v, h) => (h * 60 > day.until ? null : v))
