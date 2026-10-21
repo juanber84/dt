@@ -93,6 +93,25 @@ async function loadDocuments({ quiet } = {}) {
 loadDocuments();
 onBeforeUnmount(() => clearTimeout(pollTimer));
 
+// Al volver a la app (estaba en segundo plano: la PWA puede seguir abierta horas) se vuelve a
+// pedir el día, sin esqueleto: lo que hayas apuntado por el bot sale sin tener que cerrarla
+let hiddenAt = null;
+function onVisibility() {
+  if (document.visibilityState === 'hidden') {
+    hiddenAt = Date.now();
+    return;
+  }
+  if (hiddenAt && Date.now() - hiddenAt > 30_000) {
+    clearTimelineCache();
+    reloadDay();
+    reloadHistory();
+    loadDocuments({ quiet: true });
+  }
+  hiddenAt = null;
+}
+document.addEventListener('visibilitychange', onVisibility);
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisibility));
+
 const events = computed(() => withDocuments(day.value?.events ?? [], documents.value, date.value));
 
 const selected = ref(null);
