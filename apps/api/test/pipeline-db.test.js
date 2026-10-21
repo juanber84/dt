@@ -411,4 +411,23 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     const [token] = await db`select last_used_at from personal_tokens where id = ${body.id}`;
     expect(token.last_used_at).toBeInstanceOf(Date);
   });
+
+  it('Sistema: el admin ve lo que ha llegado (sin payload) y el historial de la cola', async () => {
+    const res = await request(app)
+      .get('/api/v1/admin/system/activity?limit=5')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(res.body.inbox.length).toBeGreaterThan(0);
+    expect(res.body.inbox[0]).toMatchObject({
+      provider: expect.any(String),
+      status: expect.any(String),
+    });
+    expect(res.body.inbox[0]).not.toHaveProperty('payload');
+    expect(Array.isArray(res.body.jobs)).toBe(true);
+    expect(res.body.counts).toBeTypeOf('object');
+    await request(app)
+      .get('/api/v1/admin/system/activity?name=DROP')
+      .set('Cookie', cookie)
+      .expect(400);
+  });
 });

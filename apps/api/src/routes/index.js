@@ -10,6 +10,7 @@ import { createTokensRouter } from './tokens.routes.js';
 import { createCoachRouter } from './coach.routes.js';
 import { createAiAdminRouter } from './ai-admin.routes.js';
 import { createClinicalRouter } from './clinical.routes.js';
+import { createSystemAdminRouter } from './system-admin.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -120,6 +121,14 @@ export function createApiRouter({
       warnBelowUsd: config.LLM_BALANCE_WARN_USD,
     }),
   );
+  if (pipeline) {
+    router.use(
+      '/admin/system',
+      requireUser,
+      requireRole(Role.ADMIN),
+      createSystemAdminRouter({ store: pipeline.store }),
+    );
+  }
   router.use('/nutrition', createNutritionRouter({ analyzer: nutritionAnalyzer }));
 
   return router;

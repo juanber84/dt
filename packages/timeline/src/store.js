@@ -360,6 +360,78 @@ export function createTimelineStore({ db, catalog }) {
       }));
     },
 
+    /** Lo último que ha llegado de fuera, sin el payload (puede llevar textos de comidas). */
+    async recentInbox({ limit = 50 } = {}) {
+      const rows = await db`
+        select id, received_at, provider, kind, type, status, error
+        from inbox
+        order by id desc
+        limit ${limit}
+      `;
+      return rows.map((r) => ({
+        id: Number(r.id),
+        receivedAt: r.received_at.toISOString(),
+        provider: r.provider,
+        kind: r.kind,
+        type: r.type,
+        status: r.status,
+        error: r.error,
+      }));
+    },
+
+    /**
+     * Últimos trabajos de la cola, del historial de pg-boss (guarda los acabados 7 días). Del
+     * `data` solo lo que dice qué se hizo, nunca el contenido. Sin `name` se saltan los de
+     * normalizar: hay uno por cada descarga con cambios y taparían el resto.
+     * @param {{ limit?: number, failed?: boolean, name?: string }} [options]
+     */
+    async recentJobs({ limit = 50, failed = false, name } = {}) {
+      const rows = await db`
+        select id, name, state, retry_count, created_on, started_on, completed_on,
+          data->>'provider' as provider, coalesce(data->>'kind', data->>'documentId') as kind,
+          data->>'from' as "from", data->>'to' as "to", data->>'reason' as reason,
+          output
+        from pgboss.job
+        where name not like '\\_\\_pgboss%'
+          ${failed ? db`and state = 'failed'` : db``}
+          ${name ? db`and name = ${name}` : db`and name <> 'normalize'`}
+        order by created_on desc
+        limit ${limit}
+      `;
+      return rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        state: r.state,
+        retryCount: r.retry_count,
+        provider: r.provider,
+        kind: r.kind,
+        from: r.from,
+        to: r.to,
+        reason: r.reason,
+        createdAt: r.created_on.toISOString(),
+        startedAt: r.started_on?.toISOString() ?? null,
+        completedAt: r.completed_on?.toISOString() ?? null,
+        ms: r.started_on && r.completed_on ? r.completed_on - r.started_on : null,
+        // Hecho: el resumen que devuelve el handler; fallido: el mensaje de error
+        result: r.state === 'failed' ? null : r.output,
+        error: r.state === 'failed' ? String(r.output?.message ?? '').slice(0, 300) : null,
+      }));
+    },
+
+    /** Trabajos acabados por cola en las últimas `hours` horas (sobrevive a reinicios). */
+    async jobCounts({ hours = 24 } = {}) {
+      const rows = await db`
+        select name, state, count(*)::int as count
+        from pgboss.job
+        where completed_on > now() - make_interval(hours => ${hours})
+          and state in ('completed', 'failed') and name not like '\\_\\_pgboss%'
+        group by name, state
+      `;
+      const out = {};
+      for (const r of rows) (out[r.name] ??= { completed: 0, failed: 0 })[r.state] = r.count;
+      return out;
+    },
+
     /** Limpieza: buzón ya procesado de hace más de `days` días y contadores viejos. */
     async cleanup({ inboxDays = 30 } = {}) {
       const inbox = await db`

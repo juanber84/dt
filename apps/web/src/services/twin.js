@@ -160,3 +160,16 @@ export async function disconnectProvider(id) {
 
 /** Estado real de la API y la BD (esto sí va contra la API). */
 export const fetchSystemStatus = () => apiFetch('/api/v1/health/ready');
+
+/**
+ * Sistema (solo admin): lo último que ha llegado de fuera y el historial de la cola.
+ * @param {{ failed?: boolean, name?: string, limit?: number }} [filters]
+ */
+export function fetchSystemActivity({ failed, name, limit } = {}) {
+  const params = new URLSearchParams();
+  if (failed) params.set('failed', 'true');
+  if (name) params.set('name', name);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  return apiFetch(`/api/v1/admin/system/activity${qs ? `?${qs}` : ''}`);
+}
