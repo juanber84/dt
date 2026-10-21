@@ -475,6 +475,16 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
       .expect(200);
     expect(series.body.series['intake.water'].points.map((p) => p.value)).toEqual([750]);
 
+    for (const at of ['2026-10-20T22:00:00+02:00', '2026-10-21T06:00:00+02:00']) {
+      await post({ kind: 'medication', at, text: 'Enantyum', dose: '1 comprimido' });
+    }
+    await post({ kind: 'medication', at: '2026-10-21T10:00:00+02:00', text: 'Anginovag' });
+    const meds = await request(app)
+      .get('/api/v1/entries/medications')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(meds.body.items).toEqual(['Enantyum', 'Anginovag']);
+
     await request(app).delete(`/api/v1/entries/${water.body.id}`).set('Cookie', cookie).expect(204);
     await request(app).delete(`/api/v1/entries/${water.body.id}`).set('Cookie', cookie).expect(404);
     expect((await episodes()).filter((e) => e.kind === 'drink')).toHaveLength(1);

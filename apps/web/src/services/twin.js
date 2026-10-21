@@ -188,3 +188,6 @@ export async function deleteEntry(id) {
   await apiFetch(`/api/v1/entries/${encodeURIComponent(id)}`, { method: 'DELETE' });
   clearTimelineCache();
 }
+
+/** Medicamentos ya apuntados, para sugerirlos en Registrar. */
+export const fetchMedications = () => apiFetch('/api/v1/entries/medications').then((r) => r.items);

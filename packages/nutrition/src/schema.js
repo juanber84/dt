@@ -66,6 +66,17 @@ export const modelOutputSchema = z.object({
     )
     .catch([])
     .default([]),
+  // Medicamentos y suplementos que se toma (no son comida): nombre, dosis si la dice y hora
+  medications: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1),
+        dose: z.string().trim().catch(''),
+        taken_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/),
+      }),
+    )
+    .catch([])
+    .default([]),
   // Lo que hay que preguntar antes de apuntar (cuánta agua...). Vacío si está todo claro
   question: z.string().catch('').default(''),
   notes: z.string().catch(''),

@@ -18,6 +18,13 @@ export const entrySchema = z.discriminatedUnion('kind', [
     value: z.number().int().min(1).max(5).optional(),
   }),
   z.object({ kind: z.literal('note'), at, text: text.min(1) }),
+  // Una toma: qué (text) y, si se quiere, cuánto ("1 comprimido", "2 pulverizaciones")
+  z.object({
+    kind: z.literal('medication'),
+    at,
+    text: text.min(1).max(100),
+    dose: z.string().trim().max(60).optional(),
+  }),
 ]);
 
 const PROVIDER = 'digitaltwin';
@@ -54,6 +61,19 @@ export function createEntries({ pipeline, queue }) {
       // Al momento (no esperar a la cola): quien lo apunta lo quiere ver ya en su día
       await pipeline.normalize(raw.id);
       return { id, ...entry };
+    },
+
+    /** Medicamentos que ya ha apuntado (para sugerirlos), del más usado al menos. */
+    async medications(userId) {
+      const episodes = await pipeline.queries.episodes({
+        userId,
+        from: new Date(Date.now() - 365 * 24 * 3600 * 1000),
+        to: new Date(Date.now() + 24 * 3600 * 1000),
+        kinds: ['medication'],
+      });
+      const count = new Map();
+      for (const e of episodes) count.set(e.title, (count.get(e.title) ?? 0) + 1);
+      return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
     },
 
     /** Borra un registro suyo (y lo que generó en el timeline). */

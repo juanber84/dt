@@ -60,7 +60,14 @@ export function normalizeMeal(entry) {
 }
 
 /** Lo que se apunta a mano (app o bot) además de las comidas. */
-export const ENTRY_KINDS = Object.freeze(['water', 'coffee', 'weight', 'symptom', 'note']);
+export const ENTRY_KINDS = Object.freeze([
+  'water',
+  'coffee',
+  'weight',
+  'symptom',
+  'note',
+  'medication',
+]);
 
 /**
  * Un registro suelto (Registrar en la app: canal `manual`; o el bot: `telegram`):
@@ -70,6 +77,7 @@ export const ENTRY_KINDS = Object.freeze(['water', 'coffee', 'weight', 'symptom'
  *   weight  kg → body.weight + episodio `weigh-in` (como un pesaje de la báscula)
  *   symptom texto + intensidad 1-5 → episodio `symptom`
  *   note    texto → episodio `note`
+ *   medication  una toma: nombre (text) y dosis → episodio `medication`
  */
 export function normalizeEntry(entry) {
   const origin = entry.channel ?? 'manual';
@@ -140,6 +148,20 @@ export function normalizeEntry(entry) {
             title: entry.text || 'Síntoma',
             summary: { intensity: entry.value ?? null },
             schema: 'symptom@1',
+          },
+        ],
+      };
+    case 'medication':
+      return {
+        mode: 'exact',
+        observations: [],
+        episodes: [
+          {
+            ...base,
+            kind: 'medication',
+            title: entry.text,
+            summary: { dose: entry.dose ?? null },
+            schema: 'medication@1',
           },
         ],
       };

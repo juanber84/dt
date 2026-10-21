@@ -38,9 +38,10 @@ export const REAL_KINDS = [
   'drink',
   'symptom',
   'note',
+  'medication',
   ...CLINICAL_KINDS,
 ];
-const ENTRY_KINDS = ['drink', 'symptom', 'note'];
+const ENTRY_KINDS = ['drink', 'symptom', 'note', 'medication'];
 
 /** Métrica del timeline → campo del resumen diario (con su conversión). */
 const DAILY_METRICS = {
@@ -256,6 +257,16 @@ export function entryEvent(episode) {
       title: 'Café',
       subtitle: `${fmtInt(s.caffeineMg)} mg de cafeína`,
       metrics: [{ label: 'Cafeína', value: s.caffeineMg, unit: 'mg' }],
+    };
+  }
+  if (episode.kind === 'medication') {
+    return {
+      ...base,
+      category: 'clinical',
+      icon: 'Pill',
+      title: episode.title,
+      subtitle: s.dose ? `Medicación · ${s.dose}` : 'Medicación',
+      metrics: [],
     };
   }
   if (episode.kind === 'symptom') {

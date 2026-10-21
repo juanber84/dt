@@ -11,7 +11,8 @@ const MAX_ATTEMPTS = 2;
 /**
  * @typedef {import('zod').infer<typeof import('./schema.js').dishSchema>} Dish
  * @typedef {{ ml: number|null, drunkAt: string }} Water  ml null: hay que preguntar cuánta
- * @typedef {{ dishes: Dish[], water: Water[], question: string, notes: string,
+ * @typedef {{ name: string, dose: string, takenAt: string }} Medication
+ * @typedef {{ dishes: Dish[], water: Water[], medications: Medication[], question: string, notes: string,
  *   messages: object[] }} Analysis
  *   `messages` es la conversación con el modelo; se pasa a `refine` para corregir.
  */
@@ -113,6 +114,11 @@ export class NutritionAnalyzer {
           water: output.water.map((w) => ({
             ml: w.ml == null ? null : Math.round(w.ml),
             drunkAt: fromLocalDateTime(w.drunk_at, this.timeZone).toISOString(),
+          })),
+          medications: output.medications.map((m) => ({
+            name: m.name,
+            dose: m.dose,
+            takenAt: fromLocalDateTime(m.taken_at, this.timeZone).toISOString(),
           })),
           question: output.question.trim(),
           notes: output.notes.trim(),

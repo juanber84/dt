@@ -211,7 +211,10 @@ describe('bot', () => {
     await press(bot, `fix:${first}`);
     await message(bot, { text: 'eran 60 g' });
 
-    expect(api.refine).toHaveBeenCalledWith({ ...analysis(), water: [] }, 'eran 60 g');
+    expect(api.refine).toHaveBeenCalledWith(
+      { ...analysis(), water: [], medications: [] },
+      'eran 60 g',
+    );
     const proposal = sent('sendMessage').at(-1);
     expect(proposal.text).toContain('Total: 225 kcal');
     expect(sent('editMessageText')[0].text).toContain('Corregido');
@@ -332,5 +335,33 @@ describe('bot', () => {
       expect(api.saveEntry).toHaveBeenCalledTimes(1);
       expect(api.logEntry).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('medicación: la toma va como registro, sin macros', async () => {
+    const meds = {
+      dishes: [],
+      water: [],
+      medications: [
+        { name: 'Enantyum', dose: '1 comprimido', takenAt: '2026-10-13T12:00:00.000Z' },
+      ],
+      question: '',
+      notes: '',
+      messages: [],
+    };
+    const { bot, api } = setup({ api: { analyze: vi.fn().mockResolvedValue(meds) } });
+    await message(bot, { text: 'me he tomado un enantyum' });
+    expect(sent('sendMessage')[0].text).toContain('💊 <b>14:00 · Enantyum</b> · 1 comprimido');
+    await press(bot, `save:${draftId()}`);
+    expect(api.saveEntry).not.toHaveBeenCalled();
+    expect(api.logEntry).toHaveBeenCalledWith(
+      {
+        id: expect.any(String),
+        kind: 'medication',
+        at: '2026-10-13T12:00:00.000Z',
+        text: 'Enantyum',
+        dose: '1 comprimido',
+      },
+      { telegramUserId: USER },
+    );
   });
 });

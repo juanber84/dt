@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Droplets, Coffee, Scale, Stethoscope, NotebookPen, FileHeart } from '@lucide/vue';
+import { Droplets, Coffee, Scale, Stethoscope, NotebookPen, FileHeart, Pill } from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { uploadDocument, uploadProblem } from '../../services/clinical.js';
-import { createEntry } from '../../services/twin.js';
+import { createEntry, fetchMedications } from '../../services/twin.js';
 import { fmtClock } from '../../lib/format.js';
 import { formatShortDate, minutesOfDay, todayISO } from '../../lib/dates.js';
 
@@ -67,6 +67,8 @@ const KINDS = [
     category: 'note',
     iconName: 'NotebookPen',
   },
+  // Una toma: qué medicamento y, si quieres, cuánto
+  { id: 'medication', label: 'Medicación', icon: Pill, unit: null },
   // Sube el PDF a Clínica: la fecha la saca del informe (si no trae, la de este día)
   { id: 'report', label: 'Informe', icon: FileHeart, unit: null },
 ];
@@ -76,6 +78,8 @@ const day = ref(props.date);
 const time = ref('12:00');
 const value = ref(500);
 const text = ref('');
+const dose = ref('');
+const medications = ref([]);
 const file = ref(null);
 const uploading = ref(false);
 const uploadError = ref(null);
@@ -90,7 +94,12 @@ watch(
     day.value = props.date;
     time.value = props.date === todayISO() ? fmtClock(minutesOfDay()) : '12:00';
     text.value = '';
+    dose.value = '';
     file.value = null;
+    // Los que ya has apuntado, para no escribirlos cada vez
+    fetchMedications()
+      .then((items) => (medications.value = items))
+      .catch(() => {});
     uploadError.value = null;
     value.value = current.value.default ?? null;
   },
@@ -103,6 +112,7 @@ const titles = {
   weight: () => `Pesaje manual · ${String(value.value).replace('.', ',')} kg`,
   symptom: () => `${text.value || 'Síntoma'} · intensidad ${value.value}/5`,
   note: () => text.value || 'Nota',
+  medication: () => `${text.value}${dose.value ? ` · ${dose.value}` : ''}`,
 };
 
 async function uploadReport() {
@@ -124,7 +134,7 @@ const saving = ref(false);
 // Síntomas y notas sin texto no dicen nada; el resto necesita su número
 const canSave = computed(() => {
   if (!day.value) return false;
-  if (kind.value === 'symptom' || kind.value === 'note') return Boolean(text.value.trim());
+  if (['symptom', 'note', 'medication'].includes(kind.value)) return Boolean(text.value.trim());
   return value.value != null && value.value !== '' && Number(value.value) > 0;
 });
 
@@ -141,6 +151,7 @@ async function submit() {
       at,
       ...(k.unit && value.value != null && { value: Number(value.value) }),
       ...(text.value.trim() && { text: text.value.trim() }),
+      ...(k.id === 'medication' && dose.value.trim() && { dose: dose.value.trim() }),
     });
     emit('add', { date: day.value, subtitle: titles[k.id]() });
     emit('close');
@@ -207,6 +218,25 @@ async function submit() {
         />
       </label>
     </template>
+    <template v-if="kind === 'medication'">
+      <label class="field">
+        <span>Medicamento</span>
+        <input
+          v-model="text"
+          class="input"
+          list="medications"
+          placeholder="Enantyum, Anginovag, ibuprofeno…"
+          autocomplete="off"
+        />
+        <datalist id="medications">
+          <option v-for="m in medications" :key="m" :value="m" />
+        </datalist>
+      </label>
+      <label class="field">
+        <span>Dosis (opcional)</span>
+        <input v-model="dose" class="input" placeholder="1 comprimido, 2 pulverizaciones…" />
+      </label>
+    </template>
     <label v-if="kind === 'symptom' || kind === 'note'" class="field">
       <span>{{ kind === 'symptom' ? 'Qué notas' : 'Nota' }}</span>
       <textarea
@@ -247,7 +277,7 @@ async function submit() {
 <style scoped>
 .kinds {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 

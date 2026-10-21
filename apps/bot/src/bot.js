@@ -166,7 +166,8 @@ export function createBot({
       return;
     }
 
-    if (analysis.dishes.length === 0 && water.length === 0) {
+    const medications = analysis.medications ?? [];
+    if (analysis.dishes.length === 0 && water.length === 0 && medications.length === 0) {
       await ctx.reply(escapeHtml(analysis.notes || 'No he encontrado comida en el mensaje.'), {
         parse_mode: 'HTML',
       });
@@ -175,6 +176,7 @@ export function createBot({
 
     // Cada vaso con su id desde ya: si se reintenta guardar, la API no lo duplica
     analysis.water = water.map((w) => ({ ...w, id: randomUUID() }));
+    analysis.medications = medications.map((m) => ({ ...m, id: randomUUID() }));
     const draft = drafts.create({ chatId, text: fullText, analysis });
     draft.html = formatAnalysis(analysis, { timeZone, now: now() });
     const sent = await ctx.reply(draft.html, {
@@ -232,6 +234,18 @@ export function createBot({
       for (const w of draft.analysis.water ?? []) {
         await api.logEntry(
           { id: w.id, kind: 'water', at: w.drunkAt, value: w.ml },
+          { telegramUserId: ctx.from.id },
+        );
+      }
+      for (const m of draft.analysis.medications ?? []) {
+        await api.logEntry(
+          {
+            id: m.id,
+            kind: 'medication',
+            at: m.takenAt,
+            text: m.name,
+            ...(m.dose && { dose: m.dose }),
+          },
           { telegramUserId: ctx.from.id },
         );
       }

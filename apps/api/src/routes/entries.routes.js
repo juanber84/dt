@@ -13,6 +13,10 @@ export function createEntriesRouter({ entries }) {
     res.status(201).json(await entries.add(req.user.id, req.validated.body));
   });
 
+  router.get('/medications', async (req, res) => {
+    res.json({ items: await entries.medications(req.user.id) });
+  });
+
   router.delete('/:id', async (req, res) => {
     await entries.remove(req.user.id, req.params.id);
     res.status(204).end();
