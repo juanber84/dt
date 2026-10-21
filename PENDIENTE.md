@@ -4,6 +4,18 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## Datos
 
+- [ ] **Tipo de cada comida: desayuno, comida, merienda, cena o picoteo.** Ahora las comidas
+      solo llevan hora, y el coach llegó a llamar "cena" al sobado de las 21:30 (la cena fue a
+      las 19:30). El bot lo saca de lo que dices ("para cenar…", "en el desayuno…"); si no está
+      claro, lo propone según la hora y lo enseña en la respuesta ("🍽 Cena · 19:30…") para
+      poder corregirlo. Se guarda con el plato, se ve en el timeline y lo usan el coach y el MCP
+      (que no lo adivinen por la hora). Las comidas antiguas se quedan sin tipo o se rellenan
+      por la hora.
+- [ ] **Suplementos (creatina, magnesio, vitamina D, omega-3…).** Como tomas, aparte de la
+      medicación: lista de "mis suplementos habituales" en Ajustes (dosis y momento) y marcarlos
+      de un toque en Hoy o por el bot ("los de siempre"). Lo que tiene calorías (proteína en
+      polvo, barritas, geles) va como comida. El motor y el coach deben saber cuándo empieza la
+      creatina (sube 1-2 kg de agua las primeras semanas: no es grasa).
 - [ ] **Calcular nosotros el gasto de la actividad, sin fiarnos del reloj.** La energía activa del
       Apple Watch parece alta: el 19/10 fueron 517 kcal con unos 7.400 pasos y sin entreno.
       Calcularla con nuestros datos (pasos, distancia, FC por hora, peso de la báscula) y
