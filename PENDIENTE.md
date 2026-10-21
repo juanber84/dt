@@ -56,6 +56,14 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
       4 cifras de las últimas 24 h, y el detalle plegado (solo colas con algo, entradas agrupadas,
       trabajos fallidos por defecto). Aparcado por el usuario.
 
+- [ ] **Envío de correos. SIN DECIDIR:** para qué y con qué. Usos posibles: recuperar la
+      contraseña y el alta cuando haya registro, verificar el email, avisos importantes cuando no
+      haya push (backup fallido, conexión rota), un resumen semanal, o mandar al médico un informe
+      de Clínica. Proveedor transaccional con plan gratis (Resend, Brevo, Postmark, Amazon SES…)
+      mejor que un SMTP propio en el VPS (se acaba en spam). Hace falta dominio verificado
+      (SPF, DKIM, DMARC), la clave en Infisical, un job `email` en el worker (como `push`) con su
+      registro, y preferencias por usuario (qué correos quiere).
+
 ## IA (guardarraíles)
 
 - [ ] **Seguridad médica en el coach.** Hoy solo hay una línea en el prompt ("no eres médico").
