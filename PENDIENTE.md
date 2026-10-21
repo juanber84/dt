@@ -31,6 +31,12 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
   - Alternativas valoradas: Axiom (logs), Netdata (estado en tiempo real), OpenObserve en el VPS
     - UptimeRobot (lo más parecido a Elastic autoalojado), y New Relic gratis (100 GB/mes, APM ya hecho, 8 días; solo 500
       comprobaciones desde fuera al mes → UptimeRobot aparte). Con OpenTelemetry se puede cambiar.
+  - 21/10: probado New Relic (cuenta EU, clave de ingesta `digitaltwin-prod` creada; no está
+    guardada en ningún sitio: crear otra si se monta). Preferencia: **OpenTelemetry** (Collector en
+    el compose con un interruptor + SDK en API, worker y bot, con la traza pasando por la cola vía
+    el `wrap` de `jobs.js`) mandando por OTLP, en vez del agente propio de New Relic (más
+    `privileged` y ata al proveedor). Plan por pasos: primero el collector (servidor,
+    contenedores y logs), y las trazas si convence. **Parado** por decisión del usuario.
   - Falta: decidir herramienta y alcance; luego, la cuenta y sus credenciales.
 
 ## IA (guardarraíles)
