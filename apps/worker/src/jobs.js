@@ -5,6 +5,7 @@ import { INTERVALS } from './providers/intervals.js';
 import { GOOGLE } from './providers/google.js';
 
 const DAY_MS = 24 * 3600 * 1000;
+export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
 
 /**
  * Registra los consumidores de cada cola y el cron.
@@ -14,6 +15,7 @@ const DAY_MS = 24 * 3600 * 1000;
  * @param {ReturnType<typeof import('@digitaltwin/connections').createDbConnectionStore>} deps.connections
  * @param {{ xiaomi: ReturnType<typeof import('./providers/xiaomi.js').createXiaomiProvider>, intervals: ReturnType<typeof import('./providers/intervals.js').createIntervalsProvider>, google?: ReturnType<typeof import('./providers/google.js').createGoogleProvider> }} deps.providers
  * @param {ReturnType<typeof import('./clinical.js').createClinicalProcessor>} [deps.clinical]
+ * @param {import('@digitaltwin/google-health').GoogleHealthSubscribers} [deps.googleSubscribers]
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} deps.logger
@@ -24,6 +26,7 @@ export function createJobs({
   connections,
   providers,
   clinical,
+  googleSubscribers,
   config,
   now = Date.now,
   logger,
@@ -169,6 +172,20 @@ export function createJobs({
       if (!clinical) return { skipped: 'unsupported' };
       return clinical.run(data, { last: retryCount >= retryLimit });
     },
+
+    /** Suscriptor de webhooks de Google: al arrancar con `force` (por si cambió el secreto). */
+    async [JOBS.GOOGLE_SUBSCRIBER]({ data }) {
+      if (!googleSubscribers) return { skipped: 'unconfigured' };
+      const endpointUri = `${config.PUBLIC_URL}/webhooks/google-health`;
+      const { action } = await googleSubscribers.ensure({
+        subscriberId: GOOGLE_SUBSCRIBER_ID,
+        endpointUri,
+        secret: config.GOOGLE_HEALTH_WEBHOOK_SECRET,
+        force: Boolean(data?.force),
+      });
+      if (action !== 'unchanged') logger.info({ endpointUri, action }, 'suscriptor de Google');
+      return { action };
+    },
   };
 
   /** Envuelve cada handler con logs y, en el sync, el aplazamiento por límite. */
@@ -254,6 +271,17 @@ export function createJobs({
         );
       }
       await queue.schedule(JOBS.MAINTENANCE, '30 3 * * *', {}, { tz });
+
+      if (googleSubscribers) {
+        await queue.work(
+          JOBS.GOOGLE_SUBSCRIBER,
+          {},
+          wrap(JOBS.GOOGLE_SUBSCRIBER, handlers[JOBS.GOOGLE_SUBSCRIBER]),
+        );
+        // Un poco después de arrancar, para dar tiempo al front y al túnel
+        await queue.send(JOBS.GOOGLE_SUBSCRIBER, { force: true }, { startAfter: 20 });
+        await queue.schedule(JOBS.GOOGLE_SUBSCRIBER, '45 4 * * *', {}, { tz });
+      }
     },
   };
 }

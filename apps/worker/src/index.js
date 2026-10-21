@@ -10,6 +10,7 @@ import { createXiaomiProvider } from './providers/xiaomi.js';
 import { createGoogleProvider } from './providers/google.js';
 import { createIntervalsProvider } from './providers/intervals.js';
 import { createJobs } from './jobs.js';
+import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
 import { ClinicalExtractor, createDbClinicalStore } from '@digitaltwin/clinical';
 import { createDbLlmUsageRows, createUsageRecorder } from '@digitaltwin/llm-usage';
 import { createClinicalProcessor } from './clinical.js';
@@ -93,7 +94,28 @@ const clinical = createClinicalProcessor({
 });
 if (!config.LLM_API_KEY) logger.warn('Sin LLM_API_KEY: los informes médicos no se leen');
 
-const jobs = createJobs({ queue, pipeline, connections, providers, clinical, config, logger });
+// Solo con URL pública (Google no avisa a localhost), secreto y cuenta de servicio
+const googleSubscribers =
+  config.PUBLIC_URL?.startsWith('https://') &&
+  config.GOOGLE_HEALTH_WEBHOOK_SECRET &&
+  config.GOOGLE_HEALTH_SERVICE_ACCOUNT
+    ? new GoogleHealthSubscribers({
+        projectId: config.GOOGLE_HEALTH_SERVICE_ACCOUNT.project_id,
+        credentials: config.GOOGLE_HEALTH_SERVICE_ACCOUNT,
+      })
+    : undefined;
+if (!googleSubscribers) logger.info('Sin suscriptor de webhooks de Google: solo el cron');
+
+const jobs = createJobs({
+  queue,
+  pipeline,
+  connections,
+  providers,
+  clinical,
+  googleSubscribers,
+  config,
+  logger,
+});
 await jobs.start();
 logger.info('Worker en marcha');
 

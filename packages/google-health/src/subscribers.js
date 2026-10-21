@@ -19,14 +19,19 @@ export class GoogleHealthSubscribers {
    * @param {object} options
    * @param {string} options.projectId  Número de proyecto de Google Cloud (recomendado por Google).
    * @param {string} [options.keyFile]  JSON de la cuenta de servicio. Sin él usa ADC.
+   * @param {object} [options.credentials]  El mismo JSON ya leído (p. ej. de un secreto).
    * @param {object} [options.authClient]  Cliente ya autenticado (tests).
    */
-  constructor({ projectId, keyFile, authClient }) {
+  constructor({ projectId, keyFile, credentials, authClient }) {
     if (!projectId) throw new Error('projectId es obligatorio');
     this.parent = `projects/${projectId}`;
     this.auth = authClient
       ? { getClient: async () => authClient }
-      : new GoogleAuth({ keyFile, scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
+      : new GoogleAuth({
+          keyFile,
+          credentials,
+          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        });
   }
 
   async #request(path, { method = 'GET', params, data } = {}) {
@@ -65,6 +70,53 @@ export class GoogleHealthSubscribers {
         subscriberConfigs: [{ dataTypes, subscriptionCreatePolicy: policy }],
       },
     });
+  }
+
+  /**
+   * Deja el suscriptor como se pide: lo crea si no existe y lo actualiza si algo no cuadra. Google
+   * no devuelve el secreto, así que un cambio de secreto solo se aplica con `force`.
+   * @param {Parameters<GoogleHealthSubscribers['create']>[0] & { force?: boolean }} options
+   * @returns {Promise<{ action: 'created'|'updated'|'unchanged', subscriber: object }>}
+   */
+  async ensure({
+    subscriberId,
+    endpointUri,
+    secret,
+    dataTypes = WEBHOOK_DATA_TYPES,
+    policy = 'AUTOMATIC',
+    force = false,
+  }) {
+    const current = (await this.list()).find((s) =>
+      s.name?.endsWith(`/subscribers/${subscriberId}`),
+    );
+    if (!current) {
+      const subscriber = await this.create({
+        subscriberId,
+        endpointUri,
+        secret,
+        dataTypes,
+        policy,
+      });
+      return { action: 'created', subscriber };
+    }
+
+    const [config] = current.subscriberConfigs ?? [];
+    const sameTypes = [...(config?.dataTypes ?? [])].sort().join() === [...dataTypes].sort().join();
+    const ok =
+      current.endpointUri === endpointUri &&
+      current.state === 'ACTIVE' &&
+      current.endpointAuthorization?.secretSet &&
+      current.subscriberConfigs?.length === 1 &&
+      config.subscriptionCreatePolicy === policy &&
+      sameTypes;
+    if (ok && !force) return { action: 'unchanged', subscriber: current };
+
+    const subscriber = await this.update(subscriberId, {
+      endpointUri,
+      endpointAuthorization: { secret: toAuthorization(secret) },
+      subscriberConfigs: [{ dataTypes, subscriptionCreatePolicy: policy }],
+    });
+    return { action: 'updated', subscriber };
   }
 
   async list() {

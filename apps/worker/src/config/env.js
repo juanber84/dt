@@ -18,6 +18,28 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   TIMEZONE: z.string().default('Europe/Madrid'),
+  // Suscriptor de webhooks de Google: lo crea o corrige el worker al arrancar y una vez al día.
+  // Hacen falta los tres; sin ellos (en local) no se toca. PUBLIC_URL y el secreto son los de la API.
+  PUBLIC_URL: z
+    .url()
+    .optional()
+    .transform((url) => url?.replace(/\/+$/, '')),
+  GOOGLE_HEALTH_WEBHOOK_SECRET: z.string().min(16).optional(),
+  // JSON de la cuenta de servicio con rol "Google Health API Editor" (el fichero entero)
+  GOOGLE_HEALTH_SERVICE_ACCOUNT: z
+    .string()
+    .optional()
+    .transform((value, ctx) => {
+      if (!value) return undefined;
+      try {
+        const json = JSON.parse(value);
+        if (json.client_email && json.private_key && json.project_id) return json;
+      } catch {
+        // cae al error de abajo
+      }
+      ctx.addIssue({ code: 'custom', message: 'JSON de cuenta de servicio de Google' });
+      return z.NEVER;
+    }),
   // Cuándo se sincroniza solo (hora de TIMEZONE). Google avisa por webhook; el cron de cada hora
   // recoge lo que se haya podido escapar (y es lo único que llega en local, sin webhook).
   XIAOMI_SYNC_CRON: cron.default('*/30 * * * *'),

@@ -10,6 +10,7 @@ import { PgBoss } from 'pg-boss';
  *   scheduled-sync  lo lanza el cron: un sync por cada conexión         { provider }
  *   maintenance     limpieza diaria (buzón, contadores)                 {}
  *   clinical-extract  un PDF subido → texto, sin datos personales, LLM   { documentId }
+ *   google-subscriber deja el suscriptor de webhooks de Google como toca  { force? }
  */
 export const JOBS = Object.freeze({
   SYNC: 'sync',
@@ -19,6 +20,7 @@ export const JOBS = Object.freeze({
   SCHEDULED_SYNC: 'scheduled-sync',
   MAINTENANCE: 'maintenance',
   CLINICAL_EXTRACT: 'clinical-extract',
+  GOOGLE_SUBSCRIBER: 'google-subscriber',
 });
 
 /** Prioridad (mayor = antes): lo del día a día pasa por delante del histórico. */
@@ -54,6 +56,15 @@ const QUEUES = {
     retryDelay: 30,
     retryBackoff: true,
     expireInSeconds: 600,
+  },
+  // Google verifica la URL al crear el suscriptor: al arrancar puede que el front o el túnel aún
+  // no estén, así que reintenta con calma (hasta ~1 h)
+  [JOBS.GOOGLE_SUBSCRIBER]: {
+    policy: 'singleton',
+    retryLimit: 8,
+    retryDelay: 30,
+    retryBackoff: true,
+    retryDelayMax: 900,
   },
 };
 

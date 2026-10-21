@@ -19,7 +19,9 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
      `/webhooks/google-health`: añadir un `location /webhooks/` igual que el de `/api/`.
   2. `GOOGLE_HEALTH_WEBHOOK_SECRET` en Infisical `prod` `/api`: la clave sola (el `Bearer ` lo añade la API)
      (clave de `openssl rand -hex 32`). Sin él, la API no monta la ruta.
-  3. Crear el suscriptor una vez, con una cuenta de servicio con rol _Google Health API Editor_:
+  3. El suscriptor lo crea el worker (job `google-subscriber`, al arrancar y a diario) si en `/api`
+     está `GOOGLE_HEALTH_SERVICE_ACCOUNT` (el JSON de la cuenta de servicio con rol
+     _Google Health API Editor_). A mano sería:
      `make google-subscriber args="create --id digitaltwin --url https://dt.cadenceai.ovh/webhooks/google-health"`
      (con `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT_NUMBER=579742134918` y el mismo
      `GOOGLE_HEALTH_WEBHOOK_SECRET`). Google llama a la URL para verificarla: prod tiene que estar
