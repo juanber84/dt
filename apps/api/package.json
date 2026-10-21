@@ -21,6 +21,7 @@
     "@digitaltwin/logger": "^0.1.0",
     "@digitaltwin/mcp": "^0.1.0",
     "@digitaltwin/nutrition": "^0.1.0",
+    "@digitaltwin/push": "^0.1.0",
     "@digitaltwin/queue": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@digitaltwin/xiaomi": "^0.1.0",

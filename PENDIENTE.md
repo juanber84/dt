@@ -27,6 +27,11 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## App en el móvil (PWA)
 
-- [ ] **Notificaciones.** Web Push: en iOS solo con la app instalada en la pantalla de inicio
-      (iOS 16.4+). Necesita un service worker, que ahora no hay a propósito para que no haya
-      caché: al añadirlo, que no cachee nada (solo push), o habrá que pensar cómo se actualiza.
+- [ ] **Más avisos push.** La base está (Ajustes → Cuenta → Notificaciones; reglas en
+      `apps/worker/src/notifications.js`). Faltan los que dependen de datos que aún no llegan bien:
+  - Agua ("llevas 0,5 L de 3 L"): antes, que Registrar guarde en la API (ahora el agua, los
+    síntomas y las notas solo viven en memoria y se pierden al recargar).
+  - Pasos al final del día: los pasos llegan cuando se abre la app de Google en el iPhone, así
+    que hay que decir "según lo último sincronizado" o esperar a otra fuente.
+  - Ideas: proteína a media tarde, varias noches durmiendo poco, días sin pesarse, y que el coach
+    redacte los avisos.

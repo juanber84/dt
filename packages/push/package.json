@@ -1,0 +1,17 @@
+{
+  "name": "@digitaltwin/push",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Notificaciones push (Web Push): suscripciones, preferencias, límites y envío",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

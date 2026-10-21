@@ -16,6 +16,8 @@ export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
  * @param {{ xiaomi: ReturnType<typeof import('./providers/xiaomi.js').createXiaomiProvider>, intervals: ReturnType<typeof import('./providers/intervals.js').createIntervalsProvider>, google?: ReturnType<typeof import('./providers/google.js').createGoogleProvider> }} deps.providers
  * @param {ReturnType<typeof import('./clinical.js').createClinicalProcessor>} [deps.clinical]
  * @param {import('@digitaltwin/google-health').GoogleHealthSubscribers} [deps.googleSubscribers]
+ * @param {ReturnType<typeof import('@digitaltwin/push').createPush>} [deps.push]
+ * @param {ReturnType<typeof import('./notifications.js').createPushRules>} [deps.pushRules]
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} deps.logger
@@ -27,6 +29,8 @@ export function createJobs({
   providers,
   clinical,
   googleSubscribers,
+  push,
+  pushRules,
   config,
   now = Date.now,
   logger,
@@ -186,6 +190,22 @@ export function createJobs({
       if (action !== 'unchanged') logger.info({ endpointUri, action }, 'suscriptor de Google');
       return { action };
     },
+
+    /** Un aviso: sale si sus preferencias lo dejan; en horas de silencio, se aplaza a cuando acaben. */
+    async [JOBS.PUSH]({ data }) {
+      if (!push) return { skipped: 'unconfigured' };
+      const result = await push.notify(data.userId, data.notification);
+      if (result.status === 'quiet') {
+        await queue.send(JOBS.PUSH, data, { startAfter: result.retryAt });
+      }
+      return result;
+    },
+
+    /** El cron de los avisos (una regla cada vez: comidas sin apuntar...). */
+    async [JOBS.PUSH_RULES]({ data }) {
+      if (!pushRules) return { skipped: 'unconfigured' };
+      return pushRules.run(data.rule);
+    },
   };
 
   /** Envuelve cada handler con logs y, en el sync, el aplazamiento por límite. */
@@ -271,6 +291,17 @@ export function createJobs({
         );
       }
       await queue.schedule(JOBS.MAINTENANCE, '30 3 * * *', {}, { tz });
+
+      if (push) {
+        await queue.work(JOBS.PUSH, { localConcurrency: 2 }, wrap(JOBS.PUSH, handlers[JOBS.PUSH]));
+        await queue.work(JOBS.PUSH_RULES, {}, wrap(JOBS.PUSH_RULES, handlers[JOBS.PUSH_RULES]));
+        await queue.schedule(
+          JOBS.PUSH_RULES,
+          config.PUSH_MEALS_CRON,
+          { rule: 'meals-missing' },
+          { tz, key: 'meals-missing' },
+        );
+      }
 
       if (googleSubscribers) {
         await queue.work(

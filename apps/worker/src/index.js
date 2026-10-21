@@ -11,6 +11,14 @@ import { createGoogleProvider } from './providers/google.js';
 import { createIntervalsProvider } from './providers/intervals.js';
 import { createJobs } from './jobs.js';
 import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
+import { createDbPushStore, createPush } from '@digitaltwin/push';
+import {
+  createNotifier,
+  createPushRules,
+  localDate,
+  messages,
+  withExpiryAlerts,
+} from './notifications.js';
 import { ClinicalExtractor, createDbClinicalStore } from '@digitaltwin/clinical';
 import { createDbLlmUsageRows, createUsageRecorder } from '@digitaltwin/llm-usage';
 import { createClinicalProcessor } from './clinical.js';
@@ -29,11 +37,41 @@ await queue.start();
 
 const pipeline = createPipeline({ db, queue, timeZone: config.TIMEZONE, logger });
 await pipeline.catalog.ready();
-const connections = createDbConnectionStore({
-  db,
-  box: createSecretBox(config.TOKEN_ENCRYPTION_KEY),
+// Avisos push: sin claves VAPID no se manda nada (el resto del worker va igual)
+const push =
+  config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
+    ? createPush({
+        store: createDbPushStore({ db }),
+        vapid: {
+          publicKey: config.VAPID_PUBLIC_KEY,
+          privateKey: config.VAPID_PRIVATE_KEY,
+          subject:
+            config.VAPID_SUBJECT ??
+            (config.PUBLIC_URL?.startsWith('https://')
+              ? config.PUBLIC_URL
+              : 'mailto:admin@localhost'),
+        },
+        timeZone: config.TIMEZONE,
+        logger: logger.child({ module: 'push' }),
+      })
+    : undefined;
+if (!push) logger.info('Sin VAPID_PUBLIC_KEY/PRIVATE_KEY: no se mandan avisos push');
+const notify = push ? createNotifier({ queue }) : async () => {};
+
+// Si una conexión se cae (permiso retirado, sesión caducada), se avisa a su dueño
+const connections = withExpiryAlerts(
+  createDbConnectionStore({
+    db,
+    box: createSecretBox(config.TOKEN_ENCRYPTION_KEY),
+    logger,
+  }),
+  (connection) =>
+    notify(
+      connection.userId,
+      messages.connectionExpired(connection, localDate(new Date(), config.TIMEZONE)),
+    ),
   logger,
-});
+);
 const limiter = createRateLimiter({
   store: pipeline.store,
   perMinute: {
@@ -90,6 +128,7 @@ const clinical = createClinicalProcessor({
         ...(config.LLM_BASE_URL.includes('deepseek.com') ? {} : { extraBody: {} }),
       })
     : undefined,
+  onReady: (doc, extraction) => notify(doc.userId, messages.clinicalReady(doc, extraction)),
   logger: logger.child({ module: 'clinical' }),
 });
 if (!config.LLM_API_KEY) logger.warn('Sin LLM_API_KEY: los informes médicos no se leen');
@@ -116,6 +155,10 @@ const jobs = createJobs({
   providers,
   clinical,
   googleSubscribers,
+  push,
+  pushRules: push
+    ? createPushRules({ push, queries: pipeline.queries, notify, timeZone: config.TIMEZONE })
+    : undefined,
   config,
   logger,
 });

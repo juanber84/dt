@@ -7,6 +7,7 @@ import { createDbCoachStore } from '../src/services/coach-store.js';
 import { createDbLlmUsageRows, createLlmUsage, parsePrices } from '../src/services/llm-usage.js';
 import { buildExtraction, createDbClinicalStore, modelOutputSchema } from '@digitaltwin/clinical';
 import { createDbPasskeyStore } from '../src/services/passkeys.js';
+import { createDbPushStore, createPush } from '@digitaltwin/push';
 
 // Necesita una BD de verdad (make test-db). Cada ejecución usa un schema propio que se borra al final.
 const url = process.env.TEST_DATABASE_URL;
@@ -315,6 +316,39 @@ describe.skipIf(!url)('stores en la BD', () => {
       expect(await store.listByUser(me.id)).toHaveLength(1);
       expect(await store.remove(me.id, 'cred-abc')).toBe(true);
       expect(await store.get('cred-abc')).toBeNull();
+    });
+  });
+
+  describe('avisos push', () => {
+    it('suscripciones, preferencias, sin repetir y borra los dispositivos que ya no existen', async () => {
+      const store = createDbPushStore({ db });
+      const send = async (sub) => {
+        if (sub.endpoint.endsWith('/muerto'))
+          throw Object.assign(new Error('Gone'), { statusCode: 410 });
+      };
+      const push = createPush({
+        store,
+        vapid: { publicKey: 'p', privateKey: 'k', subject: 'https://dt.example.com' },
+        send,
+        // Mediodía en Madrid: fuera de las horas de silencio
+        now: () => new Date('2026-10-21T10:00:00Z'),
+      });
+      const keys = { p256dh: 'a', auth: 'b' };
+      await push.subscribe(me.id, { endpoint: 'https://push.example/vivo', keys }, 'iPhone');
+      await push.subscribe(me.id, { endpoint: 'https://push.example/muerto', keys }, 'Mac');
+      expect(await push.subscribedUsers()).toContain(me.id);
+      expect(await push.settings(me.id)).toMatchObject({ quietFrom: '22:00', maxPerDay: 6 });
+      await push.updateSettings(me.id, { quietFrom: '23:30', disabled: ['connection-broken'] });
+      expect(await push.settings(me.id)).toMatchObject({
+        quietFrom: '23:30',
+        disabled: ['connection-broken'],
+      });
+
+      const n = { kind: 'meals-missing', title: 'Sin comidas', dedupeKey: '2026-10-21' };
+      expect(await push.notify(me.id, n)).toEqual({ status: 'sent', delivered: 1 });
+      expect(await push.notify(me.id, n)).toEqual({ status: 'duplicate' });
+      expect((await push.devices(me.id)).map((d) => d.device)).toEqual(['iPhone']);
+      expect(await push.history(me.id)).toMatchObject([{ kind: 'meals-missing', delivered: 1 }]);
     });
   });
 });

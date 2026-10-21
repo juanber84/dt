@@ -16,9 +16,17 @@ const PERMANENT = new Set([
  * @param {Pick<import('@digitaltwin/clinical').ClinicalExtractor, 'extract'> | undefined} deps.extractor
  *   Sin él (no hay LLM_API_KEY) los documentos quedan en error explicándolo.
  * @param {typeof processPdf} [deps.process]
+ * @param {(doc: object, extraction: object) => (void|Promise<void>)} [deps.onReady]  Ya leído: para
+ *   avisar de que está para revisar.
  * @param {import('pino').Logger} [deps.logger]
  */
-export function createClinicalProcessor({ store, extractor, process = processPdf, logger }) {
+export function createClinicalProcessor({
+  store,
+  extractor,
+  process = processPdf,
+  onReady,
+  logger,
+}) {
   return {
     /** @param {{ documentId: string }} data */
     async run({ documentId }, { last = true } = {}) {
@@ -46,6 +54,10 @@ export function createClinicalProcessor({ store, extractor, process = processPdf
             redactions: result.redactions,
           },
           'informe leído',
+        );
+        // Aviso de que está para revisar (si falla el aviso, el informe ya está leído igual)
+        await Promise.resolve(onReady?.(doc, result.extraction)).catch((err) =>
+          logger?.warn({ err, documentId }, 'No se pudo avisar del informe leído'),
         );
         return { type: result.extraction.type, items: result.extraction.items.length };
       } catch (err) {

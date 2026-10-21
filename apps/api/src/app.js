@@ -28,6 +28,7 @@ import { createUserStore } from './services/users.js';
 import { createSessions } from './services/sessions.js';
 import { createDbUserStore } from './services/users-db.js';
 import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
+import { createDbPushStore, createPush } from '@digitaltwin/push';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -87,6 +88,8 @@ import { createClinical } from './services/clinical.js';
  *   Por defecto, en la BD si la hay; si no, en memoria.
  * @param {ReturnType<typeof createPasskeys>} [deps.passkeys]  Entrar con Face ID. Por defecto, con
  *   la BD si la hay; sin BD no se ofrece.
+ * @param {ReturnType<typeof createPush>} [deps.push]  Avisos push. Por defecto, con la BD y las
+ *   claves VAPID; sin ellas no se ofrecen.
  */
 export function createApp({
   config = loadConfig(),
@@ -114,6 +117,7 @@ export function createApp({
   llmBalance,
   clinicalStore,
   passkeys,
+  push,
 } = {}) {
   const log = logger ?? createLogger({ name: 'api', level: config.LOG_LEVEL });
   if (!config.JWT_SECRET && config.NODE_ENV !== 'test') {
@@ -215,6 +219,24 @@ export function createApp({
         secure: config.NODE_ENV === 'production',
       })
     : undefined;
+  push ??=
+    db && config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
+      ? createPush({
+          store: createDbPushStore({ db }),
+          vapid: {
+            publicKey: config.VAPID_PUBLIC_KEY,
+            privateKey: config.VAPID_PRIVATE_KEY,
+            // https: o mailto: (con localhost en desarrollo, web-push no acepta la URL)
+            subject:
+              config.VAPID_SUBJECT ??
+              (config.PUBLIC_URL.startsWith('https://')
+                ? config.PUBLIC_URL
+                : 'mailto:admin@localhost'),
+          },
+          timeZone: config.TIMEZONE,
+          logger: log.child({ module: 'push' }),
+        })
+      : undefined;
   const xiaomiLogin = createXiaomiLogin({
     store: connections,
     onConnected: inbox?.connected,
@@ -385,6 +407,7 @@ export function createApp({
       llmModels,
       clinical,
       passkeys,
+      push,
     }),
   );
 

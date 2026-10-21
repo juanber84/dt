@@ -23,6 +23,7 @@ import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchSummaries } from '../services/twin.js';
 import { documentDay, documentEvent, withDocuments } from '../services/timeline.js';
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
+import { setBadge } from '../services/push.js';
 import { formatShortDate, todayISO } from '../lib/dates.js';
 import { fmtDec, fmtDuration, fmtInt, fmtSigned, fmtCompact } from '../lib/format.js';
 
@@ -78,6 +79,8 @@ async function loadDocuments({ quiet } = {}) {
   try {
     const before = new Map(documents.value.map((d) => [d.id, d.status]));
     documents.value = await listDocuments({ quiet });
+    // El número del icono de la app: informes leídos que esperan tu revisión
+    setBadge(documents.value.filter((d) => d.status === 'review').length);
     // Los que se acaban de leer: si eran de otro día, al timeline de ese día
     for (const d of documents.value) {
       if (before.get(d.id) === 'processing' && d.status !== 'processing') noticeMoved(d);

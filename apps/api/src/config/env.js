@@ -31,6 +31,11 @@ const schema = z
     // Valor completo de la cabecera Authorization que manda Google (p. ej. "Bearer xxx").
     // Sin él, el endpoint de webhooks de Google Health no se monta.
     GOOGLE_HEALTH_WEBHOOK_SECRET: z.string().min(16).optional(),
+    // Notificaciones push (npx web-push generate-vapid-keys; las mismas en el worker). Sin ellas,
+    // la app no ofrece activar avisos
+    VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+    VAPID_SUBJECT: z.string().min(1).optional(),
     // Firma (HMAC) de los eventos que mandan nuestras apps a /webhooks/digitaltwin (el bot). La
     // misma en /api y /bot de Infisical. Sin ella ese webhook no se monta.
     DIGITALTWIN_WEBHOOK_SECRET: z

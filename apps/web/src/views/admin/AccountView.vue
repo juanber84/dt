@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { LogOut, ScanFace, Trash2 } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import Segmented from '../../components/ui/Segmented.vue';
+import NotificationSettings from '../../components/admin/NotificationSettings.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
 import { useTheme } from '../../composables/useTheme.js';
 import { useConfirm } from '../../composables/useConfirm.js';
@@ -129,6 +130,8 @@ async function exit() {
       {{ adding ? 'Esperando a Face ID…' : 'Activar Face ID en este dispositivo' }}
     </button>
     <p v-else class="muted">Este navegador no admite passkeys.</p>
+
+    <NotificationSettings />
 
     <button class="btn btn-danger logout" :disabled="leaving" @click="exit">
       <LogOut class="icon icon-sm" />

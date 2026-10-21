@@ -28,6 +28,14 @@ const schema = z.object({
   // Número (no ID) del proyecto de Google Cloud: con el ID la API responde PERMISSION_DENIED. Por
   // defecto, el del cliente OAuth (su ID empieza por él), que es donde tiene que estar el suscriptor
   GOOGLE_CLOUD_PROJECT_NUMBER: z.string().regex(/^\d+$/, 'solo dígitos').optional(),
+  // Notificaciones push (las mismas claves que la API: npx web-push generate-vapid-keys). Sin
+  // ellas no se manda ningún aviso
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  // A quién avisa el servicio de push si hay problemas: una URL nuestra o mailto: (por defecto, PUBLIC_URL)
+  VAPID_SUBJECT: z.string().min(1).optional(),
+  // Cuándo se mira si alguien no ha apuntado ninguna comida en el día (hora de TIMEZONE)
+  PUSH_MEALS_CRON: cron.default('0 16 * * *'),
   // JSON de la cuenta de servicio con rol "Google Health API Editor" (el fichero entero)
   GOOGLE_HEALTH_SERVICE_ACCOUNT: z
     .string()

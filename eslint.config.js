@@ -22,5 +22,10 @@ export default [
     files: ['apps/web/src/**'],
     languageOptions: { globals: { ...globals.browser } },
   },
+  // El service worker de los avisos push
+  {
+    files: ['apps/web/public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
+  },
   prettier,
 ];

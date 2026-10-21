@@ -12,6 +12,7 @@ import { createAiAdminRouter } from './ai-admin.routes.js';
 import { createClinicalRouter } from './clinical.routes.js';
 import { createSystemAdminRouter } from './system-admin.routes.js';
 import { createPasskeysRouter } from './passkeys.routes.js';
+import { createPushRouter } from './push.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -46,6 +47,7 @@ export function createApiRouter({
   llmModels,
   clinical,
   passkeys,
+  push,
 }) {
   const router = Router();
 
@@ -67,6 +69,7 @@ export function createApiRouter({
   router.use(authenticate({ apiKeys: config.DIGITALTWIN_API_KEYS, sessions, users }));
   router.use('/heartbeat', requireApiClient, createHeartbeatRouter({ heartbeats }));
   if (passkeys) router.use('/passkeys', requireUser, createPasskeysRouter({ passkeys }));
+  if (push) router.use('/push', requireUser, createPushRouter({ push }));
   router.use(
     '/connections',
     requireUser,
