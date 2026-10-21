@@ -196,3 +196,6 @@ export const fetchMedications = () => apiFetch('/api/v1/entries/medications').th
 export const fetchProfile = () => apiFetch('/api/v1/profile');
 export const saveProfile = (patch) =>
   apiFetch('/api/v1/profile', { method: 'PUT', body: JSON.stringify(patch) });
+
+/** El motor: peso tendencia, gasto real y objetivos de comida (los calcula la API). */
+export const fetchEngine = () => apiFetch('/api/v1/engine');

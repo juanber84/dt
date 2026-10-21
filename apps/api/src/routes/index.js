@@ -16,6 +16,7 @@ import { createPushRouter } from './push.routes.js';
 import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
+import { createEngine } from '../services/engine.js';
 import {
   authenticate,
   requireApiClient,
@@ -75,6 +76,16 @@ export function createApiRouter({
   if (passkeys) router.use('/passkeys', requireUser, createPasskeysRouter({ passkeys }));
   if (push) router.use('/push', requireUser, createPushRouter({ push }));
   if (profiles) router.use('/profile', requireUser, createProfileRouter({ profiles }));
+  // El motor: peso tendencia, gasto real y objetivos de comida
+  const engine =
+    profiles && pipeline
+      ? createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE })
+      : undefined;
+  if (engine) {
+    router.get('/engine', requireUser, async (req, res) =>
+      res.json(await engine.state(req.user.id)),
+    );
+  }
   router.use(
     '/connections',
     requireUser,
@@ -125,6 +136,7 @@ export function createApiRouter({
         store: coachStore,
         queries: pipeline.queries,
         profiles,
+        engine,
         timeZone: config.TIMEZONE,
         usage: llmUsage,
       }),

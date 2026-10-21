@@ -15,6 +15,7 @@
     "@digitaltwin/coach": "^0.1.0",
     "@digitaltwin/connections": "^0.1.0",
     "@digitaltwin/db": "^0.1.0",
+    "@digitaltwin/engine": "^0.1.0",
     "@digitaltwin/google-health": "^0.1.0",
     "@digitaltwin/intervals-icu": "^0.1.0",
     "@digitaltwin/llm-usage": "^0.1.0",

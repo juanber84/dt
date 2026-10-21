@@ -1,4 +1,6 @@
 const FIELDS = ['birthDate', 'sex', 'heightCm', 'weightGoalKg'];
+// Solo los escribe el usuario (la báscula no los sabe)
+const OWN_FIELDS = { loggingSince: 'logging_since', weeklyRatePct: 'weekly_rate_pct' };
 
 /**
  * Perfil del usuario: lo que ha escrito él y, para lo que no, lo de su báscula (el perfil que
@@ -51,6 +53,8 @@ export function createProfiles({ db, timeZone }) {
           profile[field] = null;
         }
       }
+      profile.loggingSince = row?.logging_since ? localDate(row.logging_since, 'UTC') : null;
+      profile.weeklyRatePct = row?.weekly_rate_pct == null ? null : Number(row.weekly_rate_pct);
       profile.age = profile.birthDate ? age(profile.birthDate, new Date(), timeZone) : null;
       return profile;
     },
@@ -63,17 +67,25 @@ export function createProfiles({ db, timeZone }) {
         sex: row?.sex ?? null,
         height_cm: row?.height_cm ?? null,
         weight_goal_kg: row?.weight_goal_kg ?? null,
+        logging_since: row?.logging_since ?? null,
+        weekly_rate_pct: row?.weekly_rate_pct ?? null,
       };
+      for (const [field, column] of Object.entries(OWN_FIELDS)) {
+        if (field in patch) next[column] = patch[field];
+      }
       if ('birthDate' in patch) next.birth_date = patch.birthDate;
       if ('sex' in patch) next.sex = patch.sex;
       if ('heightCm' in patch) next.height_cm = patch.heightCm;
       if ('weightGoalKg' in patch) next.weight_goal_kg = patch.weightGoalKg;
       await db`
-        insert into user_profiles (user_id, birth_date, sex, height_cm, weight_goal_kg)
-        values (${userId}, ${next.birth_date}, ${next.sex}, ${next.height_cm}, ${next.weight_goal_kg})
+        insert into user_profiles (user_id, birth_date, sex, height_cm, weight_goal_kg,
+          logging_since, weekly_rate_pct)
+        values (${userId}, ${next.birth_date}, ${next.sex}, ${next.height_cm}, ${next.weight_goal_kg},
+          ${next.logging_since}, ${next.weekly_rate_pct})
         on conflict (user_id) do update set
           birth_date = excluded.birth_date, sex = excluded.sex, height_cm = excluded.height_cm,
-          weight_goal_kg = excluded.weight_goal_kg, updated_at = now()
+          weight_goal_kg = excluded.weight_goal_kg, logging_since = excluded.logging_since,
+          weekly_rate_pct = excluded.weekly_rate_pct, updated_at = now()
       `;
       return this.get(userId);
     },

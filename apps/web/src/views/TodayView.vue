@@ -19,7 +19,7 @@ import { STAGE_COLOR, STAGE_LABEL } from '../components/charts/colors.js';
 import { useAsync } from '../composables/useAsync.js';
 import Skeleton from '../components/ui/Skeleton.vue';
 import { useToast } from '../composables/useToast.js';
-import { clearTimelineCache, fetchDay, fetchSummaries } from '../services/twin.js';
+import { clearTimelineCache, fetchDay, fetchEngine, fetchSummaries } from '../services/twin.js';
 import { documentDay, documentEvent, withDocuments } from '../services/timeline.js';
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
 import { setBadge } from '../services/push.js';
@@ -37,6 +37,20 @@ const {
   reload: reloadDay,
 } = useAsync(date, fetchDay);
 const { data: history, reload: reloadHistory } = useAsync(date, (d) => fetchSummaries(30, d));
+// Objetivos de comida del motor (gasto real con tu comida y tu báscula, no las kcal del reloj)
+const engine = ref(null);
+const loadEngine = () =>
+  fetchEngine()
+    .then((state) => (engine.value = state?.ready ? state : null))
+    .catch(() => (engine.value = null));
+loadEngine();
+const targets = computed(() => engine.value?.targets ?? null);
+const CONFIDENCE_TEXT = {
+  none: 'por fórmula, aún sin tus datos',
+  low: 'confianza baja',
+  medium: 'confianza media',
+  high: 'confianza alta',
+};
 const retry = () => {
   reloadDay();
   reloadHistory();
@@ -105,6 +119,7 @@ function onVisibility() {
     clearTimelineCache();
     reloadDay();
     reloadHistory();
+    loadEngine();
     loadDocuments({ quiet: true });
   }
   hiddenAt = null;
@@ -156,6 +171,7 @@ function changeDate(value) {
 
 /** Registrar ya lo ha guardado en la API: se vuelve a pedir el día para que salga. */
 function addEntry({ date: entryDate, subtitle }) {
+  loadEngine();
   if (entryDate === date.value) {
     reloadDay();
     reloadHistory();
@@ -539,8 +555,11 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
           <section class="card card-pad">
             <header class="col-head">
               <h2>Nutrición</h2>
-              <span v-if="day.nutrition.target" class="muted"
-                >{{ fmtInt(day.nutrition.target) }} kcal gastadas</span
+              <span
+                v-if="targets"
+                class="muted"
+                :title="`Gasto real ${fmtInt(engine.expenditure.kcal)} kcal (${CONFIDENCE_TEXT[engine.expenditure.confidence]})`"
+                >objetivo {{ fmtInt(targets.kcal) }} kcal</span
               >
             </header>
             <p v-if="day.nutrition.kcal == null" class="secondary nutrition-empty">
@@ -549,32 +568,36 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
             <template v-else>
               <div class="headline">
                 <strong class="big">{{ fmtInt(day.nutrition.kcal) }}</strong>
-                <span v-if="day.nutrition.target" class="muted"
-                  >kcal · quedan
-                  {{ fmtInt(Math.max(0, day.nutrition.target - day.nutrition.kcal)) }}</span
+                <span v-if="targets" class="muted"
+                  >kcal · quedan {{ fmtInt(Math.max(0, targets.kcal - day.nutrition.kcal)) }}</span
                 >
                 <span v-else class="muted">kcal</span>
               </div>
               <Meter
-                v-if="day.nutrition.target"
+                v-if="targets"
                 :value="day.nutrition.kcal"
-                :max="day.nutrition.target"
+                :max="targets.kcal"
                 color="var(--nutrition)"
               />
               <dl class="stats">
                 <div>
                   <dt>Proteína</dt>
                   <dd>
-                    {{ day.nutrition.protein }} <small>/ {{ day.nutrition.proteinTarget }} g</small>
+                    {{ day.nutrition.protein }}
+                    <small>/ {{ targets?.proteinG ?? day.nutrition.proteinTarget }} g</small>
                   </dd>
                 </div>
                 <div>
                   <dt>Hidratos</dt>
-                  <dd>{{ day.nutrition.carbs }} <small>g</small></dd>
+                  <dd>
+                    {{ day.nutrition.carbs }} <small>/ {{ targets?.carbsG ?? '—' }} g</small>
+                  </dd>
                 </div>
                 <div>
                   <dt>Grasa</dt>
-                  <dd>{{ day.nutrition.fat }} <small>g</small></dd>
+                  <dd>
+                    {{ day.nutrition.fat }} <small>/ {{ targets?.fatG ?? '—' }} g</small>
+                  </dd>
                 </div>
               </dl>
             </template>

@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import Segmented from '../ui/Segmented.vue';
 import { useToast } from '../../composables/useToast.js';
-import { fetchProfile, saveProfile } from '../../services/twin.js';
+import { fetchEngine, fetchProfile, saveProfile } from '../../services/twin.js';
 
 const toast = useToast();
 const profile = ref(null);
@@ -10,10 +10,26 @@ const profile = ref(null);
 onMounted(async () => {
   try {
     profile.value = await fetchProfile();
+    const engine = await fetchEngine().catch(() => null);
+    lastWeight.value = engine?.weight?.trend ?? null;
   } catch {
     profile.value = null;
   }
 });
+
+// Ritmo en % del peso por semana: de 0,25 a 1 % perdiendo (más rápido cuesta músculo y rendimiento)
+const RATES = [
+  { value: -1, label: '−1 %' },
+  { value: -0.75, label: '−0,75 %' },
+  { value: -0.5, label: '−0,5 %' },
+  { value: -0.25, label: '−0,25 %' },
+  { value: 0, label: 'Mantener' },
+];
+const kgPerWeek = (pct) =>
+  profile.value?.heightCm && lastWeight.value
+    ? `${((Math.abs(pct) * lastWeight.value) / 100).toFixed(2).replace('.', ',')} kg/semana`
+    : null;
+const lastWeight = ref(null);
 
 const SEXES = [
   { value: 'male', label: 'Hombre' },
@@ -97,6 +113,41 @@ const fromScale = (field) => profile.value?.sources?.[field] === 'scale';
           />
           <span class="muted">kg</span>
         </span>
+      </label>
+    </div>
+
+    <h2 class="sub">Para el motor</h2>
+    <p class="secondary sub-desc">
+      Con tu comida y tu báscula calcula lo que gastas de verdad y tus objetivos de cada día.
+    </p>
+    <div class="card fields">
+      <div class="field">
+        <span class="label">Ritmo de peso por semana</span>
+        <Segmented
+          :model-value="profile.weeklyRatePct ?? -0.5"
+          :options="RATES"
+          label="Ritmo"
+          @update:model-value="save({ weeklyRatePct: $event })"
+        />
+        <small
+          v-if="(profile.weeklyRatePct ?? -0.5) !== 0 && kgPerWeek(profile.weeklyRatePct ?? -0.5)"
+          class="muted"
+          >Perder unos {{ kgPerWeek(profile.weeklyRatePct ?? -0.5) }}. Si entrenas fuerte, mejor
+          entre −0,25 % y −0,5 %.</small
+        >
+      </div>
+      <label class="field">
+        <span class="label">Apunto todo lo que como desde</span>
+        <input
+          class="input"
+          type="date"
+          :value="profile.loggingSince ?? ''"
+          @change="save({ loggingSince: $event.target.value || null })"
+        />
+        <small class="muted"
+          >Los días de antes no cuentan para calcular tu gasto (si faltan comidas,
+          engañarían).</small
+        >
       </label>
     </div>
   </section>

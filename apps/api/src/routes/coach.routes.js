@@ -43,7 +43,7 @@ const PING_MS = 15_000;
  * @param {string} deps.timeZone
  * @param {ReturnType<typeof import('../services/llm-usage.js').createLlmUsage>} [deps.usage]
  */
-export function createCoachRouter({ coach, store, queries, profiles, timeZone, usage }) {
+export function createCoachRouter({ coach, store, queries, profiles, engine, timeZone, usage }) {
   const router = Router();
 
   router.get('/conversations', async (req, res) => {
@@ -110,7 +110,7 @@ export function createCoachRouter({ coach, store, queries, profiles, timeZone, u
         history: toModelHistory([...conversation.messages, question]),
         tools,
         userName: req.user.name ?? undefined,
-        context: await coachContext({ queries, userId, getProfile, timeZone }),
+        context: await coachContext({ queries, userId, getProfile, engine, timeZone }),
         signal: abort.signal,
         onEvent: ({ type, ...data }) => send(type, data),
         onMessage: async (message) => {
@@ -153,13 +153,13 @@ export function createCoachRouter({ coach, store, queries, profiles, timeZone, u
  * Perfil y salud de los últimos 14 días: el coach lo recibe siempre, antes de cada respuesta. Si
  * algo falla, el coach contesta igual (sin ese contexto).
  */
-async function coachContext({ queries, userId, getProfile, timeZone }) {
+async function coachContext({ queries, userId, getProfile, engine, timeZone }) {
   const now = Date.now();
   const safe = (fn, fallback) =>
     Promise.resolve()
       .then(fn)
       .catch(() => fallback);
-  const [profile, health] = await Promise.all([
+  const [profile, health, state] = await Promise.all([
     safe(() => getProfile?.() ?? {}, {}),
     safe(
       () =>
@@ -172,6 +172,7 @@ async function coachContext({ queries, userId, getProfile, timeZone }) {
         }),
       [],
     ),
+    safe(() => engine?.state(userId) ?? null, null),
   ]);
-  return buildContext({ profile, health, timeZone });
+  return buildContext({ profile, health, engine: state, timeZone });
 }

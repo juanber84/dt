@@ -8,9 +8,10 @@ const SEX = { male: 'hombre', female: 'mujer' };
  * @param {{ age?: number|null, sex?: string|null, heightCm?: number|null, weightGoalKg?: number|null }} [input.profile]
  * @param {Array<{ kind: string, start: string, title: string, summary?: object }>} [input.health]
  *   Notas, síntomas y tomas de medicación de los últimos días (episodios del timeline).
+ * @param {object} [input.engine]  Estado del motor (@digitaltwin/engine computeState)
  * @param {string} input.timeZone
  */
-export function buildContext({ profile = {}, health = [], timeZone }) {
+export function buildContext({ profile = {}, health = [], engine, timeZone }) {
   const lines = [];
 
   const who = [
@@ -38,6 +39,8 @@ export function buildContext({ profile = {}, health = [], timeZone }) {
   const symptoms = health.filter((e) => e.kind === 'symptom');
   const meds = health.filter((e) => e.kind === 'medication');
 
+  lines.push(...engineLines(engine));
+
   if (!notes.length && !symptoms.length && !meds.length) {
     lines.push('Salud estos días: nada apuntado (ni síntomas, ni notas, ni medicación).');
     return lines.join('\n');
@@ -64,4 +67,33 @@ export function buildContext({ profile = {}, health = [], timeZone }) {
     );
   }
   return lines.join('\n');
+}
+
+const CONFIDENCE = {
+  none: 'sin datos suficientes aún (es el de partida, por fórmula)',
+  low: 'confianza baja (pocos días apuntados)',
+  medium: 'confianza media',
+  high: 'confianza alta',
+};
+
+/** Las cifras del motor, en pocas líneas: son las buenas y el coach no calcula otras. */
+function engineLines(engine) {
+  if (!engine?.ready) return [];
+  const e = engine.expenditure;
+  const t = engine.targets;
+  const fat = engine.weight.bodyFat ? `, grasa ${engine.weight.bodyFat} %` : '';
+  const eating = e.intakeAvg
+    ? `, come de media ${e.intakeAvg} kcal y su tendencia cambia ${e.trendKgPerWeek} kg/semana`
+    : '';
+  const lines = [
+    `Motor (cálculo propio con su comida y su báscula; NO uses las kcal del reloj): peso tendencia ${engine.weight.trend} kg (último pesaje ${engine.weight.last} kg${fat}).`,
+    `Gasto real estimado: ${e.kcal} kcal/día, ${CONFIDENCE[e.confidence]}; ${e.loggedDays} días apuntados de verdad${eating}.`,
+    `Objetivo (ritmo ${engine.weeklyRatePct} % del peso por semana = ${t.kgPerWeek} kg/semana): ${t.kcal} kcal, proteína ${t.proteinG} g, grasa ${t.fatG} g, hidratos ${t.carbsG} g al día.`,
+  ];
+  if (e.mismatch) {
+    lines.push(
+      'Aviso del motor: lo apuntado no cuadra con su peso (según lo apuntado come poco y no baja): o se escapa comida al apuntar o el peso va con agua. Dilo con tacto y ayúdale a apuntar mejor; no le recomiendes comer menos por eso.',
+    );
+  }
+  return lines;
 }

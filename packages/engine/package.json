@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "El motor: peso tendencia, gasto real adaptativo y objetivos de comida (cálculo, sin IA)",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

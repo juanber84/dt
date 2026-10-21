@@ -7,7 +7,7 @@ import BarChart from '../components/charts/BarChart.vue';
 import { STAGE_COLOR } from '../components/charts/colors.js';
 import { useAsync } from '../composables/useAsync.js';
 import CardSkeleton from '../components/ui/CardSkeleton.vue';
-import { fetchSummaries, fetchPreviousSummaries } from '../services/twin.js';
+import { fetchEngine, fetchSummaries, fetchPreviousSummaries } from '../services/twin.js';
 import { formatShortDate } from '../lib/dates.js';
 import { fmtCompact, fmtDec, fmtDuration, fmtInt, hourTicks } from '../lib/format.js';
 
@@ -29,6 +29,18 @@ const {
 }));
 
 const days = computed(() => data.value?.current ?? []);
+
+// El motor: peso real (tendencia) y gasto calculado con tu comida y tu báscula
+const engine = ref(null);
+fetchEngine()
+  .then((state) => (engine.value = state?.ready ? state : null))
+  .catch(() => (engine.value = null));
+const CONFIDENCE_TEXT = {
+  none: 'aún por fórmula: faltan días apuntados',
+  low: 'confianza baja: pocos días apuntados',
+  medium: 'confianza media',
+  high: 'confianza alta',
+};
 const labels = computed(() => days.value.map((d) => formatShortDate(d.date)));
 const pick = (list, key) => list.map((d) => (typeof key === 'function' ? key(d) : d[key]));
 const mean = (values) => {
@@ -245,6 +257,67 @@ const cards = computed(() => {
       </MetricCard>
 
       <MetricCard
+        v-if="engine"
+        title="Peso real y gasto"
+        subtitle="La tendencia quita el agua de cada día. El gasto sale de tu comida y tu báscula, no del reloj."
+        :value="fmtDec(engine.weight.trend, 1)"
+        unit="kg"
+        :delta="engine.expenditure.trendKgPerWeek"
+        :delta-digits="2"
+        delta-unit=" kg/sem"
+        good-when="none"
+      >
+        <template #legend>
+          <span><span class="dot" style="background: var(--text)" />Tendencia</span>
+          <span><span class="dot" style="background: var(--muted)" />Pesajes</span>
+        </template>
+        <LineChart
+          :labels="engine.trend.map((d) => formatShortDate(d.date))"
+          :series="[
+            {
+              id: 'trend',
+              label: 'Tendencia',
+              color: 'var(--text)',
+              values: engine.trend.map((d) => d.trend),
+            },
+            {
+              id: 'weight',
+              label: 'Pesaje',
+              color: 'var(--muted)',
+              values: engine.trend.map((d) => d.weight),
+            },
+          ]"
+          :format="(v) => `${fmtDec(v, 1)} kg`"
+          :tick-format="(v) => fmtDec(v, 1)"
+          :min-span="4"
+        />
+        <dl class="engine-stats">
+          <div>
+            <dt>Gasto real</dt>
+            <dd>{{ fmtInt(engine.expenditure.kcal) }} <small>kcal/día</small></dd>
+          </div>
+          <div>
+            <dt>Objetivo</dt>
+            <dd>
+              {{ fmtInt(engine.targets.kcal) }}
+              <small>kcal · {{ engine.targets.proteinG }} g prot.</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Días apuntados</dt>
+            <dd>{{ engine.expenditure.loggedDays }}</dd>
+          </div>
+        </dl>
+        <p class="muted engine-note">
+          {{ CONFIDENCE_TEXT[engine.expenditure.confidence] }}.
+          <template v-if="engine.expenditure.mismatch">
+            Lo apuntado no cuadra con tu peso: o se escapa alguna comida o estos días el peso va con
+            agua.
+          </template>
+        </p>
+      </MetricCard>
+
+      <MetricCard
         title="Peso"
         subtitle="Báscula Xiaomi (los días sin pesaje quedan en blanco)."
         :value="fmtDec(cards.weight.now, 1)"
@@ -380,5 +453,30 @@ const cards = computed(() => {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+.engine-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.engine-stats dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.engine-stats dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.engine-stats small {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.engine-note {
+  font-size: 12px;
 }
 </style>
