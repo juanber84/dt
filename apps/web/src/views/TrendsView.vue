@@ -6,6 +6,7 @@ import LineChart from '../components/charts/LineChart.vue';
 import BarChart from '../components/charts/BarChart.vue';
 import { STAGE_COLOR } from '../components/charts/colors.js';
 import { useAsync } from '../composables/useAsync.js';
+import CardSkeleton from '../components/ui/CardSkeleton.vue';
 import { fetchSummaries, fetchPreviousSummaries } from '../services/twin.js';
 import { formatShortDate } from '../lib/dates.js';
 import { fmtCompact, fmtDec, fmtDuration, fmtInt, hourTicks } from '../lib/format.js';
@@ -20,6 +21,7 @@ const range = ref(30);
 const {
   data,
   error: loadError,
+  stale,
   reload: retry,
 } = useAsync(range, async (days) => ({
   current: await fetchSummaries(days),
@@ -79,7 +81,11 @@ const cards = computed(() => {
       <button class="btn" @click="retry">Reintentar</button>
     </div>
 
-    <div v-if="cards" class="grid">
+    <div v-if="stale" class="grid" aria-busy="true" aria-label="Cargando tendencias">
+      <CardSkeleton v-for="n in 6" :key="n" />
+    </div>
+
+    <div v-else-if="cards" class="grid">
       <!-- La recuperación aún no se calcula: sin dato real, la tarjeta no sale -->
       <MetricCard
         v-if="cards.recovery.now != null"

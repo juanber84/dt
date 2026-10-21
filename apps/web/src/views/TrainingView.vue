@@ -7,6 +7,8 @@ import Segmented from '../components/ui/Segmented.vue';
 import LineChart from '../components/charts/LineChart.vue';
 import BarChart from '../components/charts/BarChart.vue';
 import { useAsync } from '../composables/useAsync.js';
+import Skeleton from '../components/ui/Skeleton.vue';
+import CardSkeleton from '../components/ui/CardSkeleton.vue';
 import { fetchActivities, fetchSummaries } from '../services/twin.js';
 import { iconFor } from '../lib/icons.js';
 import {
@@ -31,9 +33,10 @@ const shown = ref(12);
 const {
   data: summaries,
   error: loadError,
+  stale,
   reload: retry,
 } = useAsync(range, (days) => fetchSummaries(days));
-const { data: list } = useAsync(range, (days) => fetchActivities(days));
+const { data: list, stale: listStale } = useAsync(range, (days) => fetchActivities(days));
 
 const days = computed(() => summaries.value ?? []);
 const labels = computed(() => days.value.map((d) => formatShortDate(d.date)));
@@ -111,7 +114,7 @@ const dayLabel = (iso) =>
     <header class="page-head">
       <div>
         <h1>Entrenos</h1>
-        <p class="muted">{{ formState }}</p>
+        <p class="muted">{{ stale ? 'Cargando…' : formState }}</p>
       </div>
       <Segmented v-model="range" :options="RANGES" label="Periodo" />
     </header>
@@ -121,7 +124,18 @@ const dayLabel = (iso) =>
       <button class="btn" @click="retry">Reintentar</button>
     </div>
 
-    <section v-if="last" class="tiles">
+    <template v-if="stale">
+      <section class="tiles" aria-busy="true" aria-label="Cargando entrenos">
+        <div v-for="n in 4" :key="n" class="card tile tile-skeleton">
+          <Skeleton width="70%" height="10px" />
+          <Skeleton width="40%" height="28px" />
+          <Skeleton width="80%" height="10px" />
+        </div>
+      </section>
+      <CardSkeleton chart="220px" />
+    </template>
+
+    <section v-else-if="last" class="tiles">
       <div class="card tile">
         <span class="section-label"
           ><span class="dot" style="background: var(--sleep)" /> Fitness · CTL</span
@@ -152,7 +166,7 @@ const dayLabel = (iso) =>
     </section>
 
     <ChartCard
-      v-if="last"
+      v-if="last && !stale"
       title="Fitness y fatiga"
       subtitle="Modelo de carga (PMC) a partir del TSS de cada entreno."
       :table="pmcTable"
@@ -201,7 +215,12 @@ const dayLabel = (iso) =>
       </div>
     </ChartCard>
 
-    <div class="columns">
+    <div v-if="listStale" class="columns" aria-busy="true">
+      <CardSkeleton chart="200px" />
+      <CardSkeleton :rows="6" />
+    </div>
+
+    <div v-else class="columns">
       <ChartCard
         v-if="weeks.length"
         title="Volumen semanal"
@@ -303,6 +322,10 @@ const dayLabel = (iso) =>
   display: grid;
   gap: 2px;
   padding: 14px 16px;
+}
+
+.tile-skeleton {
+  gap: 10px;
 }
 
 .tile .section-label {

@@ -4,6 +4,7 @@ import { isValidISODate, todayISO } from './lib/dates.js';
 import { ensureSession, forgetSession } from './composables/useAuth.js';
 import { onUnauthorized } from './api.js';
 import { safeNext } from './lib/navigation.js';
+import { startProgress } from './composables/useProgress.js';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -65,6 +66,15 @@ export const router = createRouter({
     { path: '/:pathMatch(.*)*', redirect: '/day' },
   ],
 });
+
+// Barra de carga mientras se baja el código de la pantalla nueva (las vistas van en trozos)
+let navigationDone = () => {};
+router.beforeEach(() => {
+  navigationDone();
+  navigationDone = startProgress();
+});
+router.afterEach(() => navigationDone());
+router.onError(() => navigationDone());
 
 // Sin sesión solo se ve /login; las rutas con `meta.role` exigen ese rol
 router.beforeEach(async (to) => {

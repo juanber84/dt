@@ -1,23 +1,30 @@
-import { ref, toValue, watch } from 'vue';
+import { computed, ref, toValue, watch } from 'vue';
 
 /**
  * Carga datos cada vez que cambia `source` (p. ej. la fecha de la ruta). Ignora respuestas que
- * llegan tarde si entretanto se pidió otra cosa. Mientras carga se queda lo anterior (sin
- * parpadeos); `reload()` vuelve a pedirlo.
+ * llegan tarde si entretanto se pidió otra cosa. `reload()` vuelve a pedirlo y deja lo que hay
+ * en pantalla mientras tanto; `stale` dice que lo que hay es de otra cosa (otro día, otro rango)
+ * y se está cargando lo nuevo: entonces la vista enseña el esqueleto, no los datos viejos.
  */
 export function useAsync(source, loader) {
   const data = ref(null);
   const error = ref(null);
   const loading = ref(false);
+  const loadedFor = ref(undefined);
+  const requested = ref(undefined);
   let ticket = 0;
 
   async function run(value) {
     const mine = ++ticket;
+    requested.value = value;
     loading.value = true;
     error.value = null;
     try {
       const result = await loader(value);
-      if (mine === ticket) data.value = result;
+      if (mine === ticket) {
+        data.value = result;
+        loadedFor.value = value;
+      }
     } catch (err) {
       if (mine === ticket) error.value = err;
     } finally {
@@ -27,5 +34,9 @@ export function useAsync(source, loader) {
 
   watch(source, run, { immediate: true });
 
-  return { data, error, loading, reload: () => run(toValue(source)) };
+  const stale = computed(
+    () => loading.value && (data.value == null || loadedFor.value !== requested.value),
+  );
+
+  return { data, error, loading, stale, reload: () => run(toValue(source)) };
 }

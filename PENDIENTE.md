@@ -27,9 +27,6 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## App en el móvil (PWA)
 
-- [ ] **Estados de carga al navegar.** Al cambiar de pantalla (o de día en Hoy) no se ve que esté
-      cargando y parece roto: hueco en blanco o datos viejos hasta que llega la respuesta. Poner
-      esqueletos (skeletons) en cada vista mientras carga y una barra fina arriba al navegar.
 - [ ] **Entrar con Face ID.** Con passkeys (WebAuthn): el iPhone las guarda en el llavero y pide
       Face ID al usarlas. Hace falta registrar la passkey desde la web ya con sesión y un login
       alternativo con ella. Solo funciona con HTTPS y el dominio de producción.

@@ -100,17 +100,17 @@ function show(next) {
   emit('loaded', next);
 }
 
-async function load() {
+async function load({ quiet } = {}) {
   clearTimeout(timer);
   try {
-    const next = await getDocument(props.documentId);
+    const next = await getDocument(props.documentId, { quiet });
     const wasProcessing = doc.value?.status === 'processing';
     // Mientras se edita no se pisa lo escrito
     if (!dirty.value) show(next);
     else doc.value = { ...next, extraction: doc.value.extraction };
     // Al acabar de leerse el día se recarga, sin avisos: el propio lateral dice dónde ha ido
     error.value = null;
-    if (next.status === 'processing') timer = setTimeout(load, POLL_MS);
+    if (next.status === 'processing') timer = setTimeout(() => load({ quiet: true }), POLL_MS);
     else if (wasProcessing) emit('changed', next, { quiet: true });
   } catch (err) {
     error.value = err;

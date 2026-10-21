@@ -2,6 +2,8 @@
  * Cliente mínimo de la API. Rutas relativas: en dev las reenvía el proxy de Vite (API_URL) y en
  * producción va detrás del mismo dominio, así que la cookie de sesión viaja sola.
  */
+import { startProgress } from './composables/useProgress.js';
+
 let unauthorizedHandler = () => {};
 
 /** Qué hacer cuando la API dice 401 fuera de /auth (la sesión ha caducado): ir al login. */
@@ -10,6 +12,16 @@ export function onUnauthorized(handler) {
 }
 
 export async function apiFetch(path, options = {}) {
+  // Los avisos periódicos (sondeos) no encienden la barra de carga
+  const done = options.quiet ? () => {} : startProgress();
+  try {
+    return await request(path, options);
+  } finally {
+    done();
+  }
+}
+
+async function request(path, { quiet: _quiet, ...options }) {
   const res = await fetch(path, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },

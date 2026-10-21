@@ -19,6 +19,7 @@ import {
   FileHeart,
 } from '@lucide/vue';
 import Toast from './components/ui/Toast.vue';
+import TopProgress from './components/ui/TopProgress.vue';
 import ConfirmDialog from './components/ui/ConfirmDialog.vue';
 import { useTheme } from './composables/useTheme.js';
 import { useAuth, signOut } from './composables/useAuth.js';
@@ -171,6 +172,7 @@ const admin = [
     </nav>
   </div>
   <div class="status-shade" aria-hidden="true" />
+  <TopProgress />
   <Toast />
   <ConfirmDialog />
 </template>

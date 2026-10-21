@@ -17,6 +17,7 @@ import Meter from '../components/ui/Meter.vue';
 import Delta from '../components/ui/Delta.vue';
 import { STAGE_COLOR, STAGE_LABEL } from '../components/charts/colors.js';
 import { useAsync } from '../composables/useAsync.js';
+import Skeleton from '../components/ui/Skeleton.vue';
 import { useManualEntries } from '../composables/useManualEntries.js';
 import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchSummaries } from '../services/twin.js';
@@ -42,6 +43,10 @@ const retry = () => {
 };
 // El día que se ve es el pedido (si falla, lo que hay en pantalla es de otro día)
 const stale = computed(() => day.value && day.value.date !== date.value);
+// Primera carga o cambio de día: el esqueleto, no el día anterior
+const skeleton = computed(
+  () => !dayError.value && (!day.value || (dayLoading.value && stale.value)),
+);
 const manual = useManualEntries();
 const toast = useToast();
 
@@ -68,11 +73,11 @@ function noticeMoved(doc) {
   });
 }
 
-async function loadDocuments() {
+async function loadDocuments({ quiet } = {}) {
   clearTimeout(pollTimer);
   try {
     const before = new Map(documents.value.map((d) => [d.id, d.status]));
-    documents.value = await listDocuments();
+    documents.value = await listDocuments({ quiet });
     // Los que se acaban de leer: si eran de otro día, al timeline de ese día
     for (const d of documents.value) {
       if (before.get(d.id) === 'processing' && d.status !== 'processing') noticeMoved(d);
@@ -81,7 +86,7 @@ async function loadDocuments() {
     // Sin Clínica el día se ve igual
   }
   if (documents.value.some((d) => d.status === 'processing')) {
-    pollTimer = setTimeout(loadDocuments, POLL_MS);
+    pollTimer = setTimeout(() => loadDocuments({ quiet: true }), POLL_MS);
   }
 }
 loadDocuments();
@@ -298,7 +303,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 </script>
 
 <template>
-  <div v-if="day || dayError" class="today" :class="{ 'is-loading': dayLoading && stale }">
+  <div class="today">
     <header class="page-head">
       <DateNav :date="date" @change="changeDate" />
       <RouterLink
@@ -327,7 +332,56 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
       </button>
     </div>
 
-    <div v-if="day && !(dayError && stale)" class="body">
+    <div v-if="skeleton" class="body" aria-busy="true" aria-label="Cargando el día">
+      <section class="scores">
+        <div v-for="n in 3" :key="n" class="card score">
+          <Skeleton circle height="116px" />
+          <div class="score-text score-text-skeleton">
+            <Skeleton width="55%" height="10px" />
+            <Skeleton width="45%" height="20px" radius="10px" />
+            <Skeleton width="85%" />
+          </div>
+        </div>
+      </section>
+      <section class="vitals">
+        <div v-for="n in 5" :key="n" class="card vital-skeleton">
+          <Skeleton width="60%" height="10px" />
+          <Skeleton width="45%" height="26px" />
+          <Skeleton width="70%" height="10px" />
+          <Skeleton height="28px" />
+        </div>
+      </section>
+      <section class="card card-pad strip-card">
+        <header class="strip-head"><h2>Tu día</h2></header>
+        <Skeleton height="120px" radius="8px" />
+      </section>
+      <div class="columns">
+        <section class="card card-pad">
+          <header class="col-head"><h2>Timeline</h2></header>
+          <div class="rows-skeleton">
+            <div v-for="n in 5" :key="n" class="row-skeleton">
+              <Skeleton width="44px" />
+              <Skeleton circle height="28px" />
+              <Skeleton :width="`${40 + ((n * 17) % 40)}%`" />
+            </div>
+          </div>
+        </section>
+        <div class="side">
+          <section v-for="title in ['Actividad', 'Nutrición']" :key="title" class="card card-pad">
+            <header class="col-head">
+              <h2>{{ title }}</h2>
+            </header>
+            <div class="rows-skeleton">
+              <Skeleton width="40%" height="28px" />
+              <Skeleton height="8px" radius="4px" />
+              <Skeleton width="80%" />
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="day && !(dayError && stale)" class="body">
       <!-- Puntuaciones -->
       <section class="scores">
         <div class="card score">
@@ -588,10 +642,28 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   display: contents;
 }
 
-/* Cambiando de día: lo anterior se queda atenuado hasta que llega el nuevo */
-.is-loading .body > * {
-  opacity: 0.55;
-  transition: opacity 0.15s;
+/* Esqueleto mientras carga el día */
+.score-text-skeleton {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.vital-skeleton {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.rows-skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .load-error {
@@ -807,6 +879,11 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   }
 
   .score :deep(.ring) {
+    width: 76px !important;
+    height: 76px !important;
+  }
+
+  .score > .skeleton {
     width: 76px !important;
     height: 76px !important;
   }

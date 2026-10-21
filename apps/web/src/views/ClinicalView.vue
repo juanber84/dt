@@ -7,6 +7,8 @@ import StatusPill from '../components/ui/StatusPill.vue';
 import Sparkline from '../components/charts/Sparkline.vue';
 import RangeGauge from '../components/clinical/RangeGauge.vue';
 import { useAsync } from '../composables/useAsync.js';
+import Skeleton from '../components/ui/Skeleton.vue';
+import CardSkeleton from '../components/ui/CardSkeleton.vue';
 import { iconFor } from '../lib/icons.js';
 import { addDays, formatShortDate, todayISO } from '../lib/dates.js';
 import {
@@ -99,7 +101,19 @@ const subtitleOf = (d) => [TYPE_LABEL[d.type], d.diagnosis ?? d.center].filter(B
       <button class="btn" @click="reload">Reintentar</button>
     </div>
 
-    <div v-if="data && !documents.length" class="card empty">
+    <template v-if="!data && !error">
+      <section class="tiles" aria-busy="true" aria-label="Cargando Clínica">
+        <div v-for="n in 4" :key="n" class="card tile tile-skeleton">
+          <Skeleton width="60%" height="10px" />
+          <Skeleton width="45%" height="22px" />
+          <Skeleton width="80%" height="10px" />
+        </div>
+      </section>
+      <CardSkeleton chart="180px" />
+      <CardSkeleton :rows="5" />
+    </template>
+
+    <div v-else-if="data && !documents.length" class="card empty">
       <FileUp class="icon big" />
       <h2>Sube tu primer informe</h2>
       <p class="secondary">
@@ -307,6 +321,10 @@ const subtitleOf = (d) => [TYPE_LABEL[d.type], d.diagnosis ?? d.center].filter(B
   align-content: start;
   gap: 2px;
   padding: 14px 16px;
+}
+
+.tile-skeleton {
+  gap: 10px;
 }
 
 .tile strong {

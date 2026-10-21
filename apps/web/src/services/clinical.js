@@ -6,8 +6,10 @@ import { apiFetch } from '../api.js';
 
 const BASE = '/api/v1/clinical';
 
-export const listDocuments = () => apiFetch(`${BASE}/documents`).then((r) => r.items);
-export const getDocument = (id) => apiFetch(`${BASE}/documents/${id}`);
+// quiet: los sondeos mientras se lee un informe no encienden la barra de carga
+export const listDocuments = ({ quiet } = {}) =>
+  apiFetch(`${BASE}/documents`, { quiet }).then((r) => r.items);
+export const getDocument = (id, { quiet } = {}) => apiFetch(`${BASE}/documents/${id}`, { quiet });
 export const saveDocument = (id, extraction) =>
   apiFetch(`${BASE}/documents/${id}`, { method: 'PUT', body: JSON.stringify({ extraction }) });
 export const confirmDocument = (id, extraction) =>
