@@ -202,7 +202,7 @@ describe.skipIf(!url)('pipeline en la BD', () => {
     };
     await ingest(
       googleDay('heart-rate', [
-        hr('2026-10-08T18:05:00Z', 60, apple('com.apple.health.ABC')),
+        hr('2026-10-08T18:05:00Z', 60, apple('com.apple.health')),
         hr('2026-10-08T18:10:00Z', 140, garmin),
         hr('2026-10-08T18:15:00Z', 150, garmin),
       ]),
