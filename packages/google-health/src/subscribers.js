@@ -2,6 +2,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { API_URL } from './auth.js';
 import { toGoogleHealthError } from './errors.js';
 import { DATA_TYPES } from './data-types.js';
+import { toAuthorization } from './webhooks.js';
 
 /** Tipos con soporte de webhook según el catálogo. */
 export const WEBHOOK_DATA_TYPES = Object.freeze(
@@ -43,7 +44,7 @@ export class GoogleHealthSubscribers {
    * @param {object} options
    * @param {string} options.subscriberId  4-36 caracteres: [a-z][a-z0-9-]{2,34}[a-z0-9]
    * @param {string} options.endpointUri   HTTPS público
-   * @param {string} options.secret        Valor completo de la cabecera Authorization, p. ej. "Bearer xxx"
+   * @param {string} options.secret        Clave del webhook, con o sin "Bearer " delante
    * @param {string[]} [options.dataTypes]
    * @param {'AUTOMATIC'|'MANUAL'} [options.policy='AUTOMATIC']  AUTOMATIC: todos los usuarios que
    *   autoricen la app quedan suscritos sin hacer nada más.
@@ -60,7 +61,7 @@ export class GoogleHealthSubscribers {
       params: { subscriberId },
       data: {
         endpointUri,
-        endpointAuthorization: { secret },
+        endpointAuthorization: { secret: toAuthorization(secret) },
         subscriberConfigs: [{ dataTypes, subscriptionCreatePolicy: policy }],
       },
     });

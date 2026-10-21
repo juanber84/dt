@@ -92,6 +92,13 @@ describe('createWebhookHandler', () => {
     const body = '{"type":"verification"}';
     expect((await rotating({ headers: { authorization: SECRET }, body })).status).toBe(200);
   });
+
+  it('acepta el secreto configurado sin "Bearer " delante', async () => {
+    const bare = createWebhookHandler({ secret: 'test-secret', keyset });
+    const body = '{"type":"verification"}';
+    expect((await bare({ headers: { authorization: SECRET }, body })).status).toBe(200);
+    expect((await bare({ headers: { authorization: 'test-secret' }, body })).status).toBe(401);
+  });
 });
 
 describe('notificaciones', () => {

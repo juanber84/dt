@@ -17,7 +17,7 @@ Cosas por hacer que no son del deploy (eso está en [DEPLOY-PENDIENTE.md](DEPLOY
       cron de cada hora; con el webhook, Google avisa en cuanto hay datos nuevos. Pasos:
   1. nginx (`docker/web-nginx.conf`) solo reenvía `/api/` a la API, y el webhook está en
      `/webhooks/google-health`: añadir un `location /webhooks/` igual que el de `/api/`.
-  2. `GOOGLE_HEALTH_WEBHOOK_SECRET` en Infisical `prod` `/api`, con la forma `Bearer <clave>`
+  2. `GOOGLE_HEALTH_WEBHOOK_SECRET` en Infisical `prod` `/api`: la clave sola (el `Bearer ` lo añade la API)
      (clave de `openssl rand -hex 32`). Sin él, la API no monta la ruta.
   3. Crear el suscriptor una vez, con una cuenta de servicio con rol _Google Health API Editor_:
      `make google-subscriber args="create --id digitaltwin --url https://dt.cadenceai.ovh/webhooks/google-health"`
@@ -27,6 +27,13 @@ Cosas por hacer que no son del deploy (eso está en [DEPLOY-PENDIENTE.md](DEPLOY
 
 ## App en el móvil (PWA)
 
+- [ ] **Estados de carga al navegar.** Al cambiar de pantalla (o de día en Hoy) no se ve que esté
+      cargando y parece roto: hueco en blanco o datos viejos hasta que llega la respuesta. Poner
+      esqueletos (skeletons) en cada vista mientras carga y una barra fina arriba al navegar.
+- [ ] **Tema y cerrar sesión en el móvil.** Solo están en la barra lateral, que en el móvil no se
+      ve. Ponerlos en Ajustes con un selector Sistema / Claro / Oscuro (el botón actual fija claro u
+      oscuro y nunca vuelve a "sistema"). Con el iPhone en oscuro la app instalada sale en blanco:
+      ver si es el tema guardado o la barra de estado (`apple-mobile-web-app-status-bar-style`).
 - [ ] **Entrar con Face ID.** Con passkeys (WebAuthn): el iPhone las guarda en el llavero y pide
       Face ID al usarlas. Hace falta registrar la passkey desde la web ya con sesión y un login
       alternativo con ella. Solo funciona con HTTPS y el dominio de producción.

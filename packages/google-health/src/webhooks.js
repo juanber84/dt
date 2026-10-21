@@ -114,6 +114,12 @@ function createKeysetProvider({ keyset, keysetUrl = WEBHOOK_KEYSET_URL, fetchImp
   };
 }
 
+/** Valor de la cabecera Authorization: acepta la clave sola o ya con "Bearer " delante. */
+export function toAuthorization(secret) {
+  const value = String(secret).trim();
+  return /^bearer\s/i.test(value) ? value : `Bearer ${value}`;
+}
+
 function safeEqual(a, b) {
   const bufA = Buffer.from(String(a ?? ''));
   const bufB = Buffer.from(String(b ?? ''));
@@ -189,7 +195,7 @@ export function notificationToQuery(notification) {
  *
  * @param {object} options
  * @param {string} options.secret  El mismo valor configurado en endpointAuthorization.secret
- *   (se compara con la cabecera Authorization completa, p. ej. "Bearer xxx").
+ *   (se compara con la cabecera Authorization completa; "xxx" y "Bearer xxx" valen igual).
  * @param {string[]} [options.previousSecrets]  Durante una rotación de secreto.
  * @param {boolean} [options.verifySignature=true]
  * @param {object} [options.keyset]  Keyset fijo (tests); si no, se descarga y cachea.
@@ -206,7 +212,7 @@ export function createWebhookHandler({
 }) {
   if (!secret) throw new Error('El secreto del webhook es obligatorio');
   const getKeys = createKeysetProvider({ keyset, keysetUrl, fetchImpl });
-  const secrets = [secret, ...previousSecrets];
+  const secrets = [secret, ...previousSecrets].map(toAuthorization);
 
   const reject = (reason, status = 401) => ({
     status,
