@@ -499,6 +499,10 @@ describe('Motra', () => {
       [null, 0, 45],
     ]);
     expect(ep.summary).toMatchObject({ setCount: 2, totalReps: 10, volumeKg: 227 });
+    // En el resumen, una línea por ejercicio: reps, peso máximo y segundos de las series por tiempo
+    expect(ep.summary.exercises).toEqual([
+      { name: 'curl', sets: 2, reps: 10, topKg: 22.68, seconds: 45 },
+    ]);
   });
 
   it('entreno sin fecha válida → vacío', () => {

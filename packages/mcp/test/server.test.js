@@ -99,6 +99,7 @@ describe('servidor MCP', () => {
       'list_metrics',
       'get_series',
       'get_episodes',
+      'get_strength_sets',
       'get_observations',
       'get_day_summary',
     ]);
@@ -180,6 +181,61 @@ describe('servidor MCP', () => {
       details: true,
     });
     expect(full.data.episodes[0].details).toEqual({ dishes: [{ name: 'Tostada', items: [] }] });
+  });
+
+  it('get_strength_sets: series en corto, solo los de fuerza y filtro por ejercicio', async () => {
+    queries.episodes.mockResolvedValue([
+      {
+        id: 'w1',
+        kind: 'workout',
+        start: '2026-10-14T15:17:33.000Z',
+        title: 'Pierna',
+        schema: 'motra.workout@1',
+        details: {
+          exercises: [
+            {
+              name: 'Back Squat',
+              primaryMuscleGroups: ['quadriceps'],
+              sets: [
+                { reps: 8, weightKg: 70, restS: 120 },
+                { reps: 10, weightKg: 80, restS: 140 },
+              ],
+            },
+            { name: 'Plank', sets: [{ reps: null, weightKg: null, timeS: 45.2 }] },
+          ],
+        },
+      },
+      {
+        id: 'b1',
+        kind: 'workout',
+        start: '2026-10-14T12:16:42.000Z',
+        title: 'Bici',
+        schema: 'icu.activity@1',
+      },
+    ]);
+    const all = await call(client, 'get_strength_sets', { from: '2026-08-01', to: '2026-10-16' });
+    expect(queries.episodes).toHaveBeenCalledWith(expect.objectContaining({ kinds: ['workout'] }));
+    expect(all.data.workouts).toEqual([
+      {
+        start: '2026-10-14 17:17',
+        title: 'Pierna',
+        exercises: [
+          { name: 'Back Squat', muscles: ['quadriceps'], sets: ['8x70', '10x80'], restS: 130 },
+          { name: 'Plank', sets: ['45s'] },
+        ],
+      },
+    ]);
+    const squat = await call(client, 'get_strength_sets', {
+      from: '2026-10-14',
+      to: '2026-10-14',
+      exercise: 'SQUAT',
+    });
+    expect(squat.data.workouts[0].exercises.map((x) => x.name)).toEqual(['Back Squat']);
+    const tooLong = await call(client, 'get_strength_sets', {
+      from: '2026-01-01',
+      to: '2026-10-16',
+    });
+    expect(tooLong.isError).toBe(true);
   });
 
   it('get_observations: corta en 500 y lo dice', async () => {

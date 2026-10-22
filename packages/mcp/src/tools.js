@@ -211,6 +211,51 @@ export function createTools({
     },
 
     {
+      name: 'get_strength_sets',
+      title: 'Entrenos de fuerza serie a serie',
+      description:
+        'Cada entreno de fuerza (de Motra) entre dos días (hasta 92) con todas sus series: ' +
+        '"8x70" = 8 reps con 70 kg, "12" = 12 reps sin peso, "45s" = 45 segundos (plancha...). ' +
+        'Para ver la progresión de un ejercicio (pesos, reps, volumen) o analizar entrenos. Los ' +
+        'nombres de los ejercicios están en inglés (Barbell Bench Press, Back Squat...): con ' +
+        '`exercise` se filtra por parte del nombre (p. ej. "squat", "bench").',
+      inputSchema: {
+        ...range,
+        exercise: z
+          .string()
+          .trim()
+          .min(2)
+          .max(60)
+          .optional()
+          .describe('Solo los ejercicios cuyo nombre contenga esto (en inglés, sin mayúsculas)'),
+      },
+      handler: async ({ from, to, exercise }) => {
+        const span = days(from, to);
+        if (span < 1) throw new ToolError('`to` no puede ser anterior a `from`');
+        if (span > 92) throw new ToolError('Como mucho 92 días');
+
+        const needle = exercise?.toLowerCase();
+        const items = await queries.episodes({
+          userId,
+          ...window(from, to),
+          kinds: ['workout'],
+          timeZone,
+        });
+        const workouts = items
+          .filter((e) => e.schema === 'motra.workout@1')
+          .map((e) => ({
+            start: localTime(e.start, timeZone),
+            title: e.title,
+            exercises: (e.details?.exercises ?? [])
+              .filter((x) => !needle || String(x.name).toLowerCase().includes(needle))
+              .map(strengthLine),
+          }))
+          .filter((w) => w.exercises.length);
+        return { timeZone, workouts };
+      },
+    },
+
+    {
       name: 'get_observations',
       title: 'Datos crudos de una métrica',
       description:
@@ -285,6 +330,27 @@ export function createTools({
 /** Error que se le cuenta a la IA (argumentos fuera de rango...), no un fallo del servidor. */
 export class ToolError extends Error {
   name = 'ToolError';
+}
+
+/** Una serie en corto: "8x70" (reps x kg), "12" (sin peso), "45s" o "45s x10" (por tiempo). */
+function setText({ reps, weightKg, timeS }) {
+  const kg = weightKg > 0 ? `x${weightKg}` : '';
+  if (reps != null) return `${reps}${kg}`;
+  if (timeS != null) return `${Math.round(timeS)}s${kg && ` ${kg}`}`;
+  return '?';
+}
+
+/** Un ejercicio de fuerza: sus series en corto y el descanso medio entre ellas. */
+function strengthLine({ name, primaryMuscleGroups, sets = [] }) {
+  const rests = sets.map((s) => s.restS).filter((r) => r > 0);
+  return {
+    name,
+    ...(primaryMuscleGroups?.length && { muscles: primaryMuscleGroups }),
+    sets: sets.map(setText),
+    ...(rests.length && {
+      restS: Math.round(rests.reduce((a, b) => a + b, 0) / rests.length),
+    }),
+  };
 }
 
 function compactEpisode(e, timeZone, details) {

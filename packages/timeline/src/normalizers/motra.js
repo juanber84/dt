@@ -52,6 +52,20 @@ function resolveExercises(workout) {
   return out;
 }
 
+/** Resumen de un ejercicio: series, reps totales y el peso más alto (o los segundos, si va por tiempo). */
+function exerciseLine({ name, sets }) {
+  const reps = sets.reduce((sum, s) => sum + (s.reps ?? 0), 0);
+  const kgs = sets.map((s) => s.weightKg).filter((kg) => kg !== null && kg > 0);
+  const secs = sets.reduce((sum, s) => sum + (s.reps === null ? (s.timeS ?? 0) : 0), 0);
+  return {
+    name,
+    sets: sets.length,
+    ...(reps > 0 && { reps }),
+    ...(kgs.length && { topKg: Math.max(...kgs) }),
+    ...(secs > 0 && { seconds: Math.round(secs) }),
+  };
+}
+
 /**
  * Un entreno de Motra → un episodio con sus ejercicios y series (reps, peso, descanso) y, de
  * resumen, series, repeticiones y volumen (Σ reps·kg). Modo 'exact': cada entreno es su propio
@@ -97,6 +111,9 @@ export function normalizeMotraWorkout(workout) {
           totalReps,
           volumeKg: volumeKg > 0 ? Math.round(volumeKg) : null,
           muscleGroups: [...new Set(exercises.flatMap((e) => e.primaryMuscleGroups))],
+          // Una línea por ejercicio: lo justo para ver la progresión de meses sin pedir el
+          // detalle serie a serie (que el coach solo puede pedir de pocos días)
+          exercises: exercises.map(exerciseLine),
         },
         details: { exercises },
       },
