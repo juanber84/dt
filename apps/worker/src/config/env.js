@@ -67,6 +67,7 @@ const schema = z.object({
   XIAOMI_SYNC_CRON: cron.default('*/30 * * * *'),
   GOOGLE_SYNC_CRON: cron.default('0 * * * *'),
   INTERVALS_SYNC_CRON: cron.default('20 * * * *'),
+  MOTRA_SYNC_CRON: cron.default('40 * * * *'),
   // Cuánto histórico se trae la primera vez y en trozos de cuántos días
   GOOGLE_BACKFILL_DAYS: z.coerce.number().int().positive().default(730),
   GOOGLE_BACKFILL_CHUNK_DAYS: z.coerce.number().int().positive().max(90).default(30),
@@ -74,8 +75,15 @@ const schema = z.object({
   GOOGLE_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(120),
   XIAOMI_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(10),
   INTERVALS_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(30),
+  // Motra pide un detalle por entreno (más llamadas), pero son pocos entrenos: un ritmo tranquilo
+  MOTRA_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(60),
   // Cuánto histórico de intervals.icu se trae la primera vez
   INTERVALS_BACKFILL_DAYS: z.coerce.number().int().positive().default(730),
+  // Cuánto histórico de Motra se trae la primera vez (los entrenos de fuerza vienen de lejos)
+  MOTRA_BACKFILL_DAYS: z.coerce.number().int().positive().default(1825),
+  // API key de Firebase de Motra (pública, va en la app). Por defecto la conocida; se puede
+  // sobreescribir si Motra la cambia.
+  MOTRA_FIREBASE_API_KEY: z.string().min(1).optional(),
   // LLM para leer los informes médicos (el mismo LLM_* que la API). Sin clave, los PDF que se
   // suban quedan en error explicándolo.
   LLM_API_KEY: z.string().min(1).optional(),

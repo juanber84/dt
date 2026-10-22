@@ -9,6 +9,7 @@ import { createRateLimiter } from './rate-limit.js';
 import { createXiaomiProvider } from './providers/xiaomi.js';
 import { createGoogleProvider } from './providers/google.js';
 import { createIntervalsProvider } from './providers/intervals.js';
+import { createMotraProvider } from './providers/motra.js';
 import { createJobs } from './jobs.js';
 import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
@@ -79,6 +80,7 @@ const limiter = createRateLimiter({
     'google-health': config.GOOGLE_REQUESTS_PER_MINUTE,
     xiaomi: config.XIAOMI_REQUESTS_PER_MINUTE,
     'intervals-icu': config.INTERVALS_REQUESTS_PER_MINUTE,
+    motra: config.MOTRA_REQUESTS_PER_MINUTE,
   },
 });
 
@@ -96,6 +98,14 @@ const providers = {
     timeZone: config.TIMEZONE,
     backfillDays: config.INTERVALS_BACKFILL_DAYS,
     logger: logger.child({ provider: 'intervals-icu' }),
+  }),
+  motra: createMotraProvider({
+    connections,
+    pipeline,
+    limiter,
+    backfillDays: config.MOTRA_BACKFILL_DAYS,
+    firebaseApiKey: config.MOTRA_FIREBASE_API_KEY,
+    logger: logger.child({ provider: 'motra' }),
   }),
   google:
     config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET

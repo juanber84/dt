@@ -2,6 +2,7 @@ import { normalizeXiaomiScale } from './xiaomi.js';
 import { normalizeGoogleDay, isGoogleNormalized } from './google.js';
 import { normalizeEntry, normalizeMeal } from './digitaltwin.js';
 import { normalizeIntervalsActivity, normalizeIntervalsWellness } from './intervals.js';
+import { normalizeMotraWorkout } from './motra.js';
 import { normalizeClinical } from './clinical.js';
 
 /**
@@ -22,6 +23,7 @@ export function normalizerFor(provider, kind) {
   if (provider === 'digitaltwin' && kind === 'entry') return normalizeEntry;
   if (provider === 'intervals-icu' && kind === 'activity') return normalizeIntervalsActivity;
   if (provider === 'intervals-icu' && kind === 'wellness') return normalizeIntervalsWellness;
+  if (provider === 'motra' && kind === 'workout') return normalizeMotraWorkout;
   if (provider === 'clinical') return normalizeClinical;
   return null;
 }
@@ -33,6 +35,7 @@ export {
   normalizeEntry,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
+  normalizeMotraWorkout,
   normalizeClinical,
 };
 export {

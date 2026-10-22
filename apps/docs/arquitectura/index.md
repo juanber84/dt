@@ -20,6 +20,6 @@
 | **db**     | PostgreSQL 18 con TimescaleDB: series por hora en agregados continuos                                                     |
 | **docs**   | Esta documentación (VitePress)                                                                                            |
 
-Paquetes compartidos: `engine` (el motor), `timeline` (pipeline y consultas), `queue`, `push`, `coach`, `mcp`, `clinical`, `nutrition`, y los clientes de `google-health`, `xiaomi` e `intervals-icu`.
+Paquetes compartidos: `engine` (el motor), `timeline` (pipeline y consultas), `queue`, `push`, `coach`, `mcp`, `clinical`, `nutrition`, y los clientes de `google-health`, `xiaomi`, `intervals-icu` y `motra`.
 
 Todo corre en contenedores; cada push a `main` pasa tests, lint y formato y se despliega solo.

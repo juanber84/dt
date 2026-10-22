@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/motra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "description": "Cliente de Motra: login con Firebase (email/clave) y entrenos de fuerza con sets/reps/kg"
+}

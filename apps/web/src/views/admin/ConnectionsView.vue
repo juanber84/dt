@@ -5,6 +5,7 @@ import { RefreshCw, Unplug, Link2, Info, Send } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import XiaomiConnectModal from '../../components/admin/XiaomiConnectModal.vue';
 import IntervalsConnectModal from '../../components/admin/IntervalsConnectModal.vue';
+import MotraConnectModal from '../../components/admin/MotraConnectModal.vue';
 import SourceBadge from '../../components/ui/SourceBadge.vue';
 import StatusPill from '../../components/ui/StatusPill.vue';
 import { useAsync } from '../../composables/useAsync.js';
@@ -34,6 +35,7 @@ const toast = useToast();
 const { ask } = useConfirm();
 const xiaomiOpen = ref(false);
 const intervalsOpen = ref(false);
+const motraOpen = ref(false);
 const syncing = ref(null);
 
 const STATUS = {
@@ -190,6 +192,7 @@ onMounted(() => {
 function connect(row) {
   if (row.auth === 'credentials') return (xiaomiOpen.value = true);
   if (row.auth === 'apikey') return (intervalsOpen.value = true);
+  if (row.auth === 'login') return (motraOpen.value = true);
   run(() => connectProvider(row.id), `Conectar ${row.name}`);
 }
 
@@ -212,6 +215,12 @@ function onIntervalsConnected(connection) {
   intervalsOpen.value = false;
   reload.value++;
   toast.show(`intervals.icu conectado (${connection.account}): trayendo el histórico`, 'good');
+}
+
+function onMotraConnected(connection) {
+  motraOpen.value = false;
+  reload.value++;
+  toast.show(`Motra conectado (${connection.account}): trayendo el histórico`, 'good');
 }
 
 function onXiaomiConnected(connection) {
@@ -387,6 +396,7 @@ function onXiaomiConnected(connection) {
       @close="xiaomiOpen = false"
       @connected="onXiaomiConnected"
     />
+    <MotraConnectModal :open="motraOpen" @close="motraOpen = false" @connected="onMotraConnected" />
     <IntervalsConnectModal
       :open="intervalsOpen"
       @close="intervalsOpen = false"

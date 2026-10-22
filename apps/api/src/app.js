@@ -38,6 +38,7 @@ import {
 } from '@digitaltwin/connections';
 import { createGoogleConnect } from './services/google-connect.js';
 import { createIntervalsConnect } from './services/intervals-connect.js';
+import { createMotraConnect } from './services/motra-connect.js';
 import { createDbPersonalTokens, createMemoryPersonalTokens } from './services/personal-tokens.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
 import { randomBytes } from 'node:crypto';
@@ -112,6 +113,7 @@ export function createApp({
   googleAuth,
   googleDescribeAccount,
   intervalsClient,
+  motraSignIn,
   personalTokens,
   coachLlm,
   coachStore,
@@ -260,6 +262,15 @@ export function createApp({
         logger: log.child({ provider: 'intervals-icu' }),
       })
     : undefined;
+  // Motra: igual que intervals, solo lo sincroniza el worker (sin cola no se ofrece)
+  const motraConnect = inbox
+    ? createMotraConnect({
+        store: connections,
+        onConnected: inbox.connected,
+        ...(motraSignIn && { signIn: motraSignIn }),
+        logger: log.child({ provider: 'motra' }),
+      })
+    : undefined;
   const googleConnect =
     config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
       ? createGoogleConnect({
@@ -401,6 +412,7 @@ export function createApp({
       xiaomiSync,
       googleConnect,
       intervalsConnect,
+      motraConnect,
       measurements,
       users,
       sessions,

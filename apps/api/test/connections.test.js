@@ -63,6 +63,7 @@ describe('/api/v1/connections', () => {
       'xiaomi',
       'strava',
       'intervals-icu',
+      'motra',
       'fatsecret',
     ]);
     expect(res.body.items.find((c) => c.id === 'xiaomi')).toEqual({

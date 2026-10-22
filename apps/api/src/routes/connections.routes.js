@@ -12,6 +12,7 @@ import {
 import { readCookie } from '../utils/cookies.js';
 import { TELEGRAM } from '../services/telegram-link.js';
 import { INTERVALS_PROVIDER } from '../services/intervals-connect.js';
+import { MOTRA_PROVIDER } from '../services/motra-connect.js';
 
 const loginBody = z.object({
   username: z.string().trim().min(1).max(200),
@@ -21,8 +22,14 @@ const loginBody = z.object({
 const codeBody = z.object({ code: z.string().trim().min(1).max(20) });
 const loginParams = z.object({ loginId: z.uuid() });
 const providerParams = z.object({ provider: z.enum(PROVIDERS) });
-const syncParams = z.object({ provider: z.enum(['xiaomi', GOOGLE_PROVIDER, INTERVALS_PROVIDER]) });
+const syncParams = z.object({
+  provider: z.enum(['xiaomi', GOOGLE_PROVIDER, INTERVALS_PROVIDER, MOTRA_PROVIDER]),
+});
 const apiKeyBody = z.object({ apiKey: z.string().trim().min(8).max(200) });
+const motraBody = z.object({
+  email: z.string().trim().min(3).max(200),
+  password: z.string().min(1).max(200),
+});
 
 /**
  * /api/v1/connections: estado de cada proveedor del usuario de la sesión y el login por pasos de
@@ -35,6 +42,8 @@ const apiKeyBody = z.object({ apiKey: z.string().trim().min(8).max(200) });
  *   Sin él (faltan GOOGLE_CLIENT_ID/SECRET), Google sale como no disponible.
  * @param {ReturnType<typeof import('../services/intervals-connect.js').createIntervalsConnect>} [deps.intervalsConnect]
  *   Sin él (sin BD no hay worker que sincronice), intervals.icu sale como no disponible.
+ * @param {ReturnType<typeof import('../services/motra-connect.js').createMotraConnect>} [deps.motraConnect]
+ *   Sin él (sin BD no hay worker que sincronice), Motra sale como no disponible.
  * @param {ReturnType<typeof import('../services/inbox.js').createInbox>} [deps.inbox]
  *   Con BD: las sincronizaciones se encolan para el worker (si no, Xiaomi se sincroniza aquí).
  * @param {(userId: string) => Promise<Record<string, object>>} [deps.backfills]
@@ -50,6 +59,7 @@ export function createConnectionsRouter({
   xiaomiSync,
   googleConnect,
   intervalsConnect,
+  motraConnect,
   inbox,
   backfills,
   telegramLink,
@@ -61,6 +71,7 @@ export function createConnectionsRouter({
     xiaomi: true,
     [GOOGLE_PROVIDER]: Boolean(googleConnect),
     [INTERVALS_PROVIDER]: Boolean(intervalsConnect),
+    [MOTRA_PROVIDER]: Boolean(motraConnect),
   };
 
   router.get('/', async (req, res) => {
@@ -147,6 +158,16 @@ export function createConnectionsRouter({
       res.json(await intervalsConnect.connect(req.user.id, req.validated.body.apiKey));
     },
   );
+
+  /** Conecta Motra con email y contraseña (se hace login para comprobarlas antes de guardarlas). */
+  router.post(`/${MOTRA_PROVIDER}/connect`, validate({ body: motraBody }), async (req, res) => {
+    if (!motraConnect) {
+      throw new HttpError(503, 'Sin BD no hay worker que sincronice Motra', {
+        code: 'NOT_CONFIGURED',
+      });
+    }
+    res.json(await motraConnect.connect(req.user.id, req.validated.body));
+  });
 
   /**
    * Trae lo nuevo. Con worker se encola y responde 202 enseguida; sin él (sin BD) Xiaomi se

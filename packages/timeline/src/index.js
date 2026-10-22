@@ -11,6 +11,7 @@ export {
   ENTRY_KINDS,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
+  normalizeMotraWorkout,
   normalizeClinical,
   CLINICAL_EPISODES,
   clinicalPeriod,

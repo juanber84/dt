@@ -5,6 +5,7 @@
  * auth:
  *  - oauth: el botón redirige al proveedor y vuelve a la API con el code
  *  - credentials: usuario y contraseña (y 2FA) que la API usa para sacar el token
+ *  - login: email y contraseña directos (la API hace login y comprueba antes de guardar)
  *  - apikey: una clave personal que se pega (y la API comprueba antes de guardarla)
  *  - internal: no hay que conectar nada (bot, registros a mano)
  */
@@ -36,6 +37,13 @@ export const SOURCES = {
     auth: 'apikey',
     description: 'Carga de entrenamiento (TSS), forma y fatiga, wellness y entrenos planificados.',
     provides: ['workouts', 'training-load', 'wellness'],
+  },
+  motra: {
+    name: 'Motra',
+    monogram: 'Mo',
+    auth: 'login',
+    description: 'Entrenos de fuerza con ejercicios, series, repeticiones, peso y descanso.',
+    provides: ['workouts', 'strength'],
   },
   fatsecret: {
     name: 'FatSecret',
@@ -77,6 +85,7 @@ export const DATA_TYPES = {
   weight: 'Peso',
   'body-composition': 'Composición corporal',
   workouts: 'Entrenamientos',
+  strength: 'Fuerza (series y repeticiones)',
   'training-load': 'Carga de entrenamiento',
   wellness: 'Wellness',
   nutrition: 'Nutrición',

@@ -42,6 +42,7 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/timeline/package.json packages/timeline/
 COPY packages/google-health/package.json packages/google-health/
 COPY packages/intervals-icu/package.json packages/intervals-icu/
+COPY packages/motra/package.json packages/motra/
 COPY packages/xiaomi/package.json packages/xiaomi/
 
 # 2. Solo las dependencias de producción de esta app (y de los paquetes que usa)

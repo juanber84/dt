@@ -5,6 +5,7 @@ import {
   normalizeXiaomiScale,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
+  normalizeMotraWorkout,
   normalizeClinical,
   clinicalPeriod,
   normalizerFor,
@@ -412,6 +413,101 @@ describe('intervals.icu', () => {
       from: '2026-10-13T22:00:00.000Z',
       to: '2026-10-14T22:00:00.000Z',
     });
+  });
+});
+
+describe('Motra', () => {
+  it('entreno → episodio de fuerza con series, reps, peso y volumen', () => {
+    const result = normalizeMotraWorkout({
+      workoutID: 'W1',
+      name: 'Viernes de pecho',
+      activityType: 'traditionalStrengthTraining',
+      workoutFormat: 'trainStrength',
+      timeStarted: 1791545489,
+      timeEnded: 1791547855,
+      statistics: { calories: 186 },
+      activities: [
+        { segment: 'main', strengthExercise: { exercises: [{ setIDs: ['s1', 's2'] }] } },
+      ],
+      setMap: {
+        s1: {
+          setID: 's1',
+          exerciseTypeID: 'barbellBenchPress',
+          restTime: 120,
+          measurements: { reps: 5, time: 30, weight: { value: 60, unit: 'kg' } },
+        },
+        s2: {
+          setID: 's2',
+          exerciseTypeID: 'barbellBenchPress',
+          restTime: 125,
+          measurements: { reps: 4, weight: { value: 60, unit: 'kg' } },
+        },
+      },
+      exerciseDetails: {
+        barbellBenchPress: {
+          name: 'Barbell Bench Press',
+          primaryMuscleGroups: ['chest'],
+          secondaryMuscleGroups: ['triceps'],
+          equipmentGroups: ['barbell'],
+        },
+      },
+    });
+
+    expect(result.mode).toBe('exact');
+    const ep = result.episodes[0];
+    expect(ep).toMatchObject({
+      kind: 'workout',
+      externalId: 'W1',
+      origin: 'motra',
+      title: 'Viernes de pecho',
+      schema: 'motra.workout@1',
+      start: '2026-10-09T11:31:29.000Z',
+    });
+    // 5·60 + 4·60 = 540
+    expect(ep.summary).toMatchObject({
+      type: 'traditionalStrengthTraining',
+      exerciseCount: 1,
+      setCount: 2,
+      totalReps: 9,
+      volumeKg: 540,
+      kcal: 186,
+      muscleGroups: ['chest'],
+    });
+    expect(ep.details.exercises[0]).toMatchObject({
+      name: 'Barbell Bench Press',
+      primaryMuscleGroups: ['chest'],
+    });
+    expect(ep.details.exercises[0].sets).toHaveLength(2);
+    expect(ep.details.exercises[0].sets[0]).toMatchObject({ reps: 5, weightKg: 60, restS: 120 });
+  });
+
+  it('pesos en libras pasan a kg; series por tiempo sin reps no suman volumen', () => {
+    const ep = normalizeMotraWorkout({
+      workoutID: 'W2',
+      timeStarted: 1791545489,
+      activities: [{ strengthExercise: { exercises: [{ setIDs: ['a', 'b'] }] } }],
+      setMap: {
+        a: {
+          exerciseTypeID: 'curl',
+          measurements: { reps: 10, weight: { value: 50, unit: 'lb' } },
+        },
+        b: { exerciseTypeID: 'curl', measurements: { time: 45, weight: { value: 0, unit: 'kg' } } },
+      },
+    }).episodes[0];
+    expect(ep.details.exercises[0].sets.map((s) => [s.reps, s.weightKg, s.timeS])).toEqual([
+      [10, 22.68, null],
+      [null, 0, 45],
+    ]);
+    expect(ep.summary).toMatchObject({ setCount: 2, totalReps: 10, volumeKg: 227 });
+  });
+
+  it('entreno sin fecha válida → vacío', () => {
+    expect(normalizeMotraWorkout({ workoutID: 'x' }).episodes).toEqual([]);
+    expect(normalizeMotraWorkout(null).episodes).toEqual([]);
+  });
+
+  it('normalizerFor enruta motra/workout', () => {
+    expect(normalizerFor('motra', 'workout')).toBe(normalizeMotraWorkout);
   });
 });
 

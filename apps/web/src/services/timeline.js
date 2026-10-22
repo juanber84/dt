@@ -490,6 +490,8 @@ const WORKOUT_ICON = {
   HIKING: 'PersonStanding',
   STRENGTH_TRAINING: 'Dumbbell',
   WEIGHTLIFTING: 'Dumbbell',
+  traditionalStrengthTraining: 'Dumbbell',
+  functionalStrengthTraining: 'Dumbbell',
   Ride: 'Bike',
   MountainBikeRide: 'Bike',
   GravelRide: 'Bike',
@@ -503,6 +505,37 @@ const WORKOUT_ICON = {
   WeightTraining: 'Dumbbell',
 };
 
+const kgText = (kg) => `${fmtDec(kg, kg % 1 ? 1 : 0)} kg`;
+
+/**
+ * Los ejercicios de un entreno de fuerza (Motra) para la tabla del lateral: cada serie lleva sus
+ * reps y su peso, así que se enseñan tal cual ("10 · 8 · 8") y la carga como rango si cambia.
+ */
+export function strengthExercises(episode) {
+  return (episode.details?.exercises ?? []).map((x) => {
+    const sets = x.sets ?? [];
+    const reps = sets.map((s) => s.reps).filter((r) => r != null);
+    const kgs = sets.map((s) => s.weightKg).filter((kg) => kg != null && kg > 0);
+    const secs = sets.map((s) => s.timeS).filter((t) => t != null && t > 0);
+    const min = Math.min(...kgs);
+    const max = Math.max(...kgs);
+    return {
+      name: x.name,
+      sets: sets.length,
+      // Las series por tiempo (plancha) no tienen reps: su duración
+      reps: reps.length
+        ? reps.join(' · ')
+        : secs.map((t) => `${Math.round(t)} s`).join(' · ') || '—',
+      load: !kgs.length
+        ? 'Peso corporal'
+        : min === max
+          ? kgText(min)
+          : `${fmtDec(min, min % 1 ? 1 : 0)}–${kgText(max)}`,
+      muscles: x.primaryMuscleGroups ?? [],
+    };
+  });
+}
+
 export function workoutEvent(episode) {
   const s = episode.summary ?? {};
   const minutes = s.durationS
@@ -511,9 +544,12 @@ export function workoutEvent(episode) {
       ? Math.round((new Date(episode.end) - new Date(episode.start)) / 60_000)
       : null;
   const km = s.distanceM ? round1(s.distanceM / 1000) : null;
+  const exercises = strengthExercises(episode);
   const parts = [
     minutes && fmtDuration(minutes),
     km && `${fmtDec(km, 1)} km`,
+    s.setCount && `${s.setCount} series`,
+    s.volumeKg && `${fmtInt(s.volumeKg)} kg de volumen`,
     s.avgHeartRate && `${Math.round(s.avgHeartRate)} ppm`,
     s.tss && `TSS ${Math.round(s.tss)}`,
   ].filter(Boolean);
@@ -531,6 +567,10 @@ export function workoutEvent(episode) {
     metrics: [
       { label: 'Duración', value: minutes, unit: 'min' },
       { label: 'Distancia', value: km, unit: 'km', digits: 1 },
+      { label: 'Ejercicios', value: s.exerciseCount || null },
+      { label: 'Series', value: s.setCount || null },
+      { label: 'Repeticiones', value: s.totalReps || null },
+      { label: 'Volumen', value: s.volumeKg || null, unit: 'kg' },
       { label: 'FC media', value: s.avgHeartRate && Math.round(s.avgHeartRate), unit: 'ppm' },
       { label: 'TSS', value: s.tss && Math.round(s.tss) },
       { label: 'Calorías', value: s.kcal && Math.round(s.kcal), unit: 'kcal' },
@@ -541,6 +581,7 @@ export function workoutEvent(episode) {
         unit: 'W',
       },
     ].filter((m) => m.value != null),
+    ...(exercises.length && { workout: { exercises } }),
     sources: [
       {
         source: sourceOf(episode),

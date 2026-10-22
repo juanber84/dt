@@ -2,6 +2,7 @@ import { JOBS, PRIORITY } from '@digitaltwin/queue';
 import { RateLimitedError } from './rate-limit.js';
 import { XIAOMI } from './providers/xiaomi.js';
 import { INTERVALS } from './providers/intervals.js';
+import { MOTRA } from './providers/motra.js';
 import { GOOGLE } from './providers/google.js';
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -13,7 +14,7 @@ export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
  * @param {ReturnType<typeof import('@digitaltwin/queue').createQueue>} deps.queue
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createPipeline>} deps.pipeline
  * @param {ReturnType<typeof import('@digitaltwin/connections').createDbConnectionStore>} deps.connections
- * @param {{ xiaomi: ReturnType<typeof import('./providers/xiaomi.js').createXiaomiProvider>, intervals: ReturnType<typeof import('./providers/intervals.js').createIntervalsProvider>, google?: ReturnType<typeof import('./providers/google.js').createGoogleProvider> }} deps.providers
+ * @param {{ xiaomi: ReturnType<typeof import('./providers/xiaomi.js').createXiaomiProvider>, intervals: ReturnType<typeof import('./providers/intervals.js').createIntervalsProvider>, motra: ReturnType<typeof import('./providers/motra.js').createMotraProvider>, google?: ReturnType<typeof import('./providers/google.js').createGoogleProvider> }} deps.providers
  * @param {ReturnType<typeof import('./clinical.js').createClinicalProcessor>} [deps.clinical]
  * @param {import('@digitaltwin/google-health').GoogleHealthSubscribers} [deps.googleSubscribers]
  * @param {ReturnType<typeof import('@digitaltwin/push').createPush>} [deps.push]
@@ -44,6 +45,7 @@ export function createJobs({
   function provider(name) {
     if (name === XIAOMI) return providers.xiaomi;
     if (name === INTERVALS) return providers.intervals;
+    if (name === MOTRA) return providers.motra;
     if (name === GOOGLE && providers.google) return providers.google;
     return null;
   }
@@ -78,6 +80,7 @@ export function createJobs({
         return providers.xiaomi.sync(userId, { priority: PRIORITY.LIVE });
       if (data.provider === INTERVALS)
         return providers.intervals.sync(userId, { priority: PRIORITY.LIVE });
+      if (data.provider === MOTRA) return providers.motra.sync(userId, { priority: PRIORITY.LIVE });
       if (data.provider === GOOGLE && providers.google) {
         const connection = await connections.get(userId, GOOGLE);
         if (connection?.status !== 'connected') return { skipped: 'not-connected' };
@@ -101,8 +104,8 @@ export function createJobs({
       if (!provider(data.provider)) return { skipped: 'unsupported' };
       const backfillId = await store.startBackfill(userId, data.provider);
 
-      // Xiaomi e intervals.icu: el histórico entero cabe en un trabajo
-      if (data.provider === XIAOMI || data.provider === INTERVALS) {
+      // Xiaomi, intervals.icu y Motra: el histórico entero cabe en un trabajo
+      if (data.provider === XIAOMI || data.provider === INTERVALS || data.provider === MOTRA) {
         await store.setBackfillTotal(backfillId, 1);
         try {
           const result = await provider(data.provider).sync(userId, {
@@ -296,6 +299,12 @@ export function createJobs({
         config.INTERVALS_SYNC_CRON,
         { provider: INTERVALS },
         { tz, key: INTERVALS },
+      );
+      await queue.schedule(
+        JOBS.SCHEDULED_SYNC,
+        config.MOTRA_SYNC_CRON,
+        { provider: MOTRA },
+        { tz, key: MOTRA },
       );
       if (providers.google) {
         await queue.schedule(

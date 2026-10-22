@@ -35,6 +35,7 @@ export function createApiRouter({
   xiaomiSync,
   googleConnect,
   intervalsConnect,
+  motraConnect,
   measurements,
   users,
   sessions,
@@ -91,6 +92,7 @@ export function createApiRouter({
       xiaomiSync,
       googleConnect,
       intervalsConnect,
+      motraConnect,
       inbox,
       telegramLink,
       // El bot dice su @usuario en el latido: con él se construye el enlace t.me/<bot>?start=...

@@ -113,7 +113,15 @@ const zones = computed(() => {
 
 const metricText = (m) => (m.digits ? fmtDec(m.value, m.digits) : fmtInt(m.value));
 const fmtValue = (v) =>
-  typeof v === 'number' ? (Number.isInteger(v) ? fmtInt(v) : fmtDec(v, 2)) : String(v);
+  v == null
+    ? '—'
+    : Array.isArray(v)
+      ? v.join(', ') || '—'
+      : typeof v === 'number'
+        ? Number.isInteger(v)
+          ? fmtInt(v)
+          : fmtDec(v, 2)
+        : String(v);
 const fmtStamp = (iso) =>
   new Date(iso).toLocaleString('es-ES', {
     day: 'numeric',
@@ -197,11 +205,16 @@ const fmtStamp = (iso) =>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="x in event.workout.exercises" :key="x.name">
-              <td>{{ x.name }}</td>
+            <tr v-for="(x, i) in event.workout.exercises" :key="i">
+              <td>
+                {{ x.name }}
+                <small v-if="x.muscles?.length" class="muted muscles">{{
+                  x.muscles.join(', ')
+                }}</small>
+              </td>
               <td>{{ x.sets }}</td>
               <td>{{ x.reps }}</td>
-              <td>{{ x.kg ? `${fmtDec(x.kg, x.kg % 1 ? 1 : 0)} kg` : 'Peso corporal' }}</td>
+              <td>{{ x.load }}</td>
             </tr>
           </tbody>
         </table>
@@ -400,6 +413,17 @@ const fmtStamp = (iso) =>
 .sets th:first-child,
 .sets td:first-child {
   text-align: left;
+}
+
+/* Las reps de cada serie ("10 · 8 · 8") pueden ser largas: aire entre columnas */
+.sets th + th,
+.sets td + td {
+  padding-left: 12px;
+}
+
+.sets .muscles {
+  display: block;
+  font-size: 11px;
 }
 
 .hint {

@@ -65,6 +65,7 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 | `POST`          | `/connections/google-health/connect`                   | Empezar a conectar Google (OAuth)                                            |
 | `POST`          | `/connections/xiaomi/login`                            | Conectar Xiaomi (y `…/:loginId/captcha`, `…/:loginId/email-code` si lo pide) |
 | `POST`          | `/connections/intervals-icu/connect`                   | Conectar intervals.icu con tu clave                                          |
+| `POST`          | `/connections/motra/connect`                           | Conectar Motra con email y contraseña (solo se guarda el token de sesión)    |
 | `POST`          | `/connections/:provider/sync`                          | Sincronizar ahora                                                            |
 | `DELETE`        | `/connections/:provider`                               | Desconectar                                                                  |
 | `POST` `DELETE` | `/connections/telegram/link` · `/connections/telegram` | Vincular el bot                                                              |

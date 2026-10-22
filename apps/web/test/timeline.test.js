@@ -9,6 +9,7 @@ import {
   realTotals,
   sleepFrom,
   workoutEvent,
+  strengthExercises,
   emptySummary,
   entryEvent,
 } from '../src/services/timeline.js';
@@ -85,6 +86,53 @@ describe('timeline real', () => {
       end: 874,
       subtitle: '56m · 28,6 km · 131 ppm',
     });
+  });
+
+  it('entreno de fuerza (Motra) → series, volumen y tabla de ejercicios con sus series reales', () => {
+    const strength = {
+      id: 'm1',
+      kind: 'workout',
+      start: '2026-10-14T15:17:33Z',
+      end: '2026-10-14T16:26:24Z',
+      title: 'Pierna bici',
+      provider: 'motra',
+      schema: 'motra.workout@1',
+      summary: { type: 'traditionalStrengthTraining', setCount: 4, totalReps: 26, volumeKg: 1950 },
+      details: {
+        exercises: [
+          {
+            name: 'Back Squat',
+            primaryMuscleGroups: ['quadriceps'],
+            sets: [
+              { reps: 8, weightKg: 70 },
+              { reps: 8, weightKg: 80 },
+              { reps: 10, weightKg: 80 },
+            ],
+          },
+          { name: 'Plank', sets: [{ reps: null, weightKg: null, timeS: 45 }] },
+        ],
+      },
+    };
+    const event = workoutEvent(strength);
+    expect(event).toMatchObject({
+      icon: 'Dumbbell',
+      subtitle: '1h 09m · 4 series · 1.950 kg de volumen',
+    });
+    expect(event.metrics.map((m) => m.label)).toEqual(
+      expect.arrayContaining(['Series', 'Repeticiones', 'Volumen']),
+    );
+    expect(strengthExercises(strength)).toEqual([
+      {
+        name: 'Back Squat',
+        sets: 3,
+        reps: '8 · 8 · 10',
+        load: '70–80 kg',
+        muscles: ['quadriceps'],
+      },
+      { name: 'Plank', sets: 1, reps: '45 s', load: 'Peso corporal', muscles: [] },
+    ]);
+    // Un entreno sin ejercicios (bici) no lleva tabla
+    expect(workoutEvent(workout).workout).toBeUndefined();
   });
 
   it('sueño: fases en minutos desde la medianoche (negativos la víspera) y totales', () => {

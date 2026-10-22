@@ -7,6 +7,7 @@ import { createPipeline } from '@digitaltwin/timeline';
 import { createMemoryConnectionStore } from '@digitaltwin/connections';
 import { createTestKeyset } from '@digitaltwin/google-health/testing';
 import { IntervalsError, IntervalsErrorCode } from '@digitaltwin/intervals-icu';
+import { MotraError, MotraErrorCode } from '@digitaltwin/motra';
 import { createDbUserStore } from '../src/services/users-db.js';
 import { signBody, SIGNATURE_HEADER } from '../src/routes/digitaltwin-webhook.routes.js';
 import { buildApp } from './helpers.js';
@@ -27,6 +28,11 @@ const intervalsClient = (apiKey) => ({
     return { id: 'i123', name: 'Juan' };
   },
 });
+// Login de Motra de mentira: solo vale una contraseña
+const motraSignIn = async ({ email, password }) => {
+  if (password !== 'buena') throw new MotraError(MotraErrorCode.INVALID_CREDENTIALS, 'no');
+  return { refreshToken: 'ref-motra', idToken: 'id', accountId: 'm123', email };
+};
 
 const meal = {
   id: '7a1d1a51-6b0e-4a43-9a3b-1b6bb1e7a001',
@@ -108,7 +114,16 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     });
     app = buildApp(
       { DIGITALTWIN_WEBHOOK_SECRET: WEBHOOK_SECRET, GOOGLE_HEALTH_WEBHOOK_SECRET: GOOGLE_SECRET },
-      { db, users, queue, pipeline, connections, googleHealthWebhook: { keyset }, intervalsClient },
+      {
+        db,
+        users,
+        queue,
+        pipeline,
+        connections,
+        googleHealthWebhook: { keyset },
+        intervalsClient,
+        motraSignIn,
+      },
     );
     cookie = await loginCookie(app);
   });
@@ -275,6 +290,31 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     expect(list.body.items.find((c) => c.id === 'intervals-icu')).toMatchObject({
       available: true,
       status: 'connected',
+    });
+  });
+
+  it('Motra: login, se guarda solo el refresh token (no la contraseña) y se encola la carga', async () => {
+    queue.jobs.length = 0;
+    const before = await request(app).get('/api/v1/connections').set('Cookie', cookie);
+    expect(before.body.items.find((c) => c.id === 'motra')).toMatchObject({ available: true });
+
+    const bad = await request(app)
+      .post('/api/v1/connections/motra/connect')
+      .set('Cookie', cookie)
+      .send({ email: 'yo@example.com', password: 'mala' });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.code).toBe('INVALID_CREDENTIALS');
+
+    const ok = await request(app)
+      .post('/api/v1/connections/motra/connect')
+      .set('Cookie', cookie)
+      .send({ email: 'yo@example.com', password: 'buena' });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ status: 'connected', account: 'yo@example.com' });
+    expect(JSON.stringify(ok.body)).not.toContain('ref-motra');
+    expect(queue.jobs).toMatchObject([{ name: JOBS.BACKFILL, data: { provider: 'motra' } }]);
+    expect((await connections.get(me.id, 'motra')).credentials).toEqual({
+      refreshToken: 'ref-motra',
     });
   });
 

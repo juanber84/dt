@@ -4,6 +4,7 @@ export const PROVIDERS = Object.freeze([
   'xiaomi',
   'strava',
   'intervals-icu',
+  'motra',
   'fatsecret',
 ]);
 

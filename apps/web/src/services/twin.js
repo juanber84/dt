@@ -136,9 +136,13 @@ export async function connectProvider(id) {
 export const connectIntervals = (apiKey) =>
   post('/api/v1/connections/intervals-icu/connect', { apiKey });
 
+/** Motra con email y contraseña: la API hace login para comprobarlas y devuelve la conexión. */
+export const connectMotra = (email, password) =>
+  post('/api/v1/connections/motra/connect', { email, password });
+
 export async function syncProvider(id) {
   clearTimelineCache();
-  if (!['xiaomi', 'google-health', 'intervals-icu'].includes(id)) {
+  if (!['xiaomi', 'google-health', 'intervals-icu', 'motra'].includes(id)) {
     throw Object.assign(new Error(`La API aún no sincroniza ${id}`), { code: 'NOT_IMPLEMENTED' });
   }
   return apiFetch(`/api/v1/connections/${id}/sync`, { method: 'POST' });

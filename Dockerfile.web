@@ -28,6 +28,7 @@ COPY packages/queue/package.json packages/queue/
 COPY packages/timeline/package.json packages/timeline/
 COPY packages/google-health/package.json packages/google-health/
 COPY packages/intervals-icu/package.json packages/intervals-icu/
+COPY packages/motra/package.json packages/motra/
 COPY packages/xiaomi/package.json packages/xiaomi/
 
 # 2. Dependencias del frontal y de la documentación (vite y vitepress van en devDependencies:
