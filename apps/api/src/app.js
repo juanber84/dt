@@ -262,15 +262,18 @@ export function createApp({
         logger: log.child({ provider: 'intervals-icu' }),
       })
     : undefined;
-  // Motra: igual que intervals, solo lo sincroniza el worker (sin cola no se ofrece)
-  const motraConnect = inbox
-    ? createMotraConnect({
-        store: connections,
-        onConnected: inbox.connected,
-        ...(motraSignIn && { signIn: motraSignIn }),
-        logger: log.child({ provider: 'motra' }),
-      })
-    : undefined;
+  // Motra: igual que intervals, solo lo sincroniza el worker (sin cola no se ofrece), y hace
+  // falta la API key de Firebase de su app
+  const motraConnect =
+    inbox && (config.MOTRA_FIREBASE_API_KEY || motraSignIn)
+      ? createMotraConnect({
+          store: connections,
+          onConnected: inbox.connected,
+          apiKey: config.MOTRA_FIREBASE_API_KEY,
+          ...(motraSignIn && { signIn: motraSignIn }),
+          logger: log.child({ provider: 'motra' }),
+        })
+      : undefined;
   const googleConnect =
     config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
       ? createGoogleConnect({

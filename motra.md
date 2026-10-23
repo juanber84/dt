@@ -49,7 +49,7 @@ Respuesta: `id_token` nuevo + `refresh_token` (puede rotar → guardar el nuevo)
 Authorization: Bearer <idToken>
 ```
 
-**Credenciales** (como está implementado): cada usuario conecta su cuenta desde Conexiones con email y contraseña; la API hace el login una vez y guarda **solo el `refreshToken`** (cifrado, en `connections`), nunca la contraseña. Si Firebase lo rota, el worker guarda el nuevo. Si el usuario cambia la contraseña, el token muere (`TOKEN_EXPIRED`/`INVALID_REFRESH_TOKEN`) y la conexión pasa a "hay que reconectar". La API key de Firebase va por defecto en `packages/motra`; `MOTRA_FIREBASE_API_KEY` (worker) solo por si Motra la cambia.
+**Credenciales** (como está implementado): cada usuario conecta su cuenta desde Conexiones con email y contraseña; la API hace el login una vez y guarda **solo el `refreshToken`** (cifrado, en `connections`), nunca la contraseña. Si Firebase lo rota, el worker guarda el nuevo. Si el usuario cambia la contraseña, el token muere (`TOKEN_EXPIRED`/`INVALID_REFRESH_TOKEN`) y la conexión pasa a "hay que reconectar". La API key de Firebase de la app va en el secreto `MOTRA_FIREBASE_API_KEY` (API y worker), no en el código.
 
 ---
 

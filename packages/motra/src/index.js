@@ -30,8 +30,6 @@ export class MotraError extends Error {
 const BACKEND_URL = 'https://backend.motra.com';
 const IDENTITY_URL = 'https://identitytoolkit.googleapis.com/v1';
 const SECURE_TOKEN_URL = 'https://securetoken.googleapis.com/v1';
-// API key de Firebase de la app de Motra (proyecto train-165d3): pública, va dentro de la app
-export const DEFAULT_FIREBASE_API_KEY = 'AIzaSyADtP9ZTyPUIqk7T9xHvEuEXhe--IYYLWw';
 
 // Errores de Firebase (el `error.message` del 400) que quieren decir "email o contraseña mal"...
 const BAD_LOGIN = [
@@ -100,7 +98,7 @@ async function firebaseCall(fetch, url, init, { timeoutMs, onBadRequest }) {
 export async function signInWithPassword({
   email,
   password,
-  apiKey = DEFAULT_FIREBASE_API_KEY,
+  apiKey,
   fetch = globalThis.fetch,
   identityUrl = IDENTITY_URL,
   timeoutMs = 30_000,
@@ -149,7 +147,7 @@ export async function signInWithPassword({
 export function createMotraClient({
   refreshToken,
   onRefreshToken,
-  apiKey = DEFAULT_FIREBASE_API_KEY,
+  apiKey,
   fetch = globalThis.fetch,
   backendUrl = BACKEND_URL,
   secureTokenUrl = SECURE_TOKEN_URL,

@@ -81,8 +81,8 @@ const schema = z.object({
   INTERVALS_BACKFILL_DAYS: z.coerce.number().int().positive().default(730),
   // Cuánto histórico de Motra se trae la primera vez (los entrenos de fuerza vienen de lejos)
   MOTRA_BACKFILL_DAYS: z.coerce.number().int().positive().default(1825),
-  // API key de Firebase de Motra (pública, va en la app). Por defecto la conocida; se puede
-  // sobreescribir si Motra la cambia.
+  // API key de Firebase de la app de Motra (se saca de la app; no va en el código). Sin ella,
+  // Motra no se sincroniza.
   MOTRA_FIREBASE_API_KEY: z.string().min(1).optional(),
   // LLM para leer los informes médicos (el mismo LLM_* que la API). Sin clave, los PDF que se
   // suban quedan en error explicándolo.

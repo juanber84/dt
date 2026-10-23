@@ -99,14 +99,16 @@ const providers = {
     backfillDays: config.INTERVALS_BACKFILL_DAYS,
     logger: logger.child({ provider: 'intervals-icu' }),
   }),
-  motra: createMotraProvider({
-    connections,
-    pipeline,
-    limiter,
-    backfillDays: config.MOTRA_BACKFILL_DAYS,
-    firebaseApiKey: config.MOTRA_FIREBASE_API_KEY,
-    logger: logger.child({ provider: 'motra' }),
-  }),
+  motra: config.MOTRA_FIREBASE_API_KEY
+    ? createMotraProvider({
+        connections,
+        pipeline,
+        limiter,
+        backfillDays: config.MOTRA_BACKFILL_DAYS,
+        firebaseApiKey: config.MOTRA_FIREBASE_API_KEY,
+        logger: logger.child({ provider: 'motra' }),
+      })
+    : undefined,
   google:
     config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
       ? createGoogleProvider({
@@ -121,6 +123,7 @@ const providers = {
       : undefined,
 };
 if (!providers.google) logger.warn('Sin GOOGLE_CLIENT_ID/SECRET: Google no se sincroniza');
+if (!providers.motra) logger.warn('Sin MOTRA_FIREBASE_API_KEY: Motra no se sincroniza');
 
 const recordUsage = createUsageRecorder({
   rows: createDbLlmUsageRows({ db }),

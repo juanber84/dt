@@ -293,6 +293,24 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     });
   });
 
+  it('Motra solo se ofrece con la API key de Firebase de su app (no va en el código)', async () => {
+    const motra = async (env) => {
+      const other = buildApp(env, {
+        db,
+        users: createDbUserStore({ db }),
+        queue,
+        pipeline,
+        connections,
+      });
+      const res = await request(other)
+        .get('/api/v1/connections')
+        .set('Cookie', await loginCookie(other));
+      return res.body.items.find((c) => c.id === 'motra').available;
+    };
+    expect(await motra({})).toBe(false);
+    expect(await motra({ MOTRA_FIREBASE_API_KEY: 'k' })).toBe(true);
+  });
+
   it('Motra: login, se guarda solo el refresh token (no la contraseña) y se encola la carga', async () => {
     queue.jobs.length = 0;
     const before = await request(app).get('/api/v1/connections').set('Cookie', cookie);

@@ -16,7 +16,7 @@ const CHUNK_DAYS = 180;
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createPipeline>} deps.pipeline
  * @param {ReturnType<typeof import('../rate-limit.js').createRateLimiter>} deps.limiter
  * @param {number} [deps.backfillDays]
- * @param {string} [deps.firebaseApiKey]
+ * @param {string} [deps.firebaseApiKey] API key de Firebase de la app de Motra
  * @param {(options: { refreshToken: string, onRefreshToken: Function }) => ReturnType<typeof createMotraClient>} [deps.createClient]
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} [deps.logger]
@@ -27,8 +27,7 @@ export function createMotraProvider({
   limiter,
   backfillDays = 1825,
   firebaseApiKey,
-  createClient = (options) =>
-    createMotraClient({ ...options, ...(firebaseApiKey && { apiKey: firebaseApiKey }) }),
+  createClient = (options) => createMotraClient({ ...options, apiKey: firebaseApiKey }),
   now = Date.now,
   logger,
 }) {

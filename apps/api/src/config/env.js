@@ -85,6 +85,9 @@ const schema = z
     // Cliente OAuth de Google (Google Cloud → Credenciales). Sin ellos, Google sale "no disponible".
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    // API key de Firebase de la app de Motra (se saca de la app; no va en el código). Sin ella,
+    // Motra sale "no disponible".
+    MOTRA_FIREBASE_API_KEY: z.string().min(1).optional(),
     // Tamaño máximo de un PDF de informe médico (/api/v1/clinical/documents)
     CLINICAL_UPLOAD_LIMIT: z.string().default('15mb'),
     // Tamaño máximo del body en /api/v1/nutrition (las fotos van en base64)

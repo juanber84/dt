@@ -11,6 +11,7 @@ export const MOTRA_PROVIDER = 'motra';
  * @param {object} deps
  * @param {{ get: Function, save: Function }} deps.store
  * @param {(userId: string, provider: string) => Promise<void>} [deps.onConnected]
+ * @param {string} [deps.apiKey] API key de Firebase de la app de Motra
  * @param {(credentials: { email: string, password: string }) => ReturnType<typeof signInWithPassword>} [deps.signIn]
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} [deps.logger]
@@ -18,7 +19,8 @@ export const MOTRA_PROVIDER = 'motra';
 export function createMotraConnect({
   store,
   onConnected,
-  signIn = (credentials) => signInWithPassword(credentials),
+  apiKey,
+  signIn = (credentials) => signInWithPassword({ ...credentials, apiKey }),
   now = Date.now,
   logger,
 }) {

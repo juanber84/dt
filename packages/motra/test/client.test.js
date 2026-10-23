@@ -17,7 +17,12 @@ describe('Motra · login', () => {
     const fetch = vi.fn(async () =>
       reply(200, { idToken: 'id-1', refreshToken: 'ref-1', localId: 'uid-1', email: 'yo@x.com' }),
     );
-    const session = await signInWithPassword({ email: 'yo@x.com', password: 'secreta', fetch });
+    const session = await signInWithPassword({
+      email: 'yo@x.com',
+      password: 'secreta',
+      apiKey: 'k',
+      fetch,
+    });
     expect(session).toEqual({
       refreshToken: 'ref-1',
       idToken: 'id-1',
@@ -25,21 +30,21 @@ describe('Motra · login', () => {
       email: 'yo@x.com',
     });
     const [url, init] = fetch.mock.calls[0];
-    expect(url).toContain('/accounts:signInWithPassword?key=');
+    expect(url).toContain('/accounts:signInWithPassword?key=k');
     expect(JSON.parse(init.body)).toMatchObject({ email: 'yo@x.com', password: 'secreta' });
   });
 
   it('email o contraseña mal → INVALID_CREDENTIALS', async () => {
     const fetch = async () => reply(400, { error: { message: 'INVALID_LOGIN_CREDENTIALS' } });
     await expect(
-      signInWithPassword({ email: 'a@b.c', password: 'mala', fetch }),
+      signInWithPassword({ email: 'a@b.c', password: 'mala', apiKey: 'k', fetch }),
     ).rejects.toMatchObject({ code: MotraErrorCode.INVALID_CREDENTIALS });
   });
 
   it('límite de Firebase → RATE_LIMITED con su espera', async () => {
     const fetch = async () => reply(429, {}, { 'retry-after': '30' });
     await expect(
-      signInWithPassword({ email: 'a@b.c', password: 'p', fetch }),
+      signInWithPassword({ email: 'a@b.c', password: 'p', apiKey: 'k', fetch }),
     ).rejects.toMatchObject({
       code: MotraErrorCode.RATE_LIMITED,
       retryAfterSeconds: 30,
@@ -53,11 +58,11 @@ describe('Motra · lecturas', () => {
       if (url.includes('securetoken')) return reply(200, { id_token: 'id-xyz' });
       return reply(200, { success: true, data: {} });
     });
-    const client = createMotraClient({ refreshToken: 'ref-1', fetch });
+    const client = createMotraClient({ refreshToken: 'ref-1', apiKey: 'k', fetch });
     await client.calendarWorkouts({ startMs: 1_000_000, endMs: 2_000_000 });
 
     const [tokenUrl, tokenInit] = fetch.mock.calls[0];
-    expect(tokenUrl).toContain('/token?key=');
+    expect(tokenUrl).toContain('/token?key=k');
     expect(tokenInit.body).toContain('grant_type=refresh_token');
     const [getUrl, getInit] = fetch.mock.calls[1];
     expect(getUrl).toBe(
@@ -94,7 +99,7 @@ describe('Motra · lecturas', () => {
         ? reply(401, {})
         : reply(200, { success: true, data: { workout: { id: 1 } } });
     });
-    const client = createMotraClient({ refreshToken: 'ref-1', fetch });
+    const client = createMotraClient({ refreshToken: 'ref-1', apiKey: 'k', fetch });
     expect(await client.workoutDetails('W1')).toEqual({ id: 1 });
     expect(fetch.mock.calls.filter(([u]) => u.includes('securetoken'))).toHaveLength(2);
   });

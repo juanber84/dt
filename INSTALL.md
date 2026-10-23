@@ -187,8 +187,9 @@ valores por defecto: `XIAOMI_SYNC_CRON` (`*/30 * * * *`), `GOOGLE_SYNC_CRON` (`0
 `GOOGLE_BACKFILL_DAYS` (730), `GOOGLE_BACKFILL_CHUNK_DAYS` (30), `GOOGLE_REQUESTS_PER_MINUTE`
 (120), `XIAOMI_REQUESTS_PER_MINUTE` (10) y los `INTERVALS_*` equivalentes para intervals.icu.
 Para Motra: `MOTRA_SYNC_CRON` (`40 * * * *`), `MOTRA_BACKFILL_DAYS` (1825),
-`MOTRA_REQUESTS_PER_MINUTE` (60) y `MOTRA_FIREBASE_API_KEY` (solo si Motra cambia la suya, que
-es pública y ya va por defecto).
+`MOTRA_REQUESTS_PER_MINUTE` (60). Para conectar y sincronizar Motra, la API y el worker necesitan
+`MOTRA_FIREBASE_API_KEY`, la API key de Firebase que va dentro de la app de Motra. No está en el
+código para no publicar la clave de otro en el repo. Sin ella, Motra sale como "no disponible".
 
 **`/bot`**
 
