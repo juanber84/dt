@@ -10,7 +10,7 @@ Digital Twin tiene un servidor **MCP** (Model Context Protocol): conecta Claude 
 **Claude Code**
 
 ```bash
-claude mcp add --transport http digitaltwin https://dt.cadenceai.ovh/api/mcp \
+claude mcp add --transport http digitaltwin https://twinme.app/api/mcp \
   --header "Authorization: Bearer dt_TU_TOKEN"
 ```
 
@@ -23,7 +23,7 @@ claude mcp add --transport http digitaltwin https://dt.cadenceai.ovh/api/mcp \
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://dt.cadenceai.ovh/api/mcp",
+        "https://twinme.app/api/mcp",
         "--header",
         "Authorization: Bearer dt_TU_TOKEN"
       ]

@@ -1,6 +1,6 @@
 # API
 
-La API de Digital Twin es REST con JSON, en `https://dt.cadenceai.ovh/api/v1`. La usa la propia web; todo lo que ves en la app sale de aquí.
+La API de Digital Twin es REST con JSON, en `https://twinme.app/api/v1`. La usa la propia web; todo lo que ves en la app sale de aquí.
 
 ## Autenticación
 
@@ -21,11 +21,11 @@ La API de Digital Twin es REST con JSON, en `https://dt.cadenceai.ovh/api/v1`. L
 
 ```bash
 # Entrar (guarda la cookie)
-curl -c cookies.txt -X POST https://dt.cadenceai.ovh/api/v1/auth/login \
+curl -c cookies.txt -X POST https://twinme.app/api/v1/auth/login \
   -H 'Content-Type: application/json' -d '{"username":"tu@email.com","password":"…"}'
 
 # El estado del motor
-curl -b cookies.txt https://dt.cadenceai.ovh/api/v1/engine
+curl -b cookies.txt https://twinme.app/api/v1/engine
 ```
 
 Ver la [referencia](/api/referencia) y los [webhooks](/api/webhooks).
