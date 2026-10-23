@@ -1,6 +1,7 @@
 # Pendiente
 
-Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
+Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md). La sección **Plan** (entreno,
+combustible por día, objetivos de composición, sueño) tiene su diseño en [PLAN.md](PLAN.md).
 
 ## Datos
 
