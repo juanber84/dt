@@ -17,9 +17,9 @@ Las cifras salen de tus datos y del motor, nunca del LLM: el coach solo escribe 
 
 ## Cuándo llega
 
-Por defecto a las **7:30**. Se cambia en **Ajustes → Cuenta → Correo → Informe de la mañana**, donde también se apaga.
+Por defecto a las **9:00**. Se cambia en **Ajustes → Cuenta → Correo → Informe de la mañana**, donde también se apaga.
 
-El sueño de anoche llega cuando el reloj sincroniza (con el Apple Watch, después de desbloquear el iPhone): si pones el informe muy temprano, puede salir "sin datos". Hacia las 9:00 suele estar ya.
+No es antes porque el sueño de anoche llega cuando el reloj sincroniza (con el Apple Watch, después de desbloquear el iPhone): a las 7:30 casi nunca estaba y salía "sin datos". Si lo adelantas, puede pasar.
 
 Para verlo sin esperar: **Mandar** en "El de ayer, ahora". Lo hace al momento y te lo manda aunque ya te hubiera llegado.
 

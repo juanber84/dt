@@ -60,12 +60,11 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
     (envío, plantilla base, historial `email_log` sin duplicados), job `email` en el worker y en
     Cuenta el correo de prueba y el historial.
   - Hecho (23/10): **informe de la mañana** por bloques (`@digitaltwin/reports`): el worker lo hace
-    a la hora de cada usuario (por defecto 7:30, en Cuenta se cambia o se apaga), lo guarda
+    a la hora de cada usuario (por defecto 9:00, en Cuenta se cambia o se apaga), lo guarda
     (`reports`) y lo manda con las gráficas en PNG incrustadas; en la app, Informes. El comentario
     es del coach; las cifras, de la BD y del motor.
   - Falta: **informes a demanda** desde el coach (`create_report`: elige bloques y redacta, el
-    servidor resuelve los datos); informe semanal; que el sueño de anoche no falte si el informe
-    sale antes de que sincronice el reloj.
+    servidor resuelve los datos); informe semanal.
 
 ## IA (guardarraíles)
 

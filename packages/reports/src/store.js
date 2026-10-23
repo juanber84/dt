@@ -1,4 +1,4 @@
-export const DEFAULT_SETTINGS = Object.freeze({ dailyEnabled: true, dailyTime: '07:30' });
+export const DEFAULT_SETTINGS = Object.freeze({ dailyEnabled: true, dailyTime: '09:00' });
 
 const day = (value) =>
   value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);

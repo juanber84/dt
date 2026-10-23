@@ -427,7 +427,7 @@ describe.skipIf(!url)('stores en la BD', () => {
       });
       expect(await store.get(other.id, first.id)).toBeNull();
 
-      expect(await store.settings(me.id)).toEqual({ dailyEnabled: true, dailyTime: '07:30' });
+      expect(await store.settings(me.id)).toEqual({ dailyEnabled: true, dailyTime: '09:00' });
       await store.saveSettings(me.id, { dailyEnabled: false, dailyTime: '09:15' });
       expect(await store.settings(me.id)).toEqual({ dailyEnabled: false, dailyTime: '09:15' });
       const recipients = await store.recipients();
@@ -438,7 +438,7 @@ describe.skipIf(!url)('stores en la BD', () => {
       });
       expect(recipients.find((r) => r.userId === other.id)).toMatchObject({
         dailyEnabled: true,
-        dailyTime: '07:30',
+        dailyTime: '09:00',
       });
     });
   });
