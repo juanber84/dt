@@ -188,6 +188,8 @@ TXT `_dmarc` con `v=DMARC1; p=none;`. `EMAIL_FROM` cambia el remitente (por defe
 `TwinMe <informe@twinme.app>`, que tiene que ser del dominio verificado). Sin la clave, la app no
 ofrece correos.
 
+El **informe de la mañana** lo hace el worker (`DAILY_REPORTS_CRON`, por defecto cada 10 min mira a quién le toca según su hora) con el mismo LLM que el coach (`COACH_LLM_*`, o `LLM_*` si no están) y necesita `PUBLIC_URL` para los enlaces del correo. La API y el worker pintan las gráficas en PNG con `resvg`: la imagen lleva la fuente DejaVu (`font-dejavu`).
+
 El **worker usa también `/api`** (descifra las mismas conexiones y lee los informes de Clínica con
 `LLM_API_KEY`: sin ella los PDF quedan en error). Sus ajustes opcionales, con
 valores por defecto: `XIAOMI_SYNC_CRON` (`*/30 * * * *`), `GOOGLE_SYNC_CRON` (`0 * * * *`),

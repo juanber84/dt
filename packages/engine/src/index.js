@@ -264,3 +264,6 @@ export function computeState({ profile, days, today }) {
 }
 
 export { addDays };
+// El motor ya con los datos de un usuario (BD): su perfil y su estado. Lo usan la API y el worker.
+export { createEngine } from './service.js';
+export { createProfiles } from './profiles.js';

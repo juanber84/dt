@@ -45,6 +45,7 @@ export default defineConfig({
           { text: 'Entrenos', link: '/guia/entrenos' },
           { text: 'Clínica', link: '/guia/clinica' },
           { text: 'Coach', link: '/guia/coach' },
+          { text: 'Informes', link: '/guia/informes' },
           { text: 'Bot de Telegram', link: '/guia/telegram' },
           { text: 'La app en el móvil', link: '/guia/movil' },
           { text: 'Ajustes', link: '/guia/ajustes' },

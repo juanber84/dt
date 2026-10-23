@@ -1,4 +1,4 @@
-import { addDays, computeState } from '@digitaltwin/engine';
+import { addDays, computeState } from './index.js';
 
 const HISTORY_DAYS = 70;
 const METRICS = ['intake.energy', 'body.weight', 'body.fat_percent', 'activity.steps'];
@@ -11,7 +11,7 @@ const localDate = (date, timeZone) => new Intl.DateTimeFormat('en-CA', { timeZon
  * consultas y así siempre va al día.
  * @param {object} deps
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
- * @param {ReturnType<typeof import('./profile.js').createProfiles>} deps.profiles
+ * @param {ReturnType<typeof import('./profiles.js').createProfiles>} deps.profiles
  * @param {string} deps.timeZone
  */
 export function createEngine({ queries, profiles, timeZone, now = () => new Date() }) {

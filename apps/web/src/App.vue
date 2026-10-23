@@ -18,6 +18,7 @@ import {
   Sparkles,
   BrainCircuit,
   FileHeart,
+  FileText,
 } from '@lucide/vue';
 import Toast from './components/ui/Toast.vue';
 import TopProgress from './components/ui/TopProgress.vue';
@@ -51,6 +52,8 @@ const main = [
   { to: '/training', label: 'Entrenos', icon: Activity, match: '/training' },
   { to: '/clinical', label: 'Clínica', icon: FileHeart, match: '/clinical' },
   { to: '/coach', label: 'Coach', icon: Sparkles, match: '/coach' },
+  // Solo en el menú lateral: en el móvil, por el correo y por Cuenta (la barra ya va llena)
+  { to: '/reports', label: 'Informes', icon: FileText, match: '/reports', tabbar: false },
 ];
 const settings = [
   { to: '/settings', label: 'Cuenta', icon: UserRound },
@@ -161,7 +164,7 @@ const admin = [
 
     <nav class="tabbar" aria-label="Principal">
       <RouterLink
-        v-for="item in main"
+        v-for="item in main.filter((i) => i.tabbar !== false)"
         :key="item.to"
         :to="item.to"
         :class="{ active: $route.path.startsWith(item.match) }"

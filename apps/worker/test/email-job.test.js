@@ -45,6 +45,21 @@ describe('job email', () => {
     await expect(limited({ data })).rejects.toThrow('Resend 429');
   });
 
+  it('el cron de los informes de la mañana llama a runDaily', async () => {
+    const runDaily = vi.fn(async () => ({ date: '2026-10-22', done: [] }));
+    const handler = createJobs({
+      queue: { send: vi.fn() },
+      pipeline: { store: {} },
+      connections: {},
+      providers: {},
+      reports: { runDaily },
+      config: {},
+      logger: { info() {}, debug() {}, warn() {} },
+    }).handlers[JOBS.DAILY_REPORTS];
+    expect(await handler({})).toEqual({ date: '2026-10-22', done: [] });
+    expect(runDaily).toHaveBeenCalled();
+  });
+
   it('sin Resend configurado no hace nada', async () => {
     expect(await handlerWith(undefined)({ data })).toEqual({ skipped: 'unconfigured' });
   });

@@ -14,6 +14,9 @@ import { createJobs } from './jobs.js';
 import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
+import { createEngine, createProfiles } from '@digitaltwin/engine';
+import { createChatClient } from '@digitaltwin/coach';
+import { createDbReportStore, createReports } from '@digitaltwin/reports';
 import {
   createNotifier,
   createPushRules,
@@ -200,6 +203,35 @@ async function onBackupFailed(err) {
   }
 }
 
+// Informes de la mañana: las cifras salen de la BD y del motor; el comentario, del LLM del coach
+// (si no hay, el informe sale sin él). Necesita la URL pública para los enlaces del correo.
+const coachLlm = config.COACH_LLM_API_KEY ?? config.LLM_API_KEY;
+const profiles = createProfiles({ db, timeZone: config.TIMEZONE });
+const reports = config.PUBLIC_URL
+  ? createReports({
+      store: createDbReportStore({ db }),
+      queries: pipeline.queries,
+      engine: createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE }),
+      profiles,
+      chat: coachLlm
+        ? createChatClient({
+            apiKey: coachLlm,
+            baseUrl: config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL,
+            model: config.COACH_LLM_MODEL ?? config.LLM_MODEL,
+            extraBody: (config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL).includes('deepseek.com')
+              ? { thinking: { type: 'disabled' } }
+              : {},
+          })
+        : undefined,
+      email,
+      appUrl: config.PUBLIC_URL,
+      timeZone: config.TIMEZONE,
+      onUsage: recordUsage,
+      logger: logger.child({ module: 'reports' }),
+    })
+  : undefined;
+if (!reports) logger.warn('Sin PUBLIC_URL: no se hacen los informes de la mañana');
+
 const jobs = createJobs({
   queue,
   pipeline,
@@ -209,6 +241,7 @@ const jobs = createJobs({
   googleSubscribers,
   push,
   email,
+  reports,
   backup,
   onBackupFailed,
   pushRules: push

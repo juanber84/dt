@@ -33,6 +33,8 @@ export const router = createRouter({
     { path: '/clinical', name: 'clinical', component: () => import('./views/ClinicalView.vue') },
     // Los informes ya se revisan en el lateral de su día
     { path: '/clinical/:id', redirect: '/clinical' },
+    { path: '/reports', name: 'reports', component: () => import('./views/ReportsView.vue') },
+    { path: '/reports/:id', name: 'report', component: () => import('./views/ReportView.vue') },
     { path: '/admin', redirect: '/admin/connections' },
     {
       path: '/settings',

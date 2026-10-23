@@ -9,7 +9,8 @@ import { buildExtraction, createDbClinicalStore, modelOutputSchema } from '@digi
 import { createDbPasskeyStore } from '../src/services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createDbEmailStore, createEmail } from '@digitaltwin/email';
-import { createProfiles } from '../src/services/profile.js';
+import { createDbReportStore } from '@digitaltwin/reports';
+import { createProfiles } from '@digitaltwin/engine';
 import { createPipeline } from '@digitaltwin/timeline';
 import { createMemoryQueue } from '@digitaltwin/queue';
 
@@ -389,6 +390,56 @@ describe.skipIf(!url)('stores en la BD', () => {
       await email.send(me.id, { ...report, kind: 'test', dedupeKey: undefined });
       await email.send(me.id, { ...report, kind: 'test', dedupeKey: undefined });
       expect(await store.history(me.id)).toHaveLength(3);
+    });
+  });
+
+  describe('informes', () => {
+    it('el de la mañana se reemplaza si se rehace; lista sin bloques; preferencias por defecto', async () => {
+      const store = createDbReportStore({ db });
+      const daily = (text) => ({
+        kind: 'daily',
+        title: 'Tu día: jueves 22 de octubre',
+        periodFrom: '2026-10-22',
+        periodTo: '2026-10-22',
+        blocks: [{ type: 'text', text }],
+      });
+
+      expect(await store.dailyExists(me.id, '2026-10-22')).toBe(false);
+      const first = await store.save(me.id, daily('primero'));
+      const again = await store.save(me.id, daily('rehecho'));
+      expect(again.id).toBe(first.id);
+      expect(await store.dailyExists(me.id, '2026-10-22')).toBe(true);
+      expect((await store.get(me.id, first.id)).blocks).toEqual([
+        { type: 'text', text: 'rehecho' },
+      ]);
+
+      const list = await store.list(me.id);
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({ periodFrom: '2026-10-22', kind: 'daily' });
+      expect(list[0]).not.toHaveProperty('blocks');
+
+      // Otro usuario no lo ve
+      const { user: other } = await users.upsert({
+        email: 'otro-informes@example.com',
+        name: 'Otro',
+        role: 'user',
+        password: 'patata',
+      });
+      expect(await store.get(other.id, first.id)).toBeNull();
+
+      expect(await store.settings(me.id)).toEqual({ dailyEnabled: true, dailyTime: '07:30' });
+      await store.saveSettings(me.id, { dailyEnabled: false, dailyTime: '09:15' });
+      expect(await store.settings(me.id)).toEqual({ dailyEnabled: false, dailyTime: '09:15' });
+      const recipients = await store.recipients();
+      expect(recipients.find((r) => r.userId === me.id)).toMatchObject({
+        email: me.email,
+        dailyEnabled: false,
+        dailyTime: '09:15',
+      });
+      expect(recipients.find((r) => r.userId === other.id)).toMatchObject({
+        dailyEnabled: true,
+        dailyTime: '07:30',
+      });
     });
   });
 

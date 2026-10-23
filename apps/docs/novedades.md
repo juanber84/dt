@@ -2,6 +2,7 @@
 
 ## 23 de octubre de 2026
 
+- **Informe de la mañana**: cada día a las 7:30 (se cambia en Cuenta), por correo y en la app (Informes), con lo de ayer: comida frente al objetivo, lo que comiste, calorías de la semana, peso y tendencia, sueño, pasos, entrenos, salud y unas frases del coach. Las cifras salen de tus datos; el coach solo comenta. Ver [Informes](/guia/informes).
 - **Correo**: en Ajustes → Cuenta, un botón para mandarte un correo de prueba y el historial de los enviados. Es la base del informe de cada mañana, que viene después.
 - **Tipo de cada comida**: desayuno, media mañana, comida, merienda, cena o picoteo. El bot lo saca de lo que dices o lo decide por la hora y lo que ya llevas ese día (un yogur después de cenar es picoteo), y lo enseña antes de guardar para poder corregirlo. Se ve en Hoy y lo usan el coach y el MCP. Las comidas de antes se quedan sin tipo.
 - **Ahora se llama TwinMe**, con dominio nuevo: [twinme.app](https://twinme.app) (`dt.cadenceai.ovh` deja de funcionar). En el móvil hay que volver a añadir la app a la pantalla de inicio, dar de alta Face ID y activar los avisos (van atados al dominio).

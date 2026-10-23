@@ -7,6 +7,12 @@ export const KINDS = Object.freeze({
 });
 
 export const RESEND_URL = 'https://api.resend.com';
+
+/**
+ * Un adjunto. Con `contentId`, va incrustado en el HTML como <img src="cid:...">: así las
+ * gráficas viajan dentro del correo y no hay que dejarlas en ninguna URL pública.
+ * @typedef {{ filename: string, content: Uint8Array, contentId?: string }} Attachment
+ */
 export const DEFAULT_FROM = 'TwinMe <informe@twinme.app>';
 
 export const EmailErrorCode = Object.freeze({
@@ -45,10 +51,10 @@ export function createResendTransport({
 }) {
   return {
     /**
-     * @param {{ from: string, to: string, subject: string, html: string, text: string, idempotencyKey?: string }} message
+     * @param {{ from: string, to: string, subject: string, html: string, text: string, idempotencyKey?: string, attachments?: Attachment[] }} message
      * @returns {Promise<{ id: string }>}
      */
-    async send({ from, to, subject, html, text, idempotencyKey }) {
+    async send({ from, to, subject, html, text, idempotencyKey, attachments = [] }) {
       let response;
       try {
         response = await fetch(`${baseUrl}/emails`, {
@@ -59,7 +65,20 @@ export function createResendTransport({
             // Si se reintenta el mismo correo, Resend no lo manda dos veces
             ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey }),
           },
-          body: JSON.stringify({ from, to: [to], subject, html, text }),
+          body: JSON.stringify({
+            from,
+            to: [to],
+            subject,
+            html,
+            text,
+            ...(attachments.length && {
+              attachments: attachments.map((a) => ({
+                filename: a.filename,
+                content: Buffer.from(a.content).toString('base64'),
+                ...(a.contentId && { content_id: a.contentId }),
+              })),
+            }),
+          }),
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (err) {
@@ -215,11 +234,11 @@ export function createEmail({ store, transport, from = DEFAULT_FROM, logger }) {
 
     /**
      * @param {string} userId
-     * @param {{ kind: string, to: string, subject: string, html: string, text: string, dedupeKey?: string }} email
+     * @param {{ kind: string, to: string, subject: string, html: string, text: string, dedupeKey?: string, attachments?: Attachment[] }} email
      * @returns {Promise<{ status: 'sent', id: string } | { status: 'duplicate' }>}
      *   Lanza EmailError si falla (con `retryable` para saber si reintentar).
      */
-    async send(userId, { kind, to, subject, html, text, dedupeKey }) {
+    async send(userId, { kind, to, subject, html, text, dedupeKey, attachments }) {
       const logId = await store.log(userId, { kind, dedupeKey, to, subject });
       if (logId === null) return { status: 'duplicate' };
       try {
@@ -229,6 +248,7 @@ export function createEmail({ store, transport, from = DEFAULT_FROM, logger }) {
           subject,
           html,
           text,
+          attachments,
           idempotencyKey: `${userId}:${kind}:${dedupeKey ?? logId}`,
         });
         await store.sent(logId, id);

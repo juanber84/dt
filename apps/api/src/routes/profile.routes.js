@@ -16,7 +16,7 @@ const profileBody = z.object({
 
 /**
  * /api/v1/profile (con sesión): edad, sexo, altura y peso objetivo del usuario.
- * @param {{ profiles: ReturnType<typeof import('../services/profile.js').createProfiles> }} deps
+ * @param {{ profiles: ReturnType<typeof import('@digitaltwin/engine').createProfiles> }} deps
  */
 export function createProfileRouter({ profiles }) {
   const router = Router();

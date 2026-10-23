@@ -59,12 +59,13 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
   - Hecho (23/10): **Resend** con `twinme.app` verificado (SPF, DKIM, DMARC), `@digitaltwin/email`
     (envío, plantilla base, historial `email_log` sin duplicados), job `email` en el worker y en
     Cuenta el correo de prueba y el historial.
-  - Falta: el informe en sí. Por defecto uno **cada mañana** con lo de ayer; y **a demanda** desde
-    el coach. Idea acordada: el informe se compone de **bloques** (título, texto, cifras, gráfica,
-    tabla, aviso); la IA elige bloques y redacta el texto, pero las cifras y las gráficas las saca el
-    servidor de la BD (nada inventado). Se ve en una página de Informes en la app y por correo (las
-    gráficas, como PNG). Fase 1: bloques + página + informe de la mañana; fase 2: `create_report`
-    en el coach.
+  - Hecho (23/10): **informe de la mañana** por bloques (`@digitaltwin/reports`): el worker lo hace
+    a la hora de cada usuario (por defecto 7:30, en Cuenta se cambia o se apaga), lo guarda
+    (`reports`) y lo manda con las gráficas en PNG incrustadas; en la app, Informes. El comentario
+    es del coach; las cifras, de la BD y del motor.
+  - Falta: **informes a demanda** desde el coach (`create_report`: elige bloques y redacta, el
+    servidor resuelve los datos); informe semanal; que el sueño de anoche no falte si el informe
+    sale antes de que sincronice el reloj.
 
 ## IA (guardarraíles)
 

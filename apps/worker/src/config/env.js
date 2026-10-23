@@ -34,6 +34,8 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   // A quién avisa el servicio de push si hay problemas: una URL nuestra o mailto: (por defecto, PUBLIC_URL)
   VAPID_SUBJECT: z.string().min(1).optional(),
+  // Cada cuánto se mira a quién le toca ya el informe de la mañana (cada uno tiene su hora)
+  DAILY_REPORTS_CRON: cron.default('*/10 * * * *'),
   // Correos (la misma clave de Resend que la API, solo de envío). Sin ella no se manda ninguno
   RESEND_API_KEY: z.string().startsWith('re_').optional(),
   EMAIL_FROM: z.string().min(3).default('TwinMe <informe@twinme.app>'),
@@ -87,6 +89,11 @@ const schema = z.object({
   // API key de Firebase de la app de Motra (se saca de la app; no va en el código). Sin ella,
   // Motra no se sincroniza.
   MOTRA_FIREBASE_API_KEY: z.string().min(1).optional(),
+  // LLM del coach (el mismo que la API: el comentario del informe de la mañana). Sin ellos, el
+  // de LLM_*
+  COACH_LLM_API_KEY: z.string().min(1).optional(),
+  COACH_LLM_BASE_URL: z.url().optional(),
+  COACH_LLM_MODEL: z.string().min(1).optional(),
   // LLM para leer los informes médicos (el mismo LLM_* que la API). Sin clave, los PDF que se
   // suban quedan en error explicándolo.
   LLM_API_KEY: z.string().min(1).optional(),

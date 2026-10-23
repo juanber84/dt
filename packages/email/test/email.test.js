@@ -46,6 +46,22 @@ describe('createResendTransport', () => {
     });
   });
 
+  it('adjuntos en base64; con contentId van incrustados (cid)', async () => {
+    const fetch = vi.fn(async () => json({ id: 'em_1' }));
+    const transport = createResendTransport({ apiKey: 're_test', fetch });
+    await transport.send({
+      ...message,
+      attachments: [{ filename: 'chart-1.png', content: Buffer.from('png'), contentId: 'chart-1' }],
+    });
+    expect(JSON.parse(fetch.mock.calls[0][1].body).attachments).toEqual([
+      {
+        filename: 'chart-1.png',
+        content: Buffer.from('png').toString('base64'),
+        content_id: 'chart-1',
+      },
+    ]);
+  });
+
   it('límite (429), fallo suyo (5xx) o de red: se puede reintentar', async () => {
     const limited = createResendTransport({
       apiKey: 're_test',

@@ -30,8 +30,8 @@ import { createDbUserStore } from './services/users-db.js';
 import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
-import { createProfiles } from './services/profile.js';
-import { createEngine } from './services/engine.js';
+import { createDbReportStore, createReports } from '@digitaltwin/reports';
+import { createEngine, createProfiles } from '@digitaltwin/engine';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -96,6 +96,8 @@ import { createClinical } from './services/clinical.js';
  *   claves VAPID; sin ellas no se ofrecen.
  * @param {ReturnType<typeof createEmail>} [deps.email]  Correos. Por defecto, con la BD y la clave
  *   de Resend; sin ellas no se ofrecen.
+ * @param {ReturnType<typeof createReports>} [deps.reports]  Informes. Por defecto, con la BD y el
+ *   motor; sin ellos no se ofrecen.
  */
 export function createApp({
   config = loadConfig(),
@@ -126,6 +128,7 @@ export function createApp({
   passkeys,
   push,
   email,
+  reports,
 } = {}) {
   const log = logger ?? createLogger({ name: 'api', level: config.LOG_LEVEL });
   if (!config.JWT_SECRET && config.NODE_ENV !== 'test') {
@@ -257,6 +260,22 @@ export function createApp({
           transport: createResendTransport({ apiKey: config.RESEND_API_KEY }),
           from: config.EMAIL_FROM,
           logger: log.child({ module: 'email' }),
+        })
+      : undefined;
+  // Informes: los mismos que hace el worker cada mañana (aquí, a mano y para verlos)
+  reports ??=
+    db && engine
+      ? createReports({
+          store: createDbReportStore({ db }),
+          queries: pipeline.queries,
+          engine,
+          profiles,
+          chat: coachLlm,
+          email,
+          appUrl: config.PUBLIC_URL,
+          timeZone: config.TIMEZONE,
+          onUsage: (entry) => llmUsage.record(entry),
+          logger: log.child({ module: 'reports' }),
         })
       : undefined;
   const xiaomiLogin = createXiaomiLogin({
@@ -446,6 +465,7 @@ export function createApp({
       passkeys,
       push,
       email,
+      reports,
       profiles,
       engine,
     }),

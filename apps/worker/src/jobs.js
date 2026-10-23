@@ -21,6 +21,7 @@ export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
  * @param {ReturnType<typeof import('@digitaltwin/push').createPush>} [deps.push]
  * @param {ReturnType<typeof import('./notifications.js').createPushRules>} [deps.pushRules]
  * @param {ReturnType<typeof import('@digitaltwin/email').createEmail>} [deps.email]
+ * @param {ReturnType<typeof import('@digitaltwin/reports').createReports>} [deps.reports]
  * @param {ReturnType<typeof import('./backup.js').createBackup>} [deps.backup]
  * @param {(error: Error) => Promise<unknown>} [deps.onBackupFailed]  En el último intento.
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
@@ -37,6 +38,7 @@ export function createJobs({
   push,
   pushRules,
   email,
+  reports,
   backup,
   onBackupFailed,
   config,
@@ -226,6 +228,12 @@ export function createJobs({
       }
     },
 
+    /** Los informes de la mañana: a cada usuario, una vez pasada su hora, el de ayer. */
+    async [JOBS.DAILY_REPORTS]() {
+      if (!reports) return { skipped: 'unconfigured' };
+      return reports.runDaily();
+    },
+
     /** Copia de seguridad de la BD; si falla del todo, se avisa a los administradores. */
     async [JOBS.DB_BACKUP]({ retryCount, retryLimit }) {
       if (!backup) return { skipped: 'unconfigured' };
@@ -347,6 +355,14 @@ export function createJobs({
 
       if (email) {
         await queue.work(JOBS.EMAIL, {}, wrap(JOBS.EMAIL, handlers[JOBS.EMAIL]));
+      }
+      if (reports) {
+        await queue.work(
+          JOBS.DAILY_REPORTS,
+          {},
+          wrap(JOBS.DAILY_REPORTS, handlers[JOBS.DAILY_REPORTS]),
+        );
+        await queue.schedule(JOBS.DAILY_REPORTS, config.DAILY_REPORTS_CRON, {}, { tz });
       }
 
       if (backup) {

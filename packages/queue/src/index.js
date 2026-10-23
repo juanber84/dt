@@ -15,6 +15,7 @@ import { PgBoss } from 'pg-boss';
  *   push-rules      el cron de los avisos: mira cada usuario con notificaciones  { rule }
  *   db-backup       copia de seguridad de la BD a Google Drive (cifrada)          {}
  *   email           un correo (informe del día...) por Resend                     { userId, email }
+ *   daily-reports   el cron de los informes de la mañana: a quien le toque, el de ayer  {}
  */
 export const JOBS = Object.freeze({
   SYNC: 'sync',
@@ -29,6 +30,7 @@ export const JOBS = Object.freeze({
   PUSH_RULES: 'push-rules',
   DB_BACKUP: 'db-backup',
   EMAIL: 'email',
+  DAILY_REPORTS: 'daily-reports',
 });
 
 /** Prioridad (mayor = antes): lo del día a día pasa por delante del histórico. */
@@ -79,6 +81,8 @@ const QUEUES = {
   [JOBS.PUSH_RULES]: { retryLimit: 1, retryDelay: 120 },
   // Un correo: si Resend limita o falla, reintenta con calma (~1 h); si lo rechaza, no
   [JOBS.EMAIL]: { retryLimit: 4, retryDelay: 60, retryBackoff: true, retryDelayMax: 1800 },
+  // Cada 10 min: si uno falla, ya lo recoge el siguiente (cada informe se hace una vez por día)
+  [JOBS.DAILY_REPORTS]: { policy: 'singleton', retryLimit: 0, expireInSeconds: 900 },
   // Si falla (Drive caído, red), se reintenta dos veces con 10 min de margen; luego se avisa
   [JOBS.DB_BACKUP]: {
     policy: 'singleton',

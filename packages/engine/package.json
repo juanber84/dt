@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "El motor: peso tendencia, gasto real adaptativo y objetivos de comida (cálculo, sin IA)",
+  "description": "El motor: peso tendencia, gasto real adaptativo y objetivos de comida (cálculo, sin IA), y su servicio con los datos de cada usuario",
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js"

@@ -15,6 +15,7 @@ import { createSystemAdminRouter } from './system-admin.routes.js';
 import { createPasskeysRouter } from './passkeys.routes.js';
 import { createPushRouter } from './push.routes.js';
 import { createEmailRouter } from './email.routes.js';
+import { createReportsRouter } from './reports.routes.js';
 import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
@@ -55,6 +56,7 @@ export function createApiRouter({
   passkeys,
   push,
   email,
+  reports,
   profiles,
   engine,
 }) {
@@ -82,6 +84,7 @@ export function createApiRouter({
   if (email) {
     router.use('/email', requireUser, createEmailRouter({ email, publicUrl: config.PUBLIC_URL }));
   }
+  if (reports) router.use('/reports', requireUser, createReportsRouter({ reports }));
   if (profiles) router.use('/profile', requireUser, createProfileRouter({ profiles }));
   // El motor: peso tendencia, gasto real y objetivos de comida
   if (engine) {

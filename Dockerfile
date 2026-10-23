@@ -20,6 +20,10 @@ RUN if [ "$APP" = "worker" ]; then \
       apk add --no-cache poppler-utils tesseract-ocr tesseract-ocr-data-spa \
         postgresql18-client age rclone; \
     fi
+# La API y el worker pintan las gráficas de los informes en PNG (resvg): necesitan una fuente
+RUN if [ "$APP" = "worker" ] || [ "$APP" = "api" ]; then \
+      apk add --no-cache font-dejavu; \
+    fi
 
 # 1. Manifiestos (capa cacheada mientras no cambien las dependencias)
 COPY package.json package-lock.json ./
@@ -39,6 +43,7 @@ COPY packages/mcp/package.json packages/mcp/
 COPY packages/nutrition/package.json packages/nutrition/
 COPY packages/push/package.json packages/push/
 COPY packages/email/package.json packages/email/
+COPY packages/reports/package.json packages/reports/
 COPY packages/queue/package.json packages/queue/
 COPY packages/timeline/package.json packages/timeline/
 COPY packages/google-health/package.json packages/google-health/
