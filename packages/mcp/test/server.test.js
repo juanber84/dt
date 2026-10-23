@@ -270,6 +270,20 @@ describe('servidor MCP', () => {
     });
   });
 
+  it('get_day_summary: los líquidos del día ya sumados (agua + otras bebidas)', async () => {
+    const point = (value) => ({ points: [{ t: '2026-10-15T22:00:00.000Z', value, count: 1 }] });
+    queries.series.mockResolvedValueOnce({
+      'intake.water': { label: 'Agua', unit: 'mL', aggregation: 'sum', ...point(1500) },
+      'intake.beverages': { label: 'Otras bebidas', unit: 'mL', aggregation: 'sum', ...point(420) },
+    });
+    const { data } = await call(client, 'get_day_summary');
+    expect(data.hydration).toEqual({ fluidMl: 1920, waterMl: 1500, beveragesMl: 420 });
+
+    // Sin agua ni bebidas apuntadas no hay hydration (no es "0 ml")
+    const empty = await call(client, 'get_day_summary');
+    expect(empty.data.hydration).toBeUndefined();
+  });
+
   it('un fallo de la BD no se le enseña a la IA', async () => {
     queries.availableMetrics.mockRejectedValueOnce(new Error('connection refused 10.0.0.3'));
     const res = await call(client, 'list_metrics');

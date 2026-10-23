@@ -529,4 +529,43 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     await request(app).delete(`/api/v1/entries/${water.body.id}`).set('Cookie', cookie).expect(404);
     expect((await episodes()).filter((e) => e.kind === 'drink')).toHaveLength(1);
   });
+
+  it('Registrar bebida: agua y café a la misma hora cuentan los dos (cada uno en su métrica)', async () => {
+    const post = (body) => request(app).post('/api/v1/entries').set('Cookie', cookie).send(body);
+    await post({ kind: 'water', at: '2026-10-22T10:00:00+02:00', value: 500 }).expect(201);
+    await post({
+      kind: 'drink',
+      at: '2026-10-22T10:10:00+02:00',
+      text: 'Café con leche',
+      value: 200,
+      caffeineMg: 80,
+    }).expect(201);
+    // Una bebida sin nombre no vale
+    await post({ kind: 'drink', at: '2026-10-22T11:00:00+02:00', value: 200 }).expect(400);
+
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await db`call refresh_continuous_aggregate('observations_hourly', null, null)`;
+        break;
+      } catch (err) {
+        if (attempt >= 10 || !/concurrent refresh/.test(err.message)) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+    const series = await request(app)
+      .get('/api/v1/timeline/series')
+      .query({
+        from: '2026-10-21T22:00:00Z',
+        to: '2026-10-22T22:00:00Z',
+        bucket: 'day',
+        metrics: 'intake.water,intake.beverages,intake.caffeine',
+        tz: 'Europe/Madrid',
+      })
+      .set('Cookie', cookie)
+      .expect(200);
+    const day = (code) => series.body.series[code].points.map((p) => p.value);
+    expect(day('intake.water')).toEqual([500]);
+    expect(day('intake.beverages')).toEqual([200]);
+    expect(day('intake.caffeine')).toEqual([80]);
+  });
 });

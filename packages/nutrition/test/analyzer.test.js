@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { NutritionAnalyzer, sumDishes, sumItems } from '../src/analyzer.js';
+import { NutritionAnalyzer, sumDishes, sumDrinks, sumItems } from '../src/analyzer.js';
 import { NutritionErrorCode } from '../src/errors.js';
 import { mealEntrySchema } from '../src/schema.js';
 
@@ -123,6 +123,34 @@ describe('NutritionAnalyzer', () => {
       createdAt: NOW.toISOString(),
     };
     expect(mealEntrySchema.safeParse(entry).success).toBe(true);
+  });
+
+  it('bebidas: los ml que hidratan y la cafeína solo en las que los tienen', async () => {
+    const coffee = {
+      name: 'Café con leche',
+      eaten_at: '2026-10-13T09:00',
+      items: [
+        {
+          name: 'Café con leche',
+          quantity: 1,
+          unit: 'taza',
+          kcal: 60,
+          protein_g: 3.2,
+          carbs_g: 4.8,
+          fat_g: 3.1,
+          fiber_g: 0,
+          fluid_ml: '200',
+          caffeine_mg: 80.4,
+        },
+      ],
+    };
+    const output = { ...OUTPUT, dishes: [...OUTPUT.dishes, coffee] };
+    const { analyzer } = build(reply(JSON.stringify(output)));
+    const { dishes } = await analyzer.analyze({ text: 'x', now: NOW });
+    expect(dishes.at(-1).items[0]).toMatchObject({ fluidMl: 200, caffeineMg: 80 });
+    // La comida sólida no lleva esos campos
+    expect(dishes[0].items[0]).not.toHaveProperty('fluidMl');
+    expect(sumDrinks(dishes)).toEqual({ fluidMl: 200, caffeineMg: 80 });
   });
 
   it('manda la foto como data URL', async () => {

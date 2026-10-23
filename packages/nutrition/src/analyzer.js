@@ -206,6 +206,9 @@ function toIngredient(item) {
     carbsG: round1(item.carbs_g),
     fatG: round1(item.fat_g),
     fiberG: round1(item.fiber_g),
+    // Solo en bebidas: así un ingrediente sólido sigue igual que antes
+    ...(item.fluid_ml > 0 && { fluidMl: Math.round(item.fluid_ml) }),
+    ...(item.caffeine_mg > 0 && { caffeineMg: Math.round(item.caffeine_mg) }),
   };
 }
 
@@ -234,6 +237,15 @@ const round1 = (n) => Math.round(n * 10) / 10;
 /** Suma las macros de todos los ingredientes de una lista de platos. */
 export function sumDishes(dishes) {
   return sumItems(dishes.flatMap((dish) => dish.items));
+}
+
+/** Lo que hidratan y la cafeína de unos platos (o ingredientes): { fluidMl, caffeineMg }. */
+export function sumDrinks(dishesOrItems) {
+  const items = dishesOrItems.flatMap((x) => x.items ?? [x]);
+  return {
+    fluidMl: Math.round(items.reduce((sum, i) => sum + (i.fluidMl ?? 0), 0)),
+    caffeineMg: Math.round(items.reduce((sum, i) => sum + (i.caffeineMg ?? 0), 0)),
+  };
 }
 
 /** Suma las macros de una lista de ingredientes. */

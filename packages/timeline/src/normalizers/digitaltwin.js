@@ -1,4 +1,4 @@
-import { sumDishes } from '@digitaltwin/nutrition';
+import { sumDishes, sumDrinks } from '@digitaltwin/nutrition';
 
 const INTAKE = [
   ['intake.energy', 'kcal'],
@@ -20,6 +20,8 @@ export function normalizeMeal(entry) {
 
   entry.dishes.forEach((dish, index) => {
     const total = sumDishes([dish]);
+    // Las bebidas: lo que hidratan y su cafeína (los platos sólidos dan 0)
+    const drink = sumDrinks([dish]);
     const time = new Date(dish.eatenAt).toISOString();
     episodes.push({
       origin,
@@ -35,6 +37,8 @@ export function normalizeMeal(entry) {
         carbsG: total.carbsG,
         fatG: total.fatG,
         fiberG: total.fiberG,
+        ...(drink.fluidMl && { fluidMl: drink.fluidMl }),
+        ...(drink.caffeineMg && { caffeineMg: drink.caffeineMg }),
       },
       schema: 'meal@1',
       details: {
@@ -47,6 +51,8 @@ export function normalizeMeal(entry) {
     });
     const at = totals.get(time) ?? {};
     for (const [metric, key] of INTAKE) at[metric] = (at[metric] ?? 0) + (total[key] ?? 0);
+    if (drink.fluidMl) at['intake.beverages'] = (at['intake.beverages'] ?? 0) + drink.fluidMl;
+    if (drink.caffeineMg) at['intake.caffeine'] = (at['intake.caffeine'] ?? 0) + drink.caffeineMg;
     totals.set(time, at);
   });
 
@@ -62,6 +68,7 @@ export function normalizeMeal(entry) {
 /** Lo que se apunta a mano (app o bot) además de las comidas. */
 export const ENTRY_KINDS = Object.freeze([
   'water',
+  'drink',
   'coffee',
   'weight',
   'symptom',
@@ -73,7 +80,9 @@ export const ENTRY_KINDS = Object.freeze([
  * Un registro suelto (Registrar en la app: canal `manual`; o el bot: `telegram`):
  * { id, kind, at, value?, text?, channel }.
  *   water   ml de agua → intake.water + episodio `drink`
- *   coffee  mg de cafeína → intake.caffeine + episodio `drink`
+ *   drink   otra bebida: nombre (text), ml que hidratan (value) y cafeína (caffeineMg) →
+ *           intake.beverages + intake.caffeine + episodio `drink`
+ *   coffee  (los de antes de `drink`) mg de cafeína → intake.caffeine + episodio `drink`
  *   weight  kg → body.weight + episodio `weigh-in` (como un pesaje de la báscula)
  *   symptom texto + intensidad 1-5 → episodio `symptom`
  *   note    texto → episodio `note`
@@ -108,6 +117,25 @@ export function normalizeEntry(entry) {
           },
         ],
       };
+    case 'drink': {
+      const caffeineMg = entry.caffeineMg > 0 ? entry.caffeineMg : null;
+      return {
+        mode: 'exact',
+        observations: [
+          ...observation('intake.beverages', entry.value),
+          ...(caffeineMg ? observation('intake.caffeine', caffeineMg) : []),
+        ],
+        episodes: [
+          {
+            ...base,
+            kind: 'drink',
+            title: entry.text || 'Bebida',
+            summary: { fluidMl: entry.value, ...(caffeineMg && { caffeineMg }) },
+            schema: 'drink@1',
+          },
+        ],
+      };
+    }
     case 'coffee':
       return {
         mode: 'exact',

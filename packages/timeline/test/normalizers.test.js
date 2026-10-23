@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeGoogleDay,
   normalizeMeal,
+  normalizeEntry,
   normalizeXiaomiScale,
   normalizeIntervalsActivity,
   normalizeIntervalsWellness,
@@ -350,6 +351,76 @@ describe('comidas del bot', () => {
       value: 250,
       origin: 'telegram',
     });
+  });
+
+  it('las bebidas suman lo que hidratan y su cafeína; la comida sólida y el alcohol, nada', () => {
+    const item = (extra) => ({
+      name: 'x',
+      quantity: 1,
+      unit: 'u',
+      kcal: 50,
+      proteinG: 1,
+      carbsG: 5,
+      fatG: 1,
+      fiberG: 0,
+      ...extra,
+    });
+    const at = '2026-10-15T07:00:00Z';
+    const result = normalizeMeal({
+      id: '7a1d1a51-6b0e-4a43-9a3b-1b6bb1e7a002',
+      source: 'telegram',
+      text: 'café con leche, tostada y una cerveza',
+      notes: '',
+      dishes: [
+        { name: 'Café con leche', eatenAt: at, items: [item({ fluidMl: 200, caffeineMg: 80 })] },
+        { name: 'Tostada', eatenAt: at, items: [item()] },
+        { name: 'Cerveza', eatenAt: at, items: [item()] },
+      ],
+      createdAt: at,
+    });
+    const value = (metric) => result.observations.find((o) => o.metric === metric)?.value;
+    expect(value('intake.beverages')).toBe(200);
+    expect(value('intake.caffeine')).toBe(80);
+    expect(result.episodes[0].summary).toMatchObject({ fluidMl: 200, caffeineMg: 80 });
+    expect(result.episodes[1].summary.fluidMl).toBeUndefined();
+  });
+});
+
+describe('registros de bebidas', () => {
+  const at = '2026-10-15T07:00:00Z';
+  const metrics = (r) => r.observations.map((o) => [o.metric, o.value]);
+
+  it('una bebida de Registrar: lo que hidrata como otras bebidas, y su cafeína', () => {
+    const r = normalizeEntry({
+      id: 'd1',
+      kind: 'drink',
+      at,
+      text: 'Café con leche',
+      value: 200,
+      caffeineMg: 80,
+    });
+    expect(metrics(r)).toEqual([
+      ['intake.beverages', 200],
+      ['intake.caffeine', 80],
+    ]);
+    expect(r.episodes[0]).toMatchObject({
+      kind: 'drink',
+      title: 'Café con leche',
+      summary: { fluidMl: 200, caffeineMg: 80 },
+    });
+  });
+
+  it('sin cafeína (una infusión) no apunta cafeína; el agua sigue siendo agua', () => {
+    const tea = normalizeEntry({ id: 'd2', kind: 'drink', at, text: 'Infusión', value: 250 });
+    expect(metrics(tea)).toEqual([['intake.beverages', 250]]);
+    expect(tea.episodes[0].summary).toEqual({ fluidMl: 250 });
+    const water = normalizeEntry({ id: 'w1', kind: 'water', at, value: 500 });
+    expect(metrics(water)).toEqual([['intake.water', 500]]);
+  });
+
+  it('los cafés de antes (solo mg de cafeína) siguen igual', () => {
+    const old = normalizeEntry({ id: 'c1', kind: 'coffee', at, value: 80 });
+    expect(metrics(old)).toEqual([['intake.caffeine', 80]]);
   });
 });
 

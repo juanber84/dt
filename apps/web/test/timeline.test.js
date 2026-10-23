@@ -189,10 +189,10 @@ describe('timeline real', () => {
         for (const [k, v] of Object.entries(value)) walk(v, `${path}.${k}`);
     };
     walk(summary, 'día');
-    // Solo los objetivos por defecto (proteína, agua) y lo que necesitas dormir
+    // Solo los objetivos por defecto (proteína, líquidos) y lo que necesitas dormir
     expect(numbers.sort()).toEqual([
+      'día.nutrition.fluidTargetMl',
       'día.nutrition.proteinTarget',
-      'día.nutrition.waterTargetMl',
       'día.sleep.need',
     ]);
   });
@@ -204,6 +204,32 @@ describe('timeline real', () => {
       basalKcal: 1750,
     });
     expect(summary.nutrition).toMatchObject({ waterMl: 1750, target: 2350 });
+  });
+
+  it('líquidos: agua + otras bebidas, y el objetivo sube con las horas de entreno', () => {
+    const day = {
+      meals: [],
+      weighIns: [],
+      clinical: [],
+      entries: [],
+      sleep: null,
+      // 90 min de bici: +750 ml → 3,3 L (en pasos de 100 ml)
+      workouts: [{ start: '2026-10-06T10:00:00Z', end: '2026-10-06T11:30:00Z', summary: {} }],
+    };
+    const summary = mergeSummary(emptySummary('2026-10-06'), day, {
+      waterMl: 1500,
+      beveragesMl: 400,
+    });
+    expect(summary.nutrition).toMatchObject({
+      waterMl: 1500,
+      beveragesMl: 400,
+      fluidMl: 1900,
+      fluidTargetMl: 3300,
+    });
+    // Solo café (sin agua apuntada): los líquidos son el café, no "sin dato"
+    expect(
+      mergeSummary(emptySummary('2026-10-06'), undefined, { beveragesMl: 200 }).nutrition,
+    ).toMatchObject({ fluidMl: 200, waterMl: null, fluidTargetMl: 2500 });
   });
 
   it('un día sin datos queda sin dato (no a 0) para que las medias no se hundan', () => {

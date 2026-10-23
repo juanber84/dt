@@ -58,6 +58,35 @@ describe('formatAnalysis', () => {
     );
   });
 
+  it('las bebidas enseñan lo que hidratan y su cafeína, y el total de líquidos con el agua', () => {
+    const text = formatAnalysis(
+      {
+        dishes: [
+          {
+            name: 'Café con leche',
+            eatenAt: '2026-10-13T07:00:00.000Z',
+            items: [
+              {
+                ...item('Café con leche', 1, 'taza', 60, 3.2, 4.8, 3.1),
+                fluidMl: 200,
+                caffeineMg: 80,
+              },
+            ],
+          },
+        ],
+        water: [{ ml: 250, drunkAt: '2026-10-13T07:00:00.000Z' }],
+        notes: '',
+      },
+      { timeZone: 'Europe/Madrid', now: new Date('2026-10-13T15:00:00Z') },
+    );
+    expect(text).toContain('60 kcal · P 3.2 · HC 4.8 · G 3.1 · 💧 200 ml · 80 mg cafeína');
+    expect(text).toContain('💧 Líquidos: 450 ml');
+  });
+
+  it('sin bebidas no sale la línea de líquidos', () => {
+    expect(format()).not.toContain('Líquidos');
+  });
+
   it('muestra la fecha si no es de hoy', () => {
     expect(format(new Date('2026-10-14T10:00:00Z'))).toContain('<b>13/10 14:30 · Flan</b>');
   });

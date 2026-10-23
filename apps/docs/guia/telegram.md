@@ -11,7 +11,7 @@ Escribe lo que has comido, con la hora si no es ahora: _"a las 8 bol de avena 40
 
 ## Agua
 
-_"medio litro de agua"_, _"un vaso de agua"_. Si no dices cuánta, te pregunta. El café, los refrescos y las demás bebidas van como comida (tienen calorías), no como agua.
+_"medio litro de agua"_, _"un vaso de agua"_. Si no dices cuánta, te pregunta. El café, los refrescos y las demás bebidas van como comida (tienen calorías), y además el bot estima los ml que hidratan y su cafeína: cuentan en los líquidos del día. El alcohol no cuenta como líquido.
 
 ## Medicación
 

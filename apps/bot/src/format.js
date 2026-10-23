@@ -1,4 +1,4 @@
-import { sumDishes, sumItems, toLocalDateTime } from '@digitaltwin/nutrition';
+import { sumDishes, sumDrinks, sumItems, toLocalDateTime } from '@digitaltwin/nutrition';
 
 export function escapeHtml(text) {
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -16,6 +16,14 @@ function when(eatenAt, timeZone, today) {
 
 const pcg = (m) => `P ${num(m.proteinG)} · HC ${num(m.carbsG)} · G ${num(m.fatG)}`;
 const macros = (m) => `${m.kcal} kcal · ${pcg(m)}`;
+
+/** " · 💧 200 ml · 80 mg cafeína" de una bebida (nada si no lo es). */
+function drinkText(items) {
+  const { fluidMl, caffeineMg } = sumDrinks(items);
+  return [fluidMl && ` · 💧 ${fluidMl} ml`, caffeineMg && ` · ${caffeineMg} mg cafeína`]
+    .filter(Boolean)
+    .join('');
+}
 
 const quantity = (item) =>
   item.quantity == null ? '' : escapeHtml(`${num(item.quantity)} ${item.unit}`.trim());
@@ -50,14 +58,16 @@ export function formatAnalysis(
 
     if (dish.items.length === 1) {
       const amount = quantity(dish.items[0]);
-      lines.push(amount ? `${title} · ${amount}` : title, macros(subtotal));
+      lines.push(amount ? `${title} · ${amount}` : title, macros(subtotal) + drinkText(dish.items));
       continue;
     }
 
     lines.push(title, `<b>${subtotal.kcal} kcal</b> · ${pcg(subtotal)}`);
     for (const item of dish.items) {
       const amount = quantity(item);
-      lines.push(`  • ${escapeHtml(item.name)}${amount ? ` ${amount}` : ''} — ${macros(item)}`);
+      lines.push(
+        `  • ${escapeHtml(item.name)}${amount ? ` ${amount}` : ''} — ${macros(item)}${drinkText([item])}`,
+      );
     }
   }
 
@@ -71,6 +81,9 @@ export function formatAnalysis(
     `<b>Total: ${total.kcal} kcal</b>`,
     `P ${num(total.proteinG)} g · HC ${num(total.carbsG)} g · G ${num(total.fatG)} g · Fibra ${num(total.fiberG)} g`,
   );
+  // Lo que hidratan las bebidas (y el agua, si va en el mismo mensaje)
+  const fluids = sumDrinks(dishes).fluidMl + water.reduce((sum, w) => sum + (w.ml ?? 0), 0);
+  if (fluids) lines.push(`💧 Líquidos: ${fluids} ml`);
   if (notes) lines.push('', `<i>${escapeHtml(notes)}</i>`);
 
   return lines.join('\n');

@@ -22,7 +22,7 @@ Pasos (y su gráfica por hora), distancia, kcal activas y pisos. Si un día no h
 
 ## Nutrición
 
-Lo que llevas comido frente a tu **objetivo del motor** (kcal, proteína, hidratos y grasa). El objetivo sale de tu gasto real, no de las kcal que dice el reloj (ver [Objetivos de comida](/motor/objetivos)). Debajo, el agua.
+Lo que llevas comido frente a tu **objetivo del motor** (kcal, proteína, hidratos y grasa). El objetivo sale de tu gasto real, no de las kcal que dice el reloj (ver [Objetivos de comida](/motor/objetivos)). Debajo, los **líquidos** del día: el agua más lo que hidratan las demás bebidas (café, té, leche, zumos; el alcohol no cuenta), con el desglose de cada parte. El objetivo es 2,5 L, más 0,5 L por cada hora que entrenas ese día.
 
 ## Cuerpo y sueño
 

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Droplets, Coffee, Scale, Stethoscope, NotebookPen, FileHeart, Pill } from '@lucide/vue';
+import { Droplets, CupSoda, Scale, Stethoscope, NotebookPen, FileHeart, Pill } from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { uploadDocument, uploadProblem } from '../../services/clinical.js';
 import { createEntry, fetchMedications } from '../../services/twin.js';
@@ -29,14 +29,14 @@ const KINDS = [
     iconName: 'Droplets',
   },
   {
-    id: 'coffee',
-    label: 'Café',
-    icon: Coffee,
-    unit: 'mg de cafeína',
-    field: 'Cafeína (mg)',
-    default: 80,
+    id: 'drink',
+    label: 'Bebida',
+    icon: CupSoda,
+    unit: 'ml',
+    field: 'Líquido (ml)',
+    default: 200,
     category: 'hydration',
-    iconName: 'Coffee',
+    iconName: 'CupSoda',
   },
   {
     id: 'weight',
@@ -73,12 +73,24 @@ const KINDS = [
   { id: 'report', label: 'Informe', icon: FileHeart, unit: null },
 ];
 
+// Bebidas típicas: rellenan nombre, ml que hidratan y cafeína aproximada
+const DRINKS = [
+  { name: 'Café con leche', ml: 200, caffeine: 80 },
+  { name: 'Espresso', ml: 30, caffeine: 65 },
+  { name: 'Té', ml: 250, caffeine: 40 },
+  { name: 'Infusión', ml: 250, caffeine: 0 },
+  { name: 'Leche', ml: 250, caffeine: 0 },
+  { name: 'Zumo', ml: 200, caffeine: 0 },
+  { name: 'Refresco', ml: 330, caffeine: 35 },
+];
+
 const kind = ref('water');
 const day = ref(props.date);
 const time = ref('12:00');
 const value = ref(500);
 const text = ref('');
 const dose = ref('');
+const caffeine = ref(0);
 const medications = ref([]);
 const file = ref(null);
 const uploading = ref(false);
@@ -102,13 +114,27 @@ watch(
       .catch(() => {});
     uploadError.value = null;
     value.value = current.value.default ?? null;
+    caffeine.value = 0;
+    if (kind.value === 'drink') pickDrink(DRINKS[0]);
   },
 );
-watch(kind, () => (value.value = current.value.default ?? null));
+/** Rellena la bebida con uno de los tipos (se puede retocar después). */
+function pickDrink(drink) {
+  text.value = drink.name;
+  value.value = drink.ml;
+  caffeine.value = drink.caffeine;
+}
+watch(kind, () => {
+  value.value = current.value.default ?? null;
+  caffeine.value = 0;
+  if (kind.value === 'drink') pickDrink(DRINKS[0]);
+  else if (['symptom', 'note', 'medication'].includes(kind.value)) text.value = '';
+});
 
 const titles = {
   water: () => `Agua · ${value.value} ml`,
-  coffee: () => `Café · ${value.value} mg de cafeína`,
+  drink: () =>
+    `${text.value || 'Bebida'} · ${value.value} ml${caffeine.value ? ` · ${caffeine.value} mg cafeína` : ''}`,
   weight: () => `Pesaje manual · ${String(value.value).replace('.', ',')} kg`,
   symptom: () => `${text.value || 'Síntoma'} · intensidad ${value.value}/5`,
   note: () => text.value || 'Nota',
@@ -135,6 +161,7 @@ const saving = ref(false);
 const canSave = computed(() => {
   if (!day.value) return false;
   if (['symptom', 'note', 'medication'].includes(kind.value)) return Boolean(text.value.trim());
+  if (kind.value === 'drink' && !text.value.trim()) return false;
   return value.value != null && value.value !== '' && Number(value.value) > 0;
 });
 
@@ -151,6 +178,7 @@ async function submit() {
       at,
       ...(k.unit && value.value != null && { value: Number(value.value) }),
       ...(text.value.trim() && { text: text.value.trim() }),
+      ...(k.id === 'drink' && caffeine.value > 0 && { caffeineMg: Number(caffeine.value) }),
       ...(k.id === 'medication' && dose.value.trim() && { dose: dose.value.trim() }),
     });
     emit('add', { date: day.value, subtitle: titles[k.id]() });
@@ -206,6 +234,24 @@ async function submit() {
           <input v-model="time" class="input num" type="time" required />
         </label>
       </div>
+      <template v-if="kind === 'drink'">
+        <div class="drinks" role="group" aria-label="Tipo de bebida">
+          <button
+            v-for="d in DRINKS"
+            :key="d.name"
+            type="button"
+            class="chip"
+            :class="{ active: text === d.name }"
+            @click="pickDrink(d)"
+          >
+            {{ d.name }}
+          </button>
+        </div>
+        <label class="field">
+          <span>Bebida</span>
+          <input v-model="text" class="input" maxlength="60" placeholder="Café con leche, té…" />
+        </label>
+      </template>
       <label v-if="current.unit" class="field">
         <span>{{ current.field }}</span>
         <input
@@ -217,6 +263,14 @@ async function submit() {
           :max="kind === 'symptom' ? 5 : undefined"
         />
       </label>
+      <label v-if="kind === 'drink'" class="field">
+        <span>Cafeína (mg)</span>
+        <input v-model="caffeine" class="input num" type="number" step="1" min="0" max="1000" />
+      </label>
+      <p v-if="kind === 'drink'" class="muted hint">
+        Cuenta en los líquidos del día. Los ml son lo que bebes (el alcohol no hidrata: no lo
+        apuntes aquí).
+      </p>
     </template>
     <template v-if="kind === 'medication'">
       <label class="field">
@@ -300,6 +354,34 @@ async function submit() {
 }
 
 .kinds button.active {
+  border-color: var(--text);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* Tipos de bebida: rellenan nombre, ml y cafeína */
+.drinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.chip.active {
   border-color: var(--text);
   color: var(--text);
   background: var(--surface-2);

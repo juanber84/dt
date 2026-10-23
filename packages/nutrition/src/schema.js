@@ -12,6 +12,9 @@ export const ingredientSchema = z.object({
   carbsG: grams,
   fatG: grams,
   fiberG: grams,
+  /** Bebidas (y caldos): ml de líquido que hidrata; el alcohol no cuenta. Sin él, nada. */
+  fluidMl: grams.optional(),
+  caffeineMg: grams.optional(),
 });
 
 /** Un plato (primero, postre, bocadillo, café...) con su hora y sus ingredientes. */
@@ -51,6 +54,8 @@ export const modelOutputSchema = z.object({
             carbs_g: macro,
             fat_g: macro,
             fiber_g: macro,
+            fluid_ml: macro,
+            caffeine_mg: macro,
           }),
         )
         .min(1),

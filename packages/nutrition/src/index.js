@@ -2,6 +2,7 @@ export {
   NutritionAnalyzer,
   sumItems,
   sumDishes,
+  sumDrinks,
   DEEPSEEK_BASE_URL,
   DEEPSEEK_MODEL,
 } from './analyzer.js';

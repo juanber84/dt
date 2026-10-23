@@ -298,7 +298,8 @@ export function createTools({
       description:
         'Todo lo de un día de un vistazo: el valor del día de cada métrica con datos (pasos, ' +
         'kcal y macros comidos, peso, FC en reposo, sueño...) y sus episodios (comidas, entrenos, ' +
-        'sueño, pesajes). Ojo: el día en curso puede estar incompleto (comidas sin apuntar, ' +
+        'sueño, pesajes) y `hydration`, los líquidos del día ya sumados (agua + otras bebidas, ' +
+        'sin alcohol). Ojo: el día en curso puede estar incompleto (comidas sin apuntar, ' +
         'sincronizaciones pendientes).',
       inputSchema: {
         date: date.optional().describe('YYYY-MM-DD; por defecto, hoy'),
@@ -315,11 +316,23 @@ export function createTools({
           const point = s.points[0];
           if (point) metrics[code] = { label: s.label, value: point.value, unit: s.unit };
         }
+        // Líquidos del día ya sumados: agua + lo que hidratan las demás bebidas (sin alcohol)
+        const waterMl = metrics['intake.water']?.value ?? null;
+        const beveragesMl = metrics['intake.beverages']?.value ?? null;
+        const hydration =
+          waterMl != null || beveragesMl != null
+            ? {
+                fluidMl: Math.round((waterMl ?? 0) + (beveragesMl ?? 0)),
+                waterMl: waterMl == null ? 0 : Math.round(waterMl),
+                beveragesMl: beveragesMl == null ? 0 : Math.round(beveragesMl),
+              }
+            : null;
         return {
           date: day,
           timeZone,
           isToday: day === today(),
           metrics,
+          ...(hydration && { hydration }),
           episodes: episodes.map((e) => compactEpisode(e, timeZone, false)),
         };
       },

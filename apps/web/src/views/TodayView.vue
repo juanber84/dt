@@ -342,6 +342,9 @@ const body = computed(() => {
   };
 });
 
+/** ml → "1,4" (litros con un decimal); sin dato, "—". */
+const liters = (ml) => (ml == null ? '—' : fmtDec(ml / 1000, 1));
+
 const hours = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 </script>
@@ -602,20 +605,22 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
               </dl>
             </template>
             <div class="water">
-              <span class="section-label">Agua</span>
+              <span class="section-label">Líquidos</span>
               <span class="num"
-                >{{
-                  day.nutrition.waterMl == null ? '—' : fmtDec(day.nutrition.waterMl / 1000, 1)
-                }}
-                / {{ fmtDec(day.nutrition.waterTargetMl / 1000, 1) }} L</span
+                >{{ liters(day.nutrition.fluidMl) }} /
+                {{ fmtDec(day.nutrition.fluidTargetMl / 1000, 1) }} L</span
               >
             </div>
             <Meter
-              :value="day.nutrition.waterMl ?? 0"
-              :max="day.nutrition.waterTargetMl"
+              :value="day.nutrition.fluidMl ?? 0"
+              :max="day.nutrition.fluidTargetMl"
               color="var(--text-2)"
               :height="4"
             />
+            <p v-if="day.nutrition.fluidMl != null" class="water-split muted">
+              {{ liters(day.nutrition.waterMl) }} L de agua ·
+              {{ liters(day.nutrition.beveragesMl) }} L de otras bebidas
+            </p>
           </section>
 
           <section v-if="body" class="card card-pad">
@@ -898,6 +903,11 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   justify-content: space-between;
   font-size: 12px;
   margin-bottom: 6px;
+}
+
+.water-split {
+  margin-top: 6px;
+  font-size: 11px;
 }
 
 .stage-legend {

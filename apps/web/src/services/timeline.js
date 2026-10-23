@@ -56,6 +56,7 @@ const DAILY_METRICS = {
   'energy.active': ['activeKcal'],
   'energy.basal': ['basalKcal'],
   'intake.water': ['waterMl', (v) => Math.round(v)],
+  'intake.beverages': ['beveragesMl', (v) => Math.round(v)],
   'fitness.vo2max': ['vo2max', (v) => Math.round(v * 10) / 10],
   // intervals.icu: TSS del día y forma/fatiga
   'training.load': ['tss'],
@@ -247,6 +248,22 @@ export function entryEvent(episode) {
       title: 'Agua',
       subtitle: `${fmtInt(s.waterMl)} ml`,
       metrics: [{ label: 'Agua', value: s.waterMl, unit: 'ml' }],
+    };
+  }
+  // Otra bebida (Registrar → Bebida): su nombre, lo que hidrata y la cafeína si tiene
+  if (episode.kind === 'drink' && s.fluidMl != null) {
+    return {
+      ...base,
+      category: 'hydration',
+      icon: s.caffeineMg ? 'Coffee' : 'CupSoda',
+      title: episode.title,
+      subtitle: [`${fmtInt(s.fluidMl)} ml`, s.caffeineMg && `${fmtInt(s.caffeineMg)} mg de cafeína`]
+        .filter(Boolean)
+        .join(' · '),
+      metrics: [
+        { label: 'Líquido', value: s.fluidMl, unit: 'ml' },
+        { label: 'Cafeína', value: s.caffeineMg ?? null, unit: 'mg' },
+      ].filter((m) => m.value != null),
     };
   }
   if (episode.kind === 'drink') {
@@ -746,7 +763,23 @@ const NO_SLEEP = {
  * Objetivos mientras no se puedan poner desde la app (los pondrá el módulo de objetivos). Las kcal
  * no tienen: el objetivo es lo que gastas ese día (basal + activas), cuando se sabe.
  */
-export const DEFAULT_TARGETS = Object.freeze({ proteinG: 160, waterMl: 3000 });
+export const DEFAULT_TARGETS = Object.freeze({ proteinG: 160, fluidMl: 2500 });
+// Lo que se suda entrenando a intensidad moderada, por hora, que hay que reponer bebiendo
+const FLUID_PER_TRAINING_HOUR_ML = 500;
+
+/**
+ * Líquidos del día (agua + otras bebidas): la base de un adulto activo (~2,5 L de bebidas;
+ * la comida aporta aparte) más lo que se suda en los entrenos de ese día, en pasos de 100 ml.
+ */
+export function fluidTargetMl(workouts = []) {
+  const minutes = workouts.reduce((sum, w) => {
+    const seconds =
+      w.summary?.durationS ?? (w.end ? (new Date(w.end) - new Date(w.start)) / 1000 : 0);
+    return sum + Math.max(0, seconds) / 60;
+  }, 0);
+  const extra = (minutes / 60) * FLUID_PER_TRAINING_HOUR_ML;
+  return DEFAULT_TARGETS.fluidMl + Math.round(extra / 100) * 100;
+}
 
 /**
  * Un día sin ningún dato, con la forma que esperan las vistas: todo en null (nada inventado).
@@ -778,7 +811,9 @@ export function emptySummary(date) {
       fat: null,
       proteinTarget: DEFAULT_TARGETS.proteinG,
       waterMl: null,
-      waterTargetMl: DEFAULT_TARGETS.waterMl,
+      beveragesMl: null,
+      fluidMl: null,
+      fluidTargetMl: DEFAULT_TARGETS.fluidMl,
     },
     weight: null,
     bodyFat: null,
@@ -794,13 +829,14 @@ export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline
   const totals = realTotals(day);
   const sleep = day.sleep ? sleepFrom(summary.date, day.sleep).totals : { ...NO_SLEEP };
   const real = Object.fromEntries(DAILY_FIELDS.map((f) => [f, values[f] ?? null]));
-  const { tss, ctl, atl, basalKcal, waterMl } = real;
+  const { tss, ctl, atl, basalKcal, waterMl, beveragesMl } = real;
   delete real.sleepTemp;
   delete real.basalKcal;
   delete real.tss;
   delete real.ctl;
   delete real.atl;
   delete real.waterMl;
+  delete real.beveragesMl;
   // Carga solo con el CTL de intervals.icu de ese día; sin él, no hay
   const load =
     ctl != null ? { tss: tss ?? 0, ctl, atl, tsb: Math.round((ctl - atl) * 10) / 10 } : null;
@@ -818,7 +854,16 @@ export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline
         ? Math.round((values.sleepTemp - tempBaseline) * 100) / 100
         : null,
     sleep,
-    nutrition: { ...summary.nutrition, ...totals.nutrition, target: totalKcal, waterMl },
+    nutrition: {
+      ...summary.nutrition,
+      ...totals.nutrition,
+      target: totalKcal,
+      waterMl,
+      beveragesMl,
+      // Líquidos totales: agua + otras bebidas. null solo si no hay ni una cosa ni la otra
+      fluidMl: waterMl != null || beveragesMl != null ? (waterMl ?? 0) + (beveragesMl ?? 0) : null,
+      fluidTargetMl: fluidTargetMl(day.workouts),
+    },
     weight: totals.weight,
     bodyFat: totals.bodyFat,
     muscle: totals.muscle,

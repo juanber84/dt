@@ -9,6 +9,14 @@ const text = z.string().trim().max(500);
 /** Un registro (de Registrar o del bot): un esquema por tipo, con sus límites razonables. */
 export const entrySchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('water'), at, value: z.number().positive().max(5000) }),
+  // Otra bebida (café, té, leche, zumo...): qué es, los ml que hidratan y su cafeína
+  z.object({
+    kind: z.literal('drink'),
+    at,
+    text: text.min(1).max(60),
+    value: z.number().positive().max(3000),
+    caffeineMg: z.number().min(0).max(1000).optional(),
+  }),
   z.object({ kind: z.literal('coffee'), at, value: z.number().positive().max(1000) }),
   z.object({ kind: z.literal('weight'), at, value: z.number().min(20).max(400) }),
   z.object({

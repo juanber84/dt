@@ -5,7 +5,7 @@ El botón **Registrar** de Hoy sirve para apuntar a mano lo que no llega solo. T
 | Tipo           | Qué guarda                    | Para qué                                                                                       |
 | -------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Agua**       | ml                            | Total del día y aviso si vas corto                                                             |
-| **Café**       | mg de cafeína                 | Cafeína del día                                                                                |
+| **Bebida**     | tipo, ml y mg de cafeína      | Cuenta en los líquidos del día (y la cafeína). Con tipos rápidos: café con leche, té, zumo…    |
 | **Peso**       | kg                            | Como un pesaje más (si no tienes báscula conectada)                                            |
 | **Síntoma**    | texto e intensidad del 1 al 5 | Seguir cómo evoluciona algo ("mocos 4/5", "dolor de rodilla 2/5"). El coach lo tiene en cuenta |
 | **Nota**       | texto                         | Lo que quieras: "médico: laringitis", "viaje", "mal día"                                       |
