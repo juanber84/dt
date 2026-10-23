@@ -27,11 +27,17 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
       de saldo bajo.
 - [ ] **8. Navegación antes de Plan.** La barra del móvil está llena (Informes quedó fuera) y viene
       Plan: p. ej. Hoy · Plan · Tendencias · Coach · Más (Entrenos, Clínica, Informes dentro).
-- [ ] **9. Un solo sitio para cada cálculo.** Duplicados web ↔ paquetes: objetivo de líquidos,
-      nombres de los tipos de comida, formato de cifras, los 3 días tras un periodo. Que la web los
-      importe de los paquetes (son JS puro).
-- [ ] **10. Partir los componentes enormes** (`ClinicalPanel.vue` 1.125 líneas, `TodayView.vue`
-      1.049) y tests de las vistas de la web (hoy solo de la lógica).
+- [x] **9. Un solo sitio para cada cálculo** (hecho el 23/10, ea967fd): tipos de comida, líquidos,
+      periodos y formato de cifras, en los paquetes; la web los importa.
+- [ ] **10. Web mantenible: lo que falta** (hecho el 23/10: Hoy de 1.049 a 379 líneas y el lateral
+      de Clínica de 1.125 a 404, con tests de componentes; los rangos largos sin el detalle de los
+      episodios: 30 días de 350 a 54 KB):
+  - `services/timeline.js` (~950 líneas): separar las llamadas a la API, la agrupación por días y
+    cómo se pinta cada tipo de evento, sin cambiar nada hacia fuera.
+  - `CoachView.vue` (810 líneas): la lógica del chat (envío, streaming, conversaciones) a su
+    propio módulo.
+  - Vistas de 500-570 líneas (Clínica, Sistema, Conexiones, Login): grandes pero manejables;
+    Sistema, mejor con su rediseño (abajo, en Producción).
 - [ ] **11. Medicación por el bot**: el bot quedó para comidas y agua, pero apunta medicación.
       Decidir si se queda o se quita.
 - [ ] **12. Menores**: `npm audit fix` (ip-address, moderada); cerrar la alerta de GitHub de la
