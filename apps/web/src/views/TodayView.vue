@@ -7,24 +7,22 @@ import EventTimeline from '../components/day/EventTimeline.vue';
 import EventDrawer from '../components/day/EventDrawer.vue';
 import QuickAddModal from '../components/day/QuickAddModal.vue';
 import VitalTile from '../components/day/VitalTile.vue';
-import ScoreRing from '../components/charts/ScoreRing.vue';
-import DayStrip from '../components/charts/DayStrip.vue';
-import BarChart from '../components/charts/BarChart.vue';
-import Hypnogram from '../components/charts/Hypnogram.vue';
-import Sparkline from '../components/charts/Sparkline.vue';
-import StatusPill from '../components/ui/StatusPill.vue';
-import Meter from '../components/ui/Meter.vue';
-import Delta from '../components/ui/Delta.vue';
-import { STAGE_COLOR, STAGE_LABEL } from '../components/charts/colors.js';
+import PeriodBanner from '../components/today/PeriodBanner.vue';
+import TodaySkeleton from '../components/today/TodaySkeleton.vue';
+import ScoreCards from '../components/today/ScoreCards.vue';
+import DayStripCard from '../components/today/DayStripCard.vue';
+import ActivityCard from '../components/today/ActivityCard.vue';
+import NutritionCard from '../components/today/NutritionCard.vue';
+import BodyCard from '../components/today/BodyCard.vue';
+import SleepCard from '../components/today/SleepCard.vue';
 import { useAsync } from '../composables/useAsync.js';
-import Skeleton from '../components/ui/Skeleton.vue';
 import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchEngine, fetchSummaries } from '../services/twin.js';
-import { documentDay, documentEvent, periodRange, withDocuments } from '../services/timeline.js';
+import { documentDay, documentEvent, withDocuments } from '../services/timeline.js';
+import { bodyOf, vitalsOf } from '../services/today.js';
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
 import { setBadge } from '../services/push.js';
 import { formatShortDate, todayISO } from '../lib/dates.js';
-import { PERIOD_NAMES } from '@digitaltwin/engine';
 import { fmtDec, fmtDuration, fmtInt, fmtSigned, fmtCompact } from '../lib/format.js';
 
 const route = useRoute();
@@ -45,18 +43,11 @@ const loadEngine = () =>
     .then((state) => (engine.value = state?.ready ? state : null))
     .catch(() => (engine.value = null));
 loadEngine();
-const targets = computed(() => engine.value?.targets ?? null);
 // Un periodo en curso o recién acabado (fuera de casa, enfermo): solo en el día de hoy, que es al
 // que se refiere el estado del motor
 const period = computed(() =>
   engine.value?.period && date.value === todayISO() ? engine.value.period : null,
 );
-const CONFIDENCE_TEXT = {
-  none: 'por fórmula, aún sin tus datos',
-  low: 'confianza baja',
-  medium: 'confianza media',
-  high: 'confianza alta',
-};
 const retry = () => {
   reloadDay();
   reloadHistory();
@@ -225,134 +216,9 @@ async function documentDeleted() {
   await loadDocuments();
 }
 
-// --- Puntuaciones -----------------------------------------------------------------------------
-
-const recovery = computed(() => {
-  const v = day.value?.recovery;
-  if (v == null) return { tone: 'neutral', label: 'Sin calcular', color: 'var(--grid)' };
-  if (v >= 67) return { tone: 'good', label: 'Alta', color: 'var(--good)' };
-  if (v >= 34) return { tone: 'warning', label: 'Media', color: 'var(--warning)' };
-  return { tone: 'critical', label: 'Baja', color: 'var(--critical)' };
-});
-
-const insight = computed(() => {
-  const d = day.value;
-  if (!d) return '';
-  const hrvValues = (history.value ?? []).map((s) => s.hrv).filter((v) => v != null);
-  const hrvAvg = hrvValues.reduce((a, b) => a + b, 0) / (hrvValues.length || 1) || d.hrv;
-  const hrvPct = Math.round(((d.hrv - hrvAvg) / hrvAvg) * 100);
-  const parts = [];
-  if (d.hrv != null)
-    parts.push(
-      hrvPct === 0
-        ? `VFC de ${d.hrv} ms, en tu media`
-        : `VFC de ${d.hrv} ms, un ${Math.abs(hrvPct)} % por ${hrvPct > 0 ? 'encima' : 'debajo'} de tu media`,
-    );
-  if (d.rhr != null) parts.push(`FC en reposo de ${d.rhr} ppm`);
-  const sleepGap = d.sleep.need - d.sleep.minutes;
-  if (d.sleep.minutes && sleepGap > 30) parts.push(`te faltaron ${fmtDuration(sleepGap)} de sueño`);
-  if (!parts.length) parts.push('Sin datos del reloj este día');
-  // El consejo sale de la recuperación: sin ella, solo los datos
-  const advice =
-    d.recovery == null
-      ? ''
-      : d.recovery >= 67
-        ? ' Buen día para meter intensidad.'
-        : d.recovery >= 34
-          ? ' Mejor volumen suave que series.'
-          : ' Hoy toca descanso o algo muy suave.';
-  return `${parts.join(', ')}.${advice}`;
-});
-
-// --- Constantes (tendencia de 30 días) ----------------------------------------------------------
-
-const series = (key) =>
-  (history.value ?? []).map((s) => (typeof key === 'function' ? key(s) : s[key]));
-const vitals = computed(() => {
-  const d = day.value;
-  if (!d) return [];
-  const avg = (key) => {
-    const v = series(key).filter((x) => x != null);
-    return v.reduce((a, b) => a + b, 0) / (v.length || 1);
-  };
-  // Sin dato ese día no hay comparación
-  const vs = (key) => (d[key] == null ? null : d[key] - avg(key));
-  return [
-    {
-      label: 'VFC',
-      value: fmtInt(d.hrv),
-      unit: 'ms',
-      delta: vs('hrv'),
-      goodWhen: 'up',
-      trend: series('hrv'),
-    },
-    {
-      label: 'FC en reposo',
-      value: fmtInt(d.rhr),
-      unit: 'ppm',
-      delta: vs('rhr'),
-      goodWhen: 'down',
-      trend: series('rhr'),
-    },
-    {
-      label: 'SpO2',
-      value: fmtDec(d.spo2, 1),
-      unit: '%',
-      delta: vs('spo2'),
-      deltaDigits: 1,
-      goodWhen: 'up',
-      trend: series('spo2'),
-    },
-    {
-      label: 'Frec. respiratoria',
-      value: fmtDec(d.respRate, 1),
-      unit: 'rpm',
-      delta: vs('respRate'),
-      deltaDigits: 1,
-      goodWhen: 'none',
-      trend: series('respRate'),
-    },
-    {
-      label: 'Temp. de la piel',
-      value: fmtSigned(d.skinTemp, 1),
-      unit: '°C',
-      delta: null,
-      goodWhen: 'none',
-      trend: series('skinTemp'),
-    },
-    // Forma cardiovascular (la estima el reloj): va con las constantes, no con la báscula
-    {
-      label: 'VO2 máx.',
-      value: fmtDec(d.vo2max, 1),
-      unit: 'mL/kg/min',
-      delta: vs('vo2max'),
-      deltaDigits: 1,
-      goodWhen: 'up',
-      trend: series('vo2max'),
-    },
-  ];
-});
-
-// --- Cuerpo -----------------------------------------------------------------------------------
-
-const body = computed(() => {
-  const list = history.value ?? [];
-  const weighed = list.filter((s) => s.weight != null);
-  const latest = weighed.at(-1);
-  if (!latest) return null;
-  return {
-    ...latest,
-    isToday: latest.date === date.value,
-    delta: latest.weight - weighed[0].weight,
-    trend: list.map((s) => s.weight),
-  };
-});
-
-/** ml → "1,4" (litros con un decimal); sin dato, "—". */
-const liters = (ml) => (ml == null ? '—' : fmtDec(ml / 1000, 1));
-
-const hours = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
-const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
+// Constantes y cuerpo (las puntuaciones las calcula ScoreCards)
+const vitals = computed(() => vitalsOf(day.value, history.value ?? []));
+const body = computed(() => bodyOf(history.value ?? [], date.value));
 </script>
 
 <template>
@@ -373,18 +239,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
       </button>
     </header>
 
-    <div v-if="period" class="card period" role="status">
-      <strong>{{
-        period.phase === 'during'
-          ? `${PERIOD_NAMES[period.type] ?? PERIOD_NAMES.other} · ${periodRange(period).toLowerCase()}`
-          : `Has vuelto hace ${period.daysSince} ${period.daysSince === 1 ? 'día' : 'días'}`
-      }}</strong>
-      <span class="muted">{{
-        period.phase === 'during'
-          ? 'El motor no aprende de estos días y el objetivo está en mantenimiento. Apunta días enteros (aunque sea a ojo) o nada.'
-          : 'El peso de estos días suele venir con agua y sal: cuenta menos en la tendencia. En 3-5 días se normaliza.'
-      }}</span>
-    </div>
+    <PeriodBanner v-if="period" :period="period" />
 
     <!-- Si falla no se enseña nada inventado: el error y un reintento -->
     <div v-if="dayError" class="card card-pad load-error" role="alert">
@@ -399,119 +254,24 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
     </div>
 
     <div v-if="skeleton" class="body" aria-busy="true" aria-label="Cargando el día">
-      <section class="scores">
-        <div v-for="n in 3" :key="n" class="card score">
-          <Skeleton circle height="116px" />
-          <div class="score-text score-text-skeleton">
-            <Skeleton width="55%" height="10px" />
-            <Skeleton width="45%" height="20px" radius="10px" />
-            <Skeleton width="85%" />
-          </div>
-        </div>
-      </section>
-      <section class="vitals">
-        <div v-for="n in 6" :key="n" class="card vital-skeleton">
-          <Skeleton width="60%" height="10px" />
-          <Skeleton width="45%" height="26px" />
-          <Skeleton width="70%" height="10px" />
-          <Skeleton height="28px" />
-        </div>
-      </section>
-      <section class="card card-pad strip-card">
-        <header class="strip-head"><h2>Tu día</h2></header>
-        <Skeleton height="120px" radius="8px" />
-      </section>
-      <div class="columns">
-        <section class="card card-pad">
-          <header class="col-head"><h2>Timeline</h2></header>
-          <div class="rows-skeleton">
-            <div v-for="n in 5" :key="n" class="row-skeleton">
-              <Skeleton width="44px" />
-              <Skeleton circle height="28px" />
-              <Skeleton :width="`${40 + ((n * 17) % 40)}%`" />
-            </div>
-          </div>
-        </section>
-        <div class="side">
-          <section v-for="title in ['Actividad', 'Nutrición']" :key="title" class="card card-pad">
-            <header class="col-head">
-              <h2>{{ title }}</h2>
-            </header>
-            <div class="rows-skeleton">
-              <Skeleton width="40%" height="28px" />
-              <Skeleton height="8px" radius="4px" />
-              <Skeleton width="80%" />
-            </div>
-          </section>
-        </div>
-      </div>
+      <TodaySkeleton />
     </div>
 
     <div v-else-if="day && !(dayError && stale)" class="body">
-      <!-- Puntuaciones -->
-      <section class="scores">
-        <div class="card score">
-          <ScoreRing :value="day.recovery" :color="recovery.color" unit="%" label="Recuperación" />
-          <div class="score-text">
-            <span class="section-label">Recuperación</span>
-            <StatusPill :tone="recovery.tone" :label="recovery.label" />
-            <p class="secondary">VFC {{ fmtInt(day.hrv) }} ms · reposo {{ fmtInt(day.rhr) }} ppm</p>
-          </div>
-        </div>
-        <div class="card score">
-          <ScoreRing :value="day.sleep.score" color="var(--sleep)" label="Sueño" />
-          <div class="score-text">
-            <span class="section-label">Sueño</span>
-            <template v-if="day.sleep.minutes != null">
-              <strong class="big">{{ fmtDuration(day.sleep.minutes) }}</strong>
-              <p class="secondary">
-                de {{ fmtDuration(day.sleep.need) }} · eficiencia {{ day.sleep.efficiency }} %
-              </p>
-            </template>
-            <p v-else class="secondary">Sin noche registrada</p>
-          </div>
-        </div>
-        <div class="card score">
-          <ScoreRing :value="day.load?.tss" :max="150" color="var(--activity)" label="Carga" />
-          <div class="score-text">
-            <span class="section-label">Carga del día · TSS</span>
-            <template v-if="day.load">
-              <strong class="big">{{ day.load.tss ? `${day.load.tss} TSS` : 'Descanso' }}</strong>
-              <p class="secondary">
-                Forma {{ fmtSigned(day.load.tsb) }} · fitness {{ fmtInt(day.load.ctl) }}
-              </p>
-            </template>
-            <p v-else class="secondary">Sin datos de intervals.icu este día</p>
-          </div>
-        </div>
-        <p class="insight">{{ insight }}</p>
-      </section>
+      <ScoreCards :day="day" :history="history ?? []" />
 
       <!-- Constantes -->
       <section class="vitals">
         <VitalTile v-for="v in vitals" :key="v.label" v-bind="v" />
       </section>
 
-      <!-- Franja de 24 h -->
-      <section class="card card-pad strip-card">
-        <header class="strip-head">
-          <h2>Tu día</h2>
-          <div class="legend">
-            <span><span class="line-key" />Frecuencia cardiaca</span>
-            <span><span class="dot" style="background: var(--sleep)" />Sueño</span>
-            <span><span class="dot" style="background: var(--activity)" />Actividad</span>
-            <span><span class="dot" style="background: var(--nutrition)" />Nutrición</span>
-            <span><span class="dot" style="background: var(--text-2)" />Otros</span>
-          </div>
-        </header>
-        <DayStrip
-          :hr="day.hr"
-          :events="events"
-          :until="day.until"
-          :selected-id="drawerOpen ? selected?.id : null"
-          @select="select"
-        />
-      </section>
+      <DayStripCard
+        :hr="day.hr"
+        :events="events"
+        :until="day.until"
+        :selected-id="drawerOpen ? selected?.id : null"
+        @select="select"
+      />
 
       <div class="columns">
         <section class="card card-pad">
@@ -527,170 +287,10 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
         </section>
 
         <div class="side">
-          <section class="card card-pad">
-            <header class="col-head">
-              <h2>Actividad</h2>
-            </header>
-            <p v-if="day.steps == null && day.activeKcal == null" class="secondary">
-              Sin datos de actividad este día.
-            </p>
-            <template v-else>
-              <div class="headline">
-                <strong class="big">{{ fmtInt(day.steps) }}</strong>
-                <span class="muted">pasos de 10.000</span>
-              </div>
-              <Meter :value="day.steps ?? 0" :max="10000" color="var(--activity)" />
-              <dl class="stats">
-                <div>
-                  <dt>Distancia</dt>
-                  <dd>{{ fmtDec(day.distanceKm, 1) }} km</dd>
-                </div>
-                <div>
-                  <dt>Kcal activas</dt>
-                  <dd>{{ fmtInt(day.activeKcal) }}</dd>
-                </div>
-                <div>
-                  <dt>Pisos</dt>
-                  <dd>{{ fmtInt(day.floors) }}</dd>
-                </div>
-              </dl>
-              <BarChart
-                :labels="hours"
-                :tooltip-labels="hourLabels"
-                :series="[
-                  {
-                    id: 'steps',
-                    label: 'Pasos',
-                    color: 'var(--activity)',
-                    values: day.stepsByHour,
-                  },
-                ]"
-                :height="110"
-                :x-tick-every="6"
-                :format="fmtInt"
-                :tick-format="fmtCompact"
-                integer
-              />
-            </template>
-          </section>
-
-          <section class="card card-pad">
-            <header class="col-head">
-              <h2>Nutrición</h2>
-              <span
-                v-if="targets"
-                class="muted"
-                :title="`Gasto real ${fmtInt(engine.expenditure.kcal)} kcal (${CONFIDENCE_TEXT[engine.expenditure.confidence]})`"
-                >objetivo {{ fmtInt(targets.kcal) }} kcal</span
-              >
-            </header>
-            <p v-if="day.nutrition.kcal == null" class="secondary nutrition-empty">
-              Sin comidas apuntadas este día.
-            </p>
-            <template v-else>
-              <div class="headline">
-                <strong class="big">{{ fmtInt(day.nutrition.kcal) }}</strong>
-                <span v-if="targets" class="muted"
-                  >kcal · quedan {{ fmtInt(Math.max(0, targets.kcal - day.nutrition.kcal)) }}</span
-                >
-                <span v-else class="muted">kcal</span>
-              </div>
-              <Meter
-                v-if="targets"
-                :value="day.nutrition.kcal"
-                :max="targets.kcal"
-                color="var(--nutrition)"
-              />
-              <dl class="stats">
-                <div>
-                  <dt>Proteína</dt>
-                  <dd>
-                    {{ day.nutrition.protein }}
-                    <small>/ {{ targets?.proteinG ?? day.nutrition.proteinTarget }} g</small>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Hidratos</dt>
-                  <dd>
-                    {{ day.nutrition.carbs }} <small>/ {{ targets?.carbsG ?? '—' }} g</small>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Grasa</dt>
-                  <dd>
-                    {{ day.nutrition.fat }} <small>/ {{ targets?.fatG ?? '—' }} g</small>
-                  </dd>
-                </div>
-              </dl>
-            </template>
-            <div class="water">
-              <span class="section-label">Líquidos</span>
-              <span class="num"
-                >{{ liters(day.nutrition.fluidMl) }} /
-                {{ fmtDec(day.nutrition.fluidTargetMl / 1000, 1) }} L</span
-              >
-            </div>
-            <Meter
-              :value="day.nutrition.fluidMl ?? 0"
-              :max="day.nutrition.fluidTargetMl"
-              color="var(--text-2)"
-              :height="4"
-            />
-            <p v-if="day.nutrition.fluidMl != null" class="water-split muted">
-              {{ liters(day.nutrition.waterMl) }} L de agua ·
-              {{ liters(day.nutrition.beveragesMl) }} L de otras bebidas
-            </p>
-          </section>
-
-          <section v-if="body" class="card card-pad">
-            <header class="col-head">
-              <h2>Cuerpo</h2>
-              <span class="muted">{{
-                body.isToday
-                  ? 'Pesaje de hoy'
-                  : `Último pesaje: ${body.date.slice(8)}/${body.date.slice(5, 7)}`
-              }}</span>
-            </header>
-            <div class="headline">
-              <strong class="big">{{ fmtDec(body.weight, 1) }}</strong>
-              <span class="muted">kg</span>
-              <Delta
-                :value="body.delta"
-                :digits="1"
-                unit=" kg"
-                good-when="none"
-                versus="en 30 días"
-              />
-            </div>
-            <Sparkline :values="body.trend" color="var(--text)" :height="36" />
-            <dl class="stats">
-              <div>
-                <dt>Grasa</dt>
-                <dd>{{ fmtDec(body.bodyFat, 1) }} <small>%</small></dd>
-              </div>
-              <div>
-                <dt>Músculo</dt>
-                <dd>{{ fmtDec(body.muscle, 1) }} <small>kg</small></dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="card card-pad">
-            <header class="col-head">
-              <h2>Sueño</h2>
-              <span class="muted">{{ fmtDuration(day.sleep.minutes) }}</span>
-            </header>
-            <template v-if="day.sleepDetail.stages.length">
-              <Hypnogram :stages="day.sleepDetail.stages" :height="120" />
-              <div class="legend stage-legend">
-                <span v-for="k in ['deep', 'light', 'rem', 'awake']" :key="k">
-                  <span class="dot" :style="{ background: STAGE_COLOR[k] }" />
-                  {{ STAGE_LABEL[k] }} {{ fmtDuration(day.sleep[k]) }}
-                </span>
-              </div>
-            </template>
-            <p v-else class="muted">Sin noche registrada (¿no dormiste con el reloj?).</p>
-          </section>
+          <ActivityCard :day="day" />
+          <NutritionCard :day="day" :engine="engine" />
+          <BodyCard v-if="body" :body="body" />
+          <SleepCard :day="day" />
         </div>
       </div>
     </div>
@@ -716,21 +316,9 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   </div>
 </template>
 
+<style scoped src="../components/today/layout.css"></style>
+<style scoped src="../components/today/card.css"></style>
 <style scoped>
-.period {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 12px;
-  padding: 12px 16px;
-  font-size: 13px;
-  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
-  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
-}
-
-.period strong {
-  font-size: 14px;
-}
-
 .today {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -741,30 +329,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
 .body {
   display: contents;
-}
-
-/* Esqueleto mientras carga el día */
-.score-text-skeleton {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-}
-
-.vital-skeleton {
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-}
-
-.rows-skeleton {
-  display: grid;
-  gap: 16px;
-}
-
-.row-skeleton {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .load-error {
@@ -787,176 +351,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
   margin-left: auto;
 }
 
-.scores {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.score {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 18px 20px;
-}
-
-.score-text {
-  display: grid;
-  justify-items: start;
-  gap: 6px;
-  min-width: 0;
-}
-
-.score-text p {
-  font-size: 12px;
-}
-
-.big {
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.insight {
-  grid-column: 1 / -1;
-  padding: 2px 4px;
-  color: var(--text-2);
-  font-size: 14px;
-}
-
-.vitals {
-  display: grid;
-  /* Seis en dos filas de tres, alineadas con los anillos de arriba */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.strip-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-bottom: 8px;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 12px;
-  color: var(--text-2);
-}
-
-.legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.line-key {
-  width: 14px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--hr-line);
-}
-
-.columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.side {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-}
-
-.side > *,
-.columns > * {
-  min-width: 0;
-}
-
-.col-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.col-head .muted {
-  font-size: 12px;
-}
-
-.headline {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.headline .muted {
-  font-size: 13px;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 14px 0;
-}
-
-.stats dt {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.stats dd {
-  margin: 2px 0 0;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.stats small {
-  font-weight: 400;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.nutrition-empty {
-  margin-bottom: 14px;
-}
-
-.water {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: 6px;
-}
-
-.water-split {
-  margin-top: 6px;
-  font-size: 11px;
-}
-
-.stage-legend {
-  margin-top: 10px;
-}
-
-@media (max-width: 1180px) {
-  .columns {
-    grid-template-columns: 1fr;
-  }
-
-  .side {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  }
-}
-
 @media (max-width: 860px) {
   /* Cabecera: el título primero y las flechas a su derecha; "Pregúntale" se queda en icono */
   .page-head {
@@ -970,70 +364,6 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 
   .page-head .ask .label {
     display: none;
-  }
-
-  /* Los tres anillos en fila, como un resumen de un vistazo */
-  .scores {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .score {
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 8px 12px;
-    text-align: center;
-  }
-
-  .score :deep(.ring) {
-    width: 76px !important;
-    height: 76px !important;
-  }
-
-  .score > .skeleton {
-    width: 76px !important;
-    height: 76px !important;
-  }
-
-  .score :deep(.ring svg) {
-    width: 100%;
-    height: 100%;
-  }
-
-  .score :deep(.ring .value) {
-    font-size: 22px;
-  }
-
-  .score-text {
-    justify-items: center;
-    gap: 4px;
-  }
-
-  .score-text .section-label {
-    font-size: 11px;
-  }
-
-  .score-text p {
-    font-size: 11px;
-    line-height: 1.3;
-  }
-
-  .big {
-    font-size: 16px;
-  }
-
-  .insight {
-    padding: 2px;
-    font-size: 13px;
-  }
-
-  .vitals {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Con un número impar, el último no se queda solo a media fila */
-  .vitals > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
   }
 
   .page-head .btn-primary {

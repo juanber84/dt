@@ -53,6 +53,8 @@ const DAILY_METRICS = {
   'blood.oxygen_saturation_daily': ['spo2', (v) => Math.round(v * 10) / 10],
   'respiration.rate_daily': ['respRate', (v) => Math.round(v * 10) / 10],
   'body.sleep_temperature': ['sleepTemp'],
+  // La masa muscular de la báscula: como métrica, para no depender del detalle del pesaje
+  'body.muscle_mass': ['muscleMass', (v) => Math.round(v * 10) / 10],
   'activity.steps': ['steps'],
   'activity.distance': ['distanceKm', (v) => Math.round(v / 100) / 10],
   'activity.floors': ['floors'],
@@ -883,7 +885,7 @@ export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline
   const totals = realTotals(day);
   const sleep = day.sleep ? sleepFrom(summary.date, day.sleep).totals : { ...NO_SLEEP };
   const real = Object.fromEntries(DAILY_FIELDS.map((f) => [f, values[f] ?? null]));
-  const { tss, ctl, atl, basalKcal, waterMl, beveragesMl } = real;
+  const { tss, ctl, atl, basalKcal, waterMl, beveragesMl, muscleMass } = real;
   delete real.sleepTemp;
   delete real.basalKcal;
   delete real.tss;
@@ -891,6 +893,7 @@ export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline
   delete real.atl;
   delete real.waterMl;
   delete real.beveragesMl;
+  delete real.muscleMass;
   // Carga solo con el CTL de intervals.icu de ese día; sin él, no hay
   const load =
     ctl != null ? { tss: tss ?? 0, ctl, atl, tsb: Math.round((ctl - atl) * 10) / 10 } : null;
@@ -920,7 +923,7 @@ export function mergeSummary(summary, day = EMPTY_DAY, values = {}, tempBaseline
     },
     weight: totals.weight,
     bodyFat: totals.bodyFat,
-    muscle: totals.muscle,
+    muscle: totals.muscle ?? muscleMass,
   };
 }
 
