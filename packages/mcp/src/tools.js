@@ -79,7 +79,7 @@ export function createTools({
     name: 'get_engine',
     title: 'Motor: peso real, gasto real y objetivos',
     description:
-      'Lo que calcula el motor de Digital Twin con la comida apuntada y la báscula (no con el ' +
+      'Lo que calcula el motor de TwinMe con la comida apuntada y la báscula (no con el ' +
       'reloj): peso tendencia, gasto real estimado (con su confianza y días apuntados), objetivos ' +
       'de kcal y macros para el ritmo elegido, aviso si lo apuntado no cuadra con el peso, y el ' +
       'historial de las últimas semanas (tendencia del peso y gasto estimado día a día). Son las ' +

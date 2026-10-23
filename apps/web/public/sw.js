@@ -1,5 +1,5 @@
 /*
- * Service worker de Digital Twin: SOLO para los avisos push. No tiene `fetch`, así que no guarda
+ * Service worker de TwinMe: SOLO para los avisos push. No tiene `fetch`, así que no guarda
  * nada en caché ni se mete entre la app y la red: cada deploy se ve al momento.
  */
 
@@ -12,9 +12,9 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data?.json() ?? {};
   } catch {
-    data = { title: 'Digital Twin', body: event.data?.text() ?? '' };
+    data = { title: 'TwinMe', body: event.data?.text() ?? '' };
   }
-  const shown = self.registration.showNotification(data.title ?? 'Digital Twin', {
+  const shown = self.registration.showNotification(data.title ?? 'TwinMe', {
     body: data.body ?? '',
     tag: data.tag,
     icon: '/icons/icon-192.png',

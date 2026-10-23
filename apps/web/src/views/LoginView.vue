@@ -85,7 +85,7 @@ async function submit() {
     <section class="hero">
       <span class="brand">
         <BrandMark :size="28" />
-        <span>Digital <span class="soft">Twin</span></span>
+        <span>Twin<span class="soft">Me</span></span>
       </span>
 
       <div class="pitch">

@@ -239,7 +239,7 @@ function onXiaomiConnected(connection) {
   <div class="admin">
     <AdminHeader
       title="Conexiones"
-      description="Da permiso a Digital Twin para leer tus datos de cada servicio. Los tokens se quedan en la API, nunca en el navegador."
+      description="Da permiso a TwinMe para leer tus datos de cada servicio. Los tokens se quedan en la API, nunca en el navegador."
     />
 
     <p v-if="result?.persistent === false" class="notice">

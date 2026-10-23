@@ -1,6 +1,6 @@
 {
-  "name": "Digital Twin",
-  "short_name": "Twin",
+  "name": "TwinMe",
+  "short_name": "TwinMe",
   "description": "Tu gemelo digital: sueño, entrenos, nutrición y salud en un sitio.",
   "lang": "es",
   "start_url": "/day",

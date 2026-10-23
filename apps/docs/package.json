@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Documentación de Digital Twin (VitePress), servida en /docs",
+  "description": "Documentación de TwinMe (VitePress), servida en /docs",
   "scripts": {
     "dev": "vitepress dev --port 5174",
     "build": "vitepress build",

@@ -1,6 +1,6 @@
 # Principios
 
-Lo que guía cada decisión de Digital Twin.
+Lo que guía cada decisión de TwinMe.
 
 ## Tus datos, todos y en bruto
 

@@ -1,12 +1,12 @@
 ---
 layout: home
 hero:
-  name: Digital Twin
+  name: TwinMe
   text: Tu cuerpo, en un solo sitio
   tagline: Sueño, entrenos, comida y salud de todas tus fuentes, con un motor propio que calcula lo que de verdad gastas y un coach que te lo explica.
   image:
     src: /logo.svg
-    alt: Digital Twin
+    alt: TwinMe
   actions:
     - theme: brand
       text: Primeros pasos

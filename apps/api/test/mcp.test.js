@@ -84,7 +84,7 @@ describe('tokens personales y /api/mcp', () => {
         clientInfo: { name: 'test', version: '1' },
       },
     }).expect(200);
-    expect(init.body.result.serverInfo.name).toBe('digitaltwin');
+    expect(init.body.result.serverInfo.name).toBe('twinme');
 
     const tools = await rpc(app, token, { method: 'tools/list' }).expect(200);
     expect(tools.body.result.tools.map((t) => t.name)).toContain('get_series');

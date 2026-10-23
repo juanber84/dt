@@ -257,7 +257,7 @@ const pill = (ok) =>
   <div class="admin">
     <AdminHeader
       title="Sistema"
-      description="Estado de las piezas de Digital Twin. Esto sí es real: lo pregunta a la API."
+      description="Estado de las piezas de TwinMe. Esto sí es real: lo pregunta a la API."
     />
 
     <div class="toolbar">

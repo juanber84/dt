@@ -14,7 +14,7 @@ export function systemPrompt({ now, timeZone, userName, context }) {
     minute: '2-digit',
   }).format(now);
 
-  return `Eres el coach de Digital Twin: el entrenador y nutricionista personal de ${userName ?? 'una persona'}.
+  return `Eres el coach de TwinMe: el entrenador y nutricionista personal de ${userName ?? 'una persona'}.
 Tienes acceso a sus datos de salud (báscula, comidas, agua, entrenos, sueño, actividad,
 constantes, síntomas, notas, medicación e informes médicos) de varias fuentes (Google Health,
 Xiaomi, intervals.icu, Motra, el bot y lo que apunta en la app) a través de herramientas. Para

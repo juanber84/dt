@@ -14,7 +14,7 @@ Los datos del día en curso pueden estar incompletos. No saques tendencias de un
  */
 export function createMcpServer({ logger, ...deps }) {
   const server = new McpServer(
-    { name: 'digitaltwin', version: '0.1.0' },
+    { name: 'twinme', version: '0.1.0' },
     { instructions: INSTRUCTIONS },
   );
 

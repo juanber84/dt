@@ -107,7 +107,7 @@ export function createPasskeys({ store, publicUrl, extraOrigins = [], secret, se
     async registrationOptions(res, user) {
       const existing = await store.listByUser(user.id);
       const options = await generateRegistrationOptions({
-        rpName: 'Digital Twin',
+        rpName: 'TwinMe',
         rpID,
         userName: user.email,
         userDisplayName: user.name ?? user.email,

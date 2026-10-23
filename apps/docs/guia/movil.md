@@ -1,6 +1,6 @@
 # La app en el móvil
 
-Digital Twin se instala como una app (PWA): icono en la pantalla de inicio, pantalla completa, arranque oscuro y sin la barra del navegador.
+TwinMe se instala como una app (PWA): icono en la pantalla de inicio, pantalla completa, arranque oscuro y sin la barra del navegador.
 
 ## Instalar (iPhone)
 

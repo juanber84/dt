@@ -70,7 +70,7 @@ const admin = [
     <aside class="sidebar">
       <RouterLink to="/day" class="brand">
         <BrandMark :size="24" />
-        Digital Twin
+        TwinMe
       </RouterLink>
 
       <nav aria-label="Principal">

@@ -1,6 +1,6 @@
 # API
 
-La API de Digital Twin es REST con JSON, en `https://twinme.app/api/v1`. La usa la propia web; todo lo que ves en la app sale de aquí.
+La API de TwinMe es REST con JSON, en `https://twinme.app/api/v1`. La usa la propia web; todo lo que ves en la app sale de aquí.
 
 ## Autenticación
 

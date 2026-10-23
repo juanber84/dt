@@ -1,6 +1,6 @@
 # Webhooks
 
-## Google Health → Digital Twin
+## Google Health → TwinMe
 
 `POST /webhooks/google-health`. Google avisa en cuanto hay datos nuevos de cualquier usuario conectado (un solo suscriptor para todos, con política automática).
 
@@ -10,7 +10,7 @@
 
 El suscriptor lo mantiene solo el worker: lo crea o corrige al arrancar y cada día.
 
-## Bot → Digital Twin
+## Bot → TwinMe
 
 `POST /webhooks/digitaltwin`. Eventos firmados con HMAC-SHA256 en `X-Digitaltwin-Signature: t=<unix>,v1=<hmac de "t.cuerpo">` (5 minutos de tolerancia).
 

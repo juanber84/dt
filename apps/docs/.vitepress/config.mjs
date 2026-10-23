@@ -1,11 +1,11 @@
 import { defineConfig } from 'vitepress';
 
-// Documentación de producto de Digital Twin. Se sirve en /docs desde el mismo nginx que la web.
+// Documentación de producto de TwinMe. Se sirve en /docs desde el mismo nginx que la web.
 // Regla: cada cambio de la plataforma actualiza su página aquí en el mismo commit.
 export default defineConfig({
   base: '/docs/',
   lang: 'es-ES',
-  title: 'Digital Twin',
+  title: 'TwinMe',
   description:
     'Tu gemelo digital: sueño, entrenos, nutrición y salud en un sitio, con un motor propio.',
   cleanUrls: false,
@@ -18,7 +18,7 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: '/logo.svg',
-    siteTitle: 'Digital Twin',
+    siteTitle: 'TwinMe',
     nav: [
       { text: 'Guía', link: '/guia/empezar' },
       { text: 'El motor', link: '/motor/' },
@@ -31,7 +31,7 @@ export default defineConfig({
       {
         text: 'Empezar',
         items: [
-          { text: 'Qué es Digital Twin', link: '/' },
+          { text: 'Qué es TwinMe', link: '/' },
           { text: 'Primeros pasos', link: '/guia/empezar' },
           { text: 'Principios', link: '/guia/principios' },
         ],
@@ -113,6 +113,6 @@ export default defineConfig({
     darkModeSwitchLabel: 'Tema',
     sidebarMenuLabel: 'Menú',
     returnToTopLabel: 'Arriba',
-    footer: { message: 'Digital Twin · tus datos, en tu servidor.' },
+    footer: { message: 'TwinMe · tus datos, en tu servidor.' },
   },
 });

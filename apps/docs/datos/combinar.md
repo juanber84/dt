@@ -16,7 +16,7 @@ Las comidas: si el bot apuntó comidas un día, se usan esas y se ocultan las qu
 
 ## Apple Watch + iPhone: sin contar dos veces
 
-Google manda a la vez los pasos (y distancia y kcal) del reloj y del iPhone. Sumarlos contaría dos veces lo andado. Digital Twin hace lo mismo que la app Salud:
+Google manda a la vez los pasos (y distancia y kcal) del reloj y del iPhone. Sumarlos contaría dos veces lo andado. TwinMe hace lo mismo que la app Salud:
 
 - El **reloj manda**; el iPhone solo cuenta en los ratos que el reloj no cubre.
 - Los huecos entre muestras del reloj de **menos de 15 minutos** cuentan como cubiertos (el reloj registra a trozos aunque lo lleves).

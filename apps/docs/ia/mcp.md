@@ -1,6 +1,6 @@
 # MCP: tu IA con tus datos
 
-Digital Twin tiene un servidor **MCP** (Model Context Protocol): conecta Claude (Code o Desktop) u otra IA compatible y podrá consultar tus datos con las mismas herramientas que el coach. Solo lectura, y solo los tuyos.
+TwinMe tiene un servidor **MCP** (Model Context Protocol): conecta Claude (Code o Desktop) u otra IA compatible y podrá consultar tus datos con las mismas herramientas que el coach. Solo lectura, y solo los tuyos.
 
 ## Conectar
 
@@ -10,7 +10,7 @@ Digital Twin tiene un servidor **MCP** (Model Context Protocol): conecta Claude 
 **Claude Code**
 
 ```bash
-claude mcp add --transport http digitaltwin https://twinme.app/api/mcp \
+claude mcp add --transport http twinme https://twinme.app/api/mcp \
   --header "Authorization: Bearer dt_TU_TOKEN"
 ```
 
@@ -19,7 +19,7 @@ claude mcp add --transport http digitaltwin https://twinme.app/api/mcp \
 ```json
 {
   "mcpServers": {
-    "digitaltwin": {
+    "twinme": {
       "command": "npx",
       "args": [
         "mcp-remote",

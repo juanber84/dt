@@ -2,7 +2,7 @@
 
 ## 23 de octubre de 2026
 
-- **Nuevo dominio: [twinme.app](https://twinme.app)** (`dt.cadenceai.ovh` deja de funcionar). En el móvil hay que volver a añadir la app a la pantalla de inicio, dar de alta Face ID y activar los avisos (van atados al dominio).
+- **Ahora se llama TwinMe**, con dominio nuevo: [twinme.app](https://twinme.app) (`dt.cadenceai.ovh` deja de funcionar). En el móvil hay que volver a añadir la app a la pantalla de inicio, dar de alta Face ID y activar los avisos (van atados al dominio).
 - **Motra**: tus entrenos de fuerza con cada ejercicio, serie, repetición, peso y descanso; en la ficha del entreno, la tabla con tus series reales. Gana a la copia del mismo entreno que llega por Google.
 - **El coach ve tu fuerza serie a serie** (`get_strength_sets` en el MCP): hasta 3 meses y por ejercicio, para seguir tu progresión de verdad.
 - **Líquidos**: el café, el té, la leche y los zumos cuentan como hidratación (el alcohol no). En Hoy, los líquidos del día con el desglose de agua y otras bebidas, y un objetivo que sube los días que entrenas.
