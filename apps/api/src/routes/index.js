@@ -14,6 +14,7 @@ import { createClinicalRouter } from './clinical.routes.js';
 import { createSystemAdminRouter } from './system-admin.routes.js';
 import { createPasskeysRouter } from './passkeys.routes.js';
 import { createPushRouter } from './push.routes.js';
+import { createEmailRouter } from './email.routes.js';
 import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
@@ -53,6 +54,7 @@ export function createApiRouter({
   clinical,
   passkeys,
   push,
+  email,
   profiles,
   engine,
 }) {
@@ -77,6 +79,9 @@ export function createApiRouter({
   router.use('/heartbeat', requireApiClient, createHeartbeatRouter({ heartbeats }));
   if (passkeys) router.use('/passkeys', requireUser, createPasskeysRouter({ passkeys }));
   if (push) router.use('/push', requireUser, createPushRouter({ push }));
+  if (email) {
+    router.use('/email', requireUser, createEmailRouter({ email, publicUrl: config.PUBLIC_URL }));
+  }
   if (profiles) router.use('/profile', requireUser, createProfileRouter({ profiles }));
   // El motor: peso tendencia, gasto real y objetivos de comida
   if (engine) {

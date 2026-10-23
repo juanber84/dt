@@ -34,6 +34,9 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   // A quién avisa el servicio de push si hay problemas: una URL nuestra o mailto: (por defecto, PUBLIC_URL)
   VAPID_SUBJECT: z.string().min(1).optional(),
+  // Correos (la misma clave de Resend que la API, solo de envío). Sin ella no se manda ninguno
+  RESEND_API_KEY: z.string().startsWith('re_').optional(),
+  EMAIL_FROM: z.string().min(3).default('TwinMe <informe@twinme.app>'),
   // Cuándo se mira si alguien no ha apuntado ninguna comida en el día (hora de TIMEZONE)
   PUSH_MEALS_CRON: cron.default('0 16 * * *'),
   // Copia de seguridad diaria a Google Drive, cifrada con age. Sin las dos, no se hace.

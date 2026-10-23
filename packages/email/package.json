@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/email",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Correos de la app: envío por Resend, plantilla base e historial",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

@@ -29,6 +29,7 @@ import { createSessions } from './services/sessions.js';
 import { createDbUserStore } from './services/users-db.js';
 import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
+import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
 import { createProfiles } from './services/profile.js';
 import { createEngine } from './services/engine.js';
 import {
@@ -93,6 +94,8 @@ import { createClinical } from './services/clinical.js';
  *   la BD si la hay; sin BD no se ofrece.
  * @param {ReturnType<typeof createPush>} [deps.push]  Avisos push. Por defecto, con la BD y las
  *   claves VAPID; sin ellas no se ofrecen.
+ * @param {ReturnType<typeof createEmail>} [deps.email]  Correos. Por defecto, con la BD y la clave
+ *   de Resend; sin ellas no se ofrecen.
  */
 export function createApp({
   config = loadConfig(),
@@ -122,6 +125,7 @@ export function createApp({
   clinicalStore,
   passkeys,
   push,
+  email,
 } = {}) {
   const log = logger ?? createLogger({ name: 'api', level: config.LOG_LEVEL });
   if (!config.JWT_SECRET && config.NODE_ENV !== 'test') {
@@ -244,6 +248,15 @@ export function createApp({
           },
           timeZone: config.TIMEZONE,
           logger: log.child({ module: 'push' }),
+        })
+      : undefined;
+  email ??=
+    db && config.RESEND_API_KEY
+      ? createEmail({
+          store: createDbEmailStore({ db }),
+          transport: createResendTransport({ apiKey: config.RESEND_API_KEY }),
+          from: config.EMAIL_FROM,
+          logger: log.child({ module: 'email' }),
         })
       : undefined;
   const xiaomiLogin = createXiaomiLogin({
@@ -432,6 +445,7 @@ export function createApp({
       clinical,
       passkeys,
       push,
+      email,
       profiles,
       engine,
     }),

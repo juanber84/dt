@@ -5,6 +5,7 @@ import { LogOut, ScanFace, Trash2 } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
 import Segmented from '../../components/ui/Segmented.vue';
 import NotificationSettings from '../../components/admin/NotificationSettings.vue';
+import EmailSettings from '../../components/admin/EmailSettings.vue';
 import ProfileSettings from '../../components/admin/ProfileSettings.vue';
 import McpTokens from '../../components/admin/McpTokens.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
@@ -136,6 +137,8 @@ async function exit() {
     <p v-else class="muted">Este navegador no admite passkeys.</p>
 
     <NotificationSettings />
+
+    <EmailSettings />
 
     <McpTokens />
 

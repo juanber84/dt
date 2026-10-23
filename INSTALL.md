@@ -181,6 +181,13 @@ Opcionales: `LLM_BASE_URL` y `LLM_MODEL` (para cambiar de proveedor), `COACH_LLM
 `CORS_ORIGINS`, `GOOGLE_HEALTH_WEBHOOK_SECRET`, `CLINICAL_UPLOAD_LIMIT` (15mb; nginx deja hasta
 16m)... (ver `apps/api/.env.example`).
 
+**Correos (Resend):** `RESEND_API_KEY`, una clave con permiso **solo de envío** (Sending access) y
+limitada al dominio, que la usan la API y el worker. El dominio se verifica en Resend (región
+`eu-west-1`, sin seguimiento de clics ni de aperturas) con sus registros DNS en Cloudflare, más un
+TXT `_dmarc` con `v=DMARC1; p=none;`. `EMAIL_FROM` cambia el remitente (por defecto
+`TwinMe <informe@twinme.app>`, que tiene que ser del dominio verificado). Sin la clave, la app no
+ofrece correos.
+
 El **worker usa también `/api`** (descifra las mismas conexiones y lee los informes de Clínica con
 `LLM_API_KEY`: sin ella los PDF quedan en error). Sus ajustes opcionales, con
 valores por defecto: `XIAOMI_SYNC_CRON` (`*/30 * * * *`), `GOOGLE_SYNC_CRON` (`0 * * * *`),

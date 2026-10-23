@@ -8,6 +8,7 @@ import { createDbLlmUsageRows, createLlmUsage, parsePrices } from '../src/servic
 import { buildExtraction, createDbClinicalStore, modelOutputSchema } from '@digitaltwin/clinical';
 import { createDbPasskeyStore } from '../src/services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
+import { createDbEmailStore, createEmail } from '@digitaltwin/email';
 import { createProfiles } from '../src/services/profile.js';
 import { createPipeline } from '@digitaltwin/timeline';
 import { createMemoryQueue } from '@digitaltwin/queue';
@@ -352,6 +353,42 @@ describe.skipIf(!url)('stores en la BD', () => {
       expect(await push.notify(me.id, n)).toEqual({ status: 'duplicate' });
       expect((await push.devices(me.id)).map((d) => d.device)).toEqual(['iPhone']);
       expect(await push.history(me.id)).toMatchObject([{ kind: 'meals-missing', delivered: 1 }]);
+    });
+  });
+
+  describe('correos', () => {
+    it('historial por usuario; el mismo informe no sale dos veces y un fallo se reintenta', async () => {
+      const store = createDbEmailStore({ db });
+      let fail = true;
+      const send = async () => {
+        if (fail) throw new Error('Resend 503');
+        return { id: 'em_ok' };
+      };
+      const email = createEmail({ store, transport: { send } });
+      const report = {
+        kind: 'daily-report',
+        to: 'yo@example.com',
+        subject: 'Ayer',
+        html: '',
+        text: '',
+        dedupeKey: '2026-10-22',
+      };
+
+      await expect(email.send(me.id, report)).rejects.toThrow('Resend 503');
+      expect(await store.history(me.id)).toMatchObject([{ status: 'failed', error: 'Resend 503' }]);
+
+      fail = false;
+      expect(await email.send(me.id, report)).toEqual({ status: 'sent', id: 'em_ok' });
+      expect(await email.send(me.id, report)).toEqual({ status: 'duplicate' });
+      const history = await store.history(me.id);
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({ kind: 'daily-report', status: 'sent', error: null });
+      expect(history[0].sentAt).toEqual(expect.any(String));
+
+      // Sin dedupeKey (las pruebas) cada uno es nuevo
+      await email.send(me.id, { ...report, kind: 'test', dedupeKey: undefined });
+      await email.send(me.id, { ...report, kind: 'test', dedupeKey: undefined });
+      expect(await store.history(me.id)).toHaveLength(3);
     });
   });
 

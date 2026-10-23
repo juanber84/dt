@@ -13,6 +13,7 @@ import { createMotraProvider } from './providers/motra.js';
 import { createJobs } from './jobs.js';
 import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
+import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
 import {
   createNotifier,
   createPushRules,
@@ -39,6 +40,15 @@ await queue.start();
 
 const pipeline = createPipeline({ db, queue, timeZone: config.TIMEZONE, logger });
 await pipeline.catalog.ready();
+// Correos: sin la clave de Resend no se manda ninguno (el resto del worker va igual)
+const email = config.RESEND_API_KEY
+  ? createEmail({
+      store: createDbEmailStore({ db }),
+      transport: createResendTransport({ apiKey: config.RESEND_API_KEY }),
+      from: config.EMAIL_FROM,
+      logger: logger.child({ module: 'email' }),
+    })
+  : undefined;
 // Avisos push: sin claves VAPID no se manda nada (el resto del worker va igual)
 const push =
   config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
@@ -198,6 +208,7 @@ const jobs = createJobs({
   clinical,
   googleSubscribers,
   push,
+  email,
   backup,
   onBackupFailed,
   pushRules: push

@@ -38,6 +38,7 @@ COPY packages/logger/package.json packages/logger/
 COPY packages/mcp/package.json packages/mcp/
 COPY packages/nutrition/package.json packages/nutrition/
 COPY packages/push/package.json packages/push/
+COPY packages/email/package.json packages/email/
 COPY packages/queue/package.json packages/queue/
 COPY packages/timeline/package.json packages/timeline/
 COPY packages/google-health/package.json packages/google-health/

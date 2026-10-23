@@ -2,6 +2,7 @@
 
 ## 23 de octubre de 2026
 
+- **Correo**: en Ajustes → Cuenta, un botón para mandarte un correo de prueba y el historial de los enviados. Es la base del informe de cada mañana, que viene después.
 - **Tipo de cada comida**: desayuno, media mañana, comida, merienda, cena o picoteo. El bot lo saca de lo que dices o lo decide por la hora y lo que ya llevas ese día (un yogur después de cenar es picoteo), y lo enseña antes de guardar para poder corregirlo. Se ve en Hoy y lo usan el coach y el MCP. Las comidas de antes se quedan sin tipo.
 - **Ahora se llama TwinMe**, con dominio nuevo: [twinme.app](https://twinme.app) (`dt.cadenceai.ovh` deja de funcionar). En el móvil hay que volver a añadir la app a la pantalla de inicio, dar de alta Face ID y activar los avisos (van atados al dominio).
 - **Motra**: tus entrenos de fuerza con cada ejercicio, serie, repetición, peso y descanso; en la ficha del entreno, la tabla con tus series reales. Gana a la copia del mismo entreno que llega por Google.

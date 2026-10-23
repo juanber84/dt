@@ -31,6 +31,10 @@ const schema = z
     // Valor completo de la cabecera Authorization que manda Google (p. ej. "Bearer xxx").
     // Sin él, el endpoint de webhooks de Google Health no se monta.
     GOOGLE_HEALTH_WEBHOOK_SECRET: z.string().min(16).optional(),
+    // Correos (Resend, clave con permiso solo de envío; la misma en el worker). Sin ella, la app no
+    // ofrece correos. El remitente tiene que ser de un dominio verificado en Resend.
+    RESEND_API_KEY: z.string().startsWith('re_').optional(),
+    EMAIL_FROM: z.string().min(3).default('TwinMe <informe@twinme.app>'),
     // Notificaciones push (npx web-push generate-vapid-keys; las mismas en el worker). Sin ellas,
     // la app no ofrece activar avisos
     VAPID_PUBLIC_KEY: z.string().min(1).optional(),

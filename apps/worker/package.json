@@ -20,6 +20,7 @@
     "@digitaltwin/logger": "^0.1.0",
     "@digitaltwin/motra": "^0.1.0",
     "@digitaltwin/push": "^0.1.0",
+    "@digitaltwin/email": "^0.1.0",
     "@digitaltwin/queue": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@digitaltwin/xiaomi": "^0.1.0",

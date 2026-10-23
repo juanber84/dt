@@ -1,4 +1,5 @@
 import { JOBS, PRIORITY } from '@digitaltwin/queue';
+import { EmailError } from '@digitaltwin/email';
 import { RateLimitedError } from './rate-limit.js';
 import { XIAOMI } from './providers/xiaomi.js';
 import { INTERVALS } from './providers/intervals.js';
@@ -19,6 +20,7 @@ export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
  * @param {import('@digitaltwin/google-health').GoogleHealthSubscribers} [deps.googleSubscribers]
  * @param {ReturnType<typeof import('@digitaltwin/push').createPush>} [deps.push]
  * @param {ReturnType<typeof import('./notifications.js').createPushRules>} [deps.pushRules]
+ * @param {ReturnType<typeof import('@digitaltwin/email').createEmail>} [deps.email]
  * @param {ReturnType<typeof import('./backup.js').createBackup>} [deps.backup]
  * @param {(error: Error) => Promise<unknown>} [deps.onBackupFailed]  En el último intento.
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
@@ -34,6 +36,7 @@ export function createJobs({
   googleSubscribers,
   push,
   pushRules,
+  email,
   backup,
   onBackupFailed,
   config,
@@ -208,6 +211,21 @@ export function createJobs({
       return result;
     },
 
+    /**
+     * Un correo. Si Resend lo rechaza (dirección o dominio malos) no se reintenta: queda en el
+     * historial como fallido. Si limita o falla, la cola lo reintenta.
+     */
+    async [JOBS.EMAIL]({ data }) {
+      if (!email) return { skipped: 'unconfigured' };
+      try {
+        return await email.send(data.userId, data.email);
+      } catch (err) {
+        if (err instanceof EmailError && !err.retryable)
+          return { status: 'rejected', error: err.message };
+        throw err;
+      }
+    },
+
     /** Copia de seguridad de la BD; si falla del todo, se avisa a los administradores. */
     async [JOBS.DB_BACKUP]({ retryCount, retryLimit }) {
       if (!backup) return { skipped: 'unconfigured' };
@@ -325,6 +343,10 @@ export function createJobs({
           { rule: 'meals-missing' },
           { tz, key: 'meals-missing' },
         );
+      }
+
+      if (email) {
+        await queue.work(JOBS.EMAIL, {}, wrap(JOBS.EMAIL, handlers[JOBS.EMAIL]));
       }
 
       if (backup) {

@@ -115,7 +115,7 @@ const HINTS = {
     'En el iPhone, los avisos solo llegan a la app instalada: en Safari, Compartir → Añadir a pantalla de inicio, y ábrela desde el icono.',
   unsupported: 'Este navegador no admite avisos.',
   denied:
-    'Los has bloqueado. Para activarlos: Ajustes del iPhone → Notificaciones → Twin (o los permisos del navegador).',
+    'Los has bloqueado. Para activarlos: Ajustes del iPhone → Notificaciones → TwinMe (o los permisos del navegador).',
 };
 </script>
 

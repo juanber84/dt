@@ -56,12 +56,15 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
       "sin datos" si falta algo); el texto, del coach. Más adelante, también semanal. Otros usos
       que pueden venir: contraseña y alta cuando haya registro, avisos sin push, informes de
       Clínica.
-  - Con qué: proveedor transaccional con plan gratis (Resend, Brevo, Postmark, Amazon SES…), no
-    un SMTP propio en el VPS (se acaba en spam). Dominio verificado (SPF, DKIM, DMARC) y la clave
-    en Infisical.
-  - Cómo: job `email` en el worker (como `push`), un cron `daily-report` a la hora que elija cada
-    usuario, registro de lo enviado, y en Cuenta activarlo, la hora y a qué correo.
-  - Falta decidir: proveedor, hora y qué lleva exactamente.
+  - Hecho (23/10): **Resend** con `twinme.app` verificado (SPF, DKIM, DMARC), `@digitaltwin/email`
+    (envío, plantilla base, historial `email_log` sin duplicados), job `email` en el worker y en
+    Cuenta el correo de prueba y el historial.
+  - Falta: el informe en sí. Por defecto uno **cada mañana** con lo de ayer; y **a demanda** desde
+    el coach. Idea acordada: el informe se compone de **bloques** (título, texto, cifras, gráfica,
+    tabla, aviso); la IA elige bloques y redacta el texto, pero las cifras y las gráficas las saca el
+    servidor de la BD (nada inventado). Se ve en una página de Informes en la app y por correo (las
+    gráficas, como PNG). Fase 1: bloques + página + informe de la mañana; fase 2: `create_report`
+    en el coach.
 
 ## IA (guardarraíles)
 
