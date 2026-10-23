@@ -4,6 +4,20 @@ Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md).
 
 ## Datos
 
+- [ ] **Periodos: fuera de casa / vacaciones, enfermo, otro (con fechas).** Para que el motor no
+      aprenda mal esos días. Se apuntan en Registrar o por el bot ("me voy de puente del 1 al 4");
+      más adelante, que el bot pregunte "¿estás fuera?" si llevas 2 días sin pesarte ni apuntar.
+  - Gasto: no aprende de los días del periodo ni de los 3 siguientes (lo apuntado y el peso no son
+    fiables; al volver el peso viene con agua y sal).
+  - Tendencia: rellena el hueco como ahora; las pesadas de los 3 días después de volver cuentan un
+    tercio, para que el salto de agua no la ponga "subiendo". Las de otra báscula se ven pero no
+    entran.
+  - Objetivo: mantenimiento durante el periodo.
+  - Informe y coach: sin "no apuntaste nada" esos días y, al volver, explican el salto ("+1,6 kg
+    tras el puente: agua y sal, en 3-5 días se va"). Se apaga el aviso de comidas sin apuntar. En
+    Hoy y Tendencias, el periodo como una franja.
+  - Mientras: no pesarse en otra báscula y apuntar días enteros (aunque sea a ojo) o nada; un día
+    a medias hace que el motor crea que gastas menos.
 - [ ] **Suplementos (creatina, magnesio, vitamina D, omega-3…).** Como tomas, aparte de la
       medicación: lista de "mis suplementos habituales" en Ajustes (dosis y momento) y marcarlos
       de un toque en Hoy o por el bot ("los de siempre"). Lo que tiene calorías (proteína en
