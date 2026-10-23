@@ -182,6 +182,16 @@ const sourceOf = (episode) => episode.origin?.channel ?? episode.provider;
 /** Minutos desde la medianoche local de `date` (negativos: la víspera). */
 const minutesFrom = (date, time) => Math.round((new Date(time) - parseISODate(date)) / 60_000);
 
+/** Qué comida del día es (summary.mealType, como en @digitaltwin/nutrition). Las antiguas no lo llevan. */
+export const MEAL_TYPE_LABELS = Object.freeze({
+  breakfast: 'Desayuno',
+  'mid-morning': 'Media mañana',
+  lunch: 'Comida',
+  'afternoon-snack': 'Merienda',
+  dinner: 'Cena',
+  snack: 'Picoteo',
+});
+
 export function mealEvent(episode) {
   const s = episode.summary ?? {};
   const macros = {
@@ -196,7 +206,13 @@ export function mealEvent(episode) {
     category: 'nutrition',
     icon: 'Utensils',
     title: episode.title,
-    subtitle: `${fmtInt(macros.kcal)} kcal · ${fmtDec(macros.protein, 1)} g proteína`,
+    subtitle: [
+      MEAL_TYPE_LABELS[s.mealType],
+      `${fmtInt(macros.kcal)} kcal · ${fmtDec(macros.protein, 1)} g proteína`,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    mealType: s.mealType ?? null,
     start: minutesOfDay(new Date(episode.start)),
     metrics: [
       { label: 'Calorías', value: macros.kcal, unit: 'kcal' },

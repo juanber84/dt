@@ -78,6 +78,14 @@ describe('timeline real', () => {
     });
   });
 
+  it('comida con tipo → "Cena · …" en el subtítulo; sin tipo, como antes', () => {
+    const dinner = mealEvent({ ...meal, summary: { ...meal.summary, mealType: 'dinner' } });
+    expect(dinner.subtitle).toMatch(/^Cena · 343 kcal/);
+    expect(dinner.mealType).toBe('dinner');
+    expect(mealEvent(meal).subtitle).toMatch(/^343 kcal/);
+    expect(mealEvent(meal).mealType).toBeNull();
+  });
+
   it('entreno → evento con icono por tipo y fin', () => {
     expect(workoutEvent(workout)).toMatchObject({
       category: 'activity',

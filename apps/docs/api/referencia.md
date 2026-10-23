@@ -72,10 +72,10 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 
 ## Nutrición 🤖
 
-|        |                      |                                                                            |
-| ------ | -------------------- | -------------------------------------------------------------------------- |
-| `POST` | `/nutrition/analyze` | Estimar platos y macros de un texto o una foto (también agua y medicación) |
-| `POST` | `/nutrition/refine`  | Corregir una estimación                                                    |
+|        |                      |                                                                                                                                                                   |
+| ------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/nutrition/analyze` | Estimar platos, macros y tipo de comida de un texto o una foto (también agua y medicación); con `telegramUserId` (el bot), tiene en cuenta lo ya apuntado ese día |
+| `POST` | `/nutrition/refine`  | Corregir una estimación                                                                                                                                           |
 
 ## Administración 👑
 

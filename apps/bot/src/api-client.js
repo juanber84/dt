@@ -51,11 +51,12 @@ export function createApiClient({
   }
 
   return {
-    /** @param {{ text: string, image?: { data: Uint8Array, mimeType: string }, now: Date }} input */
-    analyze({ text, image, now }) {
+    /** @param {{ text: string, image?: { data: Uint8Array, mimeType: string }, now: Date, telegramUserId?: number }} input */
+    analyze({ text, image, now, telegramUserId }) {
       return post('nutrition/analyze', {
         text,
         now: now.toISOString(),
+        ...(telegramUserId && { telegramUserId }),
         ...(image && {
           image: { base64: Buffer.from(image.data).toString('base64'), mimeType: image.mimeType },
         }),

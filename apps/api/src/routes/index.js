@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createHealthRouter } from './health.routes.js';
 import { createAuthRouter } from './auth.routes.js';
 import { createNutritionRouter } from './nutrition.routes.js';
+import { createMealsToday } from '../services/meals-today.js';
 import { createHeartbeatRouter } from './heartbeat.routes.js';
 import { createConnectionsRouter, createGoogleCallbackRouter } from './connections.routes.js';
 import { createMeasurementsRouter } from './measurements.routes.js';
@@ -159,7 +160,10 @@ export function createApiRouter({
       createSystemAdminRouter({ store: pipeline.store }),
     );
   }
-  router.use('/nutrition', createNutritionRouter({ analyzer: nutritionAnalyzer }));
+  const mealsToday = pipeline
+    ? createMealsToday({ queries: pipeline.queries, connections, timeZone: config.TIMEZONE })
+    : undefined;
+  router.use('/nutrition', createNutritionRouter({ analyzer: nutritionAnalyzer, mealsToday }));
 
   return router;
 }

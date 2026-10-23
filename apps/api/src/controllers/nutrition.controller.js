@@ -4,8 +4,9 @@ import { HttpError } from '../utils/http-error.js';
 /**
  * @param {object} deps
  * @param {Pick<import('@digitaltwin/nutrition').NutritionAnalyzer, 'analyze' | 'refine'>} [deps.analyzer]
+ * @param {ReturnType<typeof import('../services/meals-today.js').createMealsToday>} [deps.mealsToday]
  */
-export function createNutritionController({ analyzer }) {
+export function createNutritionController({ analyzer, mealsToday }) {
   function requireAnalyzer() {
     if (!analyzer) {
       throw new HttpError(503, 'No hay LLM configurado (LLM_API_KEY)', {
@@ -17,12 +18,23 @@ export function createNutritionController({ analyzer }) {
 
   /** Estima alimentos, horas y macros de un texto y/o foto. */
   async function analyze(req, res) {
-    const { text, image, now } = req.validated.body;
+    const { text, image, now, telegramUserId } = req.validated.body;
+    const at = now ? new Date(now) : new Date();
+    const llm = requireAnalyzer();
+    // El bot solo puede hablar por usuarios de Telegram; la web, por quien tiene la sesión
+    const earlier = mealsToday
+      ? await mealsToday({
+          userId: req.user?.id,
+          telegramUserId: req.apiClient ? telegramUserId : undefined,
+          now: at,
+        })
+      : [];
     const result = await callLlm(() =>
-      requireAnalyzer().analyze({
+      llm.analyze({
         text,
         image: image && { data: Buffer.from(image.base64, 'base64'), mimeType: image.mimeType },
-        now: now ? new Date(now) : new Date(),
+        now: at,
+        earlier,
       }),
     );
     res.json(result);

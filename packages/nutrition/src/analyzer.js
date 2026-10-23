@@ -1,5 +1,5 @@
 import { NutritionError, NutritionErrorCode } from './errors.js';
-import { modelOutputSchema } from './schema.js';
+import { MEAL_TYPE_LABELS, modelOutputSchema } from './schema.js';
 import { SYSTEM_PROMPT, contextLine } from './prompt.js';
 import { fromLocalDateTime, toLocalDateTime } from './time.js';
 
@@ -65,15 +65,25 @@ export class NutritionAnalyzer {
    * @param {string} [input.text]
    * @param {{ data: Uint8Array, mimeType: string }} [input.image]
    * @param {Date} [input.now] Momento del mensaje (hora por defecto de los alimentos).
+   * @param {{ eatenAt: string, name: string, mealType?: string }[]} [input.earlier] Lo ya
+   *   apuntado ese día: para saber qué comida es cada plato (después de cenar, picoteo).
    * @returns {Promise<Analysis>}
    */
-  async analyze({ text = '', image, now = new Date() }) {
+  async analyze({ text = '', image, now = new Date(), earlier = [] }) {
     const weekday = new Intl.DateTimeFormat('es-ES', {
       weekday: 'long',
       timeZone: this.timeZone,
     }).format(now);
     const header = contextLine(toLocalDateTime(now, this.timeZone), this.timeZone, weekday);
-    const body = `${header}\n\n${text.trim() || '(sin texto, mira la foto)'}`;
+    const logged = earlier.length
+      ? `\nYa apuntado hoy (no lo vuelvas a apuntar):\n${earlier
+          .map((m) => {
+            const at = toLocalDateTime(new Date(m.eatenAt), this.timeZone).slice(11, 16);
+            return `- ${at} ${m.mealType ? `${MEAL_TYPE_LABELS[m.mealType]}: ` : ''}${m.name}`;
+          })
+          .join('\n')}`
+      : '';
+    const body = `${header}${logged}\n\n${text.trim() || '(sin texto, mira la foto)'}`;
 
     const content = image
       ? [
@@ -191,6 +201,7 @@ export class NutritionAnalyzer {
     return {
       name: dish.name,
       eatenAt: fromLocalDateTime(dish.eaten_at, this.timeZone).toISOString(),
+      ...(dish.meal_type && { mealType: dish.meal_type }),
       items: dish.items.map(toIngredient),
     };
   }

@@ -1,4 +1,10 @@
-import { sumDishes, sumDrinks, sumItems, toLocalDateTime } from '@digitaltwin/nutrition';
+import {
+  MEAL_TYPE_LABELS,
+  sumDishes,
+  sumDrinks,
+  sumItems,
+  toLocalDateTime,
+} from '@digitaltwin/nutrition';
 
 export function escapeHtml(text) {
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -52,7 +58,9 @@ export function formatAnalysis(
     lines.push('', `💧 <b>${when(w.drunkAt, timeZone, today)} · Agua</b> · ${w.ml} ml`);
   }
   for (const dish of sorted) {
-    const title = `<b>${when(dish.eatenAt, timeZone, today)} · ${escapeHtml(dish.name)}</b>`;
+    // "Cena · 19:30 · Puré": el tipo se ve para poder corregirlo antes de confirmar
+    const type = dish.mealType ? `${MEAL_TYPE_LABELS[dish.mealType]} · ` : '';
+    const title = `<b>${type}${when(dish.eatenAt, timeZone, today)} · ${escapeHtml(dish.name)}</b>`;
     const subtotal = sumItems(dish.items);
     lines.push('');
 

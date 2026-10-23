@@ -109,10 +109,12 @@ describe('bot', () => {
     const { bot, api } = setup();
     await message(bot, { text: 'avena 40g a las 8' });
 
+    // Con su usuario de Telegram: la API mira qué tiene ya apuntado hoy (para el tipo de comida)
     expect(api.analyze).toHaveBeenCalledWith({
       text: 'avena 40g a las 8',
       image: undefined,
       now: NOW,
+      telegramUserId: USER,
     });
     const reply = sent('sendMessage')[0];
     expect(reply.text).toContain('<b>08:00 · Avena</b> · 40 g');

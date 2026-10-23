@@ -140,7 +140,12 @@ export function createBot({
         analysis = await api.refine(previous.analysis, text);
       } else {
         const image = photoId ? await downloadPhoto(photoId) : undefined;
-        analysis = await api.analyze({ text, image, now: new Date(ctx.message.date * 1000) });
+        analysis = await api.analyze({
+          text,
+          image,
+          now: new Date(ctx.message.date * 1000),
+          telegramUserId: ctx.from?.id,
+        });
       }
     } catch (error) {
       logger.error({ err: error }, 'error analizando la comida');

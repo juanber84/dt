@@ -87,6 +87,16 @@ describe('formatAnalysis', () => {
     expect(format()).not.toContain('Líquidos');
   });
 
+  it('enseña el tipo de comida delante de la hora para poder corregirlo', () => {
+    const text = formatAnalysis(
+      { ...analysis, dishes: [{ ...analysis.dishes[1], mealType: 'lunch' }, analysis.dishes[0]] },
+      { timeZone: 'Europe/Madrid', now: new Date('2026-10-13T15:00:00Z') },
+    );
+    expect(text).toContain('<b>Comida · 14:00 · Bocadillo de pavo &amp; queso</b>');
+    // Sin tipo, como siempre
+    expect(text).toContain('<b>14:30 · Flan</b>');
+  });
+
   it('muestra la fecha si no es de hoy', () => {
     expect(format(new Date('2026-10-14T10:00:00Z'))).toContain('<b>13/10 14:30 · Flan</b>');
   });

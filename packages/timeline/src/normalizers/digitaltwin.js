@@ -37,6 +37,7 @@ export function normalizeMeal(entry) {
         carbsG: total.carbsG,
         fatG: total.fatG,
         fiberG: total.fiberG,
+        ...(dish.mealType && { mealType: dish.mealType }),
         ...(drink.fluidMl && { fluidMl: drink.fluidMl }),
         ...(drink.caffeineMg && { caffeineMg: drink.caffeineMg }),
       },

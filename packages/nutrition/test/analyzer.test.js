@@ -153,6 +153,47 @@ describe('NutritionAnalyzer', () => {
     expect(sumDrinks(dishes)).toEqual({ fluidMl: 200, caffeineMg: 80 });
   });
 
+  it('tipo de comida: lo que diga el modelo si es válido; si no, ninguno', async () => {
+    const output = {
+      ...OUTPUT,
+      dishes: [
+        { ...OUTPUT.dishes[0], meal_type: 'breakfast' },
+        { ...OUTPUT.dishes[1], meal_type: 'brunch' },
+      ],
+    };
+    const { analyzer } = build(reply(JSON.stringify(output)));
+    const result = await analyzer.analyze({ text: 'x', now: NOW });
+
+    expect(result.dishes[0].mealType).toBe('breakfast');
+    expect(result.dishes[1]).not.toHaveProperty('mealType');
+    // Y sigue siendo una entrada válida para la API
+    expect(
+      mealEntrySchema.safeParse({
+        id: '6f1c2a3e-1b2c-4d5e-8f90-123456789abc',
+        source: 'telegram',
+        text: 'x',
+        dishes: result.dishes,
+        createdAt: NOW.toISOString(),
+      }).success,
+    ).toBe(true);
+  });
+
+  it('le pasa lo ya apuntado hoy, en hora local y con su tipo', async () => {
+    const { fetch, analyzer } = build(reply(JSON.stringify(OUTPUT)));
+    await analyzer.analyze({
+      text: 'un yogur',
+      now: NOW,
+      earlier: [
+        { eatenAt: '2026-10-13T06:00:00Z', name: 'Tostadas', mealType: 'breakfast' },
+        { eatenAt: '2026-10-13T10:00:00Z', name: 'Lentejas' },
+      ],
+    });
+    const content = sentBody(fetch).messages[1].content;
+    expect(content).toContain('Ya apuntado hoy');
+    expect(content).toContain('- 08:00 Desayuno: Tostadas');
+    expect(content).toContain('- 12:00 Lentejas');
+  });
+
   it('manda la foto como data URL', async () => {
     const { fetch, analyzer } = build(reply(JSON.stringify(OUTPUT)));
     await analyzer.analyze({

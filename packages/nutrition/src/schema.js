@@ -2,6 +2,25 @@ import { z } from 'zod';
 
 const grams = z.number().nonnegative();
 
+/** Qué comida del día es cada plato. El orden es el del día. */
+export const MEAL_TYPES = Object.freeze([
+  'breakfast',
+  'mid-morning',
+  'lunch',
+  'afternoon-snack',
+  'dinner',
+  'snack',
+]);
+
+export const MEAL_TYPE_LABELS = Object.freeze({
+  breakfast: 'Desayuno',
+  'mid-morning': 'Media mañana',
+  lunch: 'Comida',
+  'afternoon-snack': 'Merienda',
+  dinner: 'Cena',
+  snack: 'Picoteo',
+});
+
 /** Un ingrediente (o alimento suelto) con sus macros para la cantidad tomada. */
 export const ingredientSchema = z.object({
   name: z.string().trim().min(1),
@@ -22,6 +41,8 @@ export const dishSchema = z.object({
   name: z.string().trim().min(1),
   /** Instante en que se tomó (ISO 8601 en UTC). */
   eatenAt: z.iso.datetime({ offset: true }),
+  /** Qué comida del día fue. Las antiguas no lo llevan. */
+  mealType: z.enum(MEAL_TYPES).optional(),
   items: z.array(ingredientSchema).min(1),
 });
 
@@ -43,6 +64,7 @@ export const modelOutputSchema = z.object({
     z.object({
       name: z.string().trim().min(1),
       eaten_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/),
+      meal_type: z.enum(MEAL_TYPES).nullable().catch(null).default(null),
       items: z
         .array(
           z.object({

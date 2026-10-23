@@ -185,7 +185,8 @@ export function createTools({
       name: 'get_episodes',
       title: 'Comidas, entrenos, sueño, pesajes, síntomas, medicación…',
       description:
-        'Episodios del usuario entre dos días (hasta 31): comidas (meal), entrenos (workout), ' +
+        'Episodios del usuario entre dos días (hasta 31): comidas (meal; summary.mealType dice si ' +
+        'fue desayuno, media mañana, comida, merienda, cena o picoteo, si lo tiene), entrenos (workout), ' +
         'noches de sueño (sleep), pesajes (weigh-in), agua y café (drink), síntomas (symptom, con ' +
         'intensidad 1-5), notas (note), tomas de medicación (medication) y pruebas médicas ' +
         '(lab, holter, stress-test, ecg, imaging, medical-test, medical-report). Devuelve el resumen ' +

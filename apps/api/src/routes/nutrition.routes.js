@@ -15,6 +15,8 @@ const analyzeBody = z
       .optional(),
     /** Momento del mensaje: hora por defecto de lo que se ha comido. */
     now: z.iso.datetime({ offset: true }).optional(),
+    /** Si llama el bot: de quién es (para ver lo que ya tiene apuntado hoy). */
+    telegramUserId: z.number().int().positive().optional(),
   })
   .refine((body) => body.text.trim() || body.image, { message: 'Hace falta texto o imagen' });
 
@@ -31,9 +33,14 @@ const refineBody = z.object({
   correction: z.string().trim().min(1).max(4000),
 });
 
-export function createNutritionRouter({ analyzer }) {
+/**
+ * @param {object} deps
+ * @param {Pick<import('@digitaltwin/nutrition').NutritionAnalyzer, 'analyze' | 'refine'>} [deps.analyzer]
+ * @param {ReturnType<typeof import('../services/meals-today.js').createMealsToday>} [deps.mealsToday]
+ */
+export function createNutritionRouter({ analyzer, mealsToday }) {
   const router = Router();
-  const controller = createNutritionController({ analyzer });
+  const controller = createNutritionController({ analyzer, mealsToday });
 
   router.post('/analyze', validate({ body: analyzeBody }), controller.analyze);
   router.post('/refine', validate({ body: refineBody }), controller.refine);

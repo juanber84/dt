@@ -384,6 +384,33 @@ describe('comidas del bot', () => {
     expect(result.episodes[0].summary).toMatchObject({ fluidMl: 200, caffeineMg: 80 });
     expect(result.episodes[1].summary.fluidMl).toBeUndefined();
   });
+
+  it('el tipo de comida de cada plato va al resumen (las antiguas, sin él)', () => {
+    const at = '2026-10-15T17:30:00Z';
+    const item = {
+      name: 'x',
+      quantity: 1,
+      unit: '',
+      kcal: 100,
+      proteinG: 1,
+      carbsG: 1,
+      fatG: 1,
+      fiberG: 0,
+    };
+    const result = normalizeMeal({
+      id: '7a1d1a51-6b0e-4a43-9a3b-1b6bb1e7a003',
+      source: 'telegram',
+      text: 'puré para cenar y luego un yogur',
+      notes: '',
+      dishes: [
+        { name: 'Puré', eatenAt: at, mealType: 'dinner', items: [item] },
+        { name: 'Yogur', eatenAt: at, items: [item] },
+      ],
+      createdAt: at,
+    });
+    expect(result.episodes[0].summary.mealType).toBe('dinner');
+    expect(result.episodes[1].summary).not.toHaveProperty('mealType');
+  });
 });
 
 describe('registros de bebidas', () => {

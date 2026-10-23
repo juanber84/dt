@@ -175,6 +175,55 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     expect(inbox).toMatchObject({ kind: 'data', status: 'routed', user_id: me.id });
   });
 
+  it('al analizar, el bot le pasa al LLM lo ya apuntado ese día (para el tipo de comida)', async () => {
+    // Un día que no usa ningún otro test: una tostada sin tipo (como las antiguas) y una cena
+    const day = {
+      ...meal,
+      id: '7a1d1a51-6b0e-4a43-9a3b-1b6bb1e7a0d1',
+      text: 'tostada y luego puré para cenar',
+      dishes: [
+        { ...meal.dishes[0], eatenAt: '2026-10-18T07:00:00.000Z' },
+        {
+          ...meal.dishes[0],
+          name: 'Puré',
+          eatenAt: '2026-10-18T17:30:00.000Z',
+          mealType: 'dinner',
+        },
+      ],
+    };
+    await webhook({ type: 'meal.logged', telegramUserId: TELEGRAM_ID, data: day });
+    await queue.drain();
+
+    const analyze = vi.fn(async () => ({ dishes: [], notes: '', messages: [] }));
+    const token = 'b'.repeat(24);
+    const bot = buildApp(
+      { DIGITALTWIN_API_KEYS: `bot:${token}` },
+      {
+        db,
+        users: createDbUserStore({ db }),
+        queue,
+        pipeline,
+        connections,
+        nutritionAnalyzer: { analyze, refine: vi.fn() },
+      },
+    );
+    const ask = (telegramUserId) =>
+      request(bot)
+        .post('/api/v1/nutrition/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ text: 'un yogur', now: '2026-10-18T19:30:00Z', telegramUserId })
+        .expect(200);
+
+    await ask(TELEGRAM_ID);
+    expect(analyze.mock.calls[0][0].earlier).toEqual([
+      { eatenAt: '2026-10-18T07:00:00.000Z', name: 'Tostada' },
+      { eatenAt: '2026-10-18T17:30:00.000Z', name: 'Puré', mealType: 'dinner' },
+    ]);
+    // Un Telegram sin vincular no ve nada de nadie
+    await ask(999999);
+    expect(analyze.mock.calls[1][0].earlier).toEqual([]);
+  });
+
   it('webhook: firma mala, evento raro o Telegram sin vincular', async () => {
     const event = { type: 'meal.logged', telegramUserId: TELEGRAM_ID, data: meal };
     expect((await webhook(event, 'x'.repeat(40))).status).toBe(401);
