@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Frontal de Digital Twin (Vue 3): conectar cuentas de terceros (Google, Strava, intervals.icu, Xiaomi...)",
+  "description": "Frontal de TwinMe (Vue 3)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -17,6 +17,9 @@
     "vite": "^8.3.4"
   },
   "dependencies": {
+    "@digitaltwin/engine": "^0.1.0",
+    "@digitaltwin/nutrition": "^0.1.0",
+    "@digitaltwin/reports": "^0.1.0",
     "@lucide/vue": "^1.57.0",
     "@simplewebauthn/browser": "14.0.0",
     "dompurify": "^3.4.17",

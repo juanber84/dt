@@ -49,7 +49,9 @@ WORKDIR /app/apps/docs
 CMD ["npx", "vitepress", "dev", "--host", "0.0.0.0", "--port", "5174"]
 
 FROM deps AS build
-# 3. Código y build
+# 3. Código y build. La web importa funciones puras de algunos paquetes (motor, tipos de comida,
+#    formato de los informes): una sola versión de cada cálculo
+COPY packages ./packages
 COPY apps/web ./apps/web
 RUN npm run build -w @digitaltwin/web
 COPY apps/docs ./apps/docs

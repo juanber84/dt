@@ -24,6 +24,7 @@ import { documentDay, documentEvent, periodRange, withDocuments } from '../servi
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
 import { setBadge } from '../services/push.js';
 import { formatShortDate, todayISO } from '../lib/dates.js';
+import { PERIOD_NAMES } from '@digitaltwin/engine';
 import { fmtDec, fmtDuration, fmtInt, fmtSigned, fmtCompact } from '../lib/format.js';
 
 const route = useRoute();
@@ -50,7 +51,6 @@ const targets = computed(() => engine.value?.targets ?? null);
 const period = computed(() =>
   engine.value?.period && date.value === todayISO() ? engine.value.period : null,
 );
-const PERIOD_NAME = { away: 'Fuera de casa', sick: 'Enfermo', other: 'Periodo' };
 const CONFIDENCE_TEXT = {
   none: 'por fórmula, aún sin tus datos',
   low: 'confianza baja',
@@ -376,7 +376,7 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
     <div v-if="period" class="card period" role="status">
       <strong>{{
         period.phase === 'during'
-          ? `${PERIOD_NAME[period.type]} · ${periodRange(period).toLowerCase()}`
+          ? `${PERIOD_NAMES[period.type] ?? PERIOD_NAMES.other} · ${periodRange(period).toLowerCase()}`
           : `Has vuelto hace ${period.daysSince} ${period.daysSince === 1 ? 'día' : 'días'}`
       }}</strong>
       <span class="muted">{{

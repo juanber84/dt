@@ -5,6 +5,8 @@
  */
 import { addDays, minutesOfDay, parseISODate, toISODate } from '../lib/dates.js';
 import { fmtDec, fmtDuration, fmtInt } from '../lib/format.js';
+import { MEAL_TYPE_LABELS } from '@digitaltwin/nutrition/meal-types';
+import { FLUID_BASE_ML, fluidTargetMl as fluidFor } from '@digitaltwin/engine';
 
 /** Episodios de los informes médicos (Clínica). */
 export const CLINICAL_KINDS = [
@@ -200,15 +202,7 @@ const sourceOf = (episode) => episode.origin?.channel ?? episode.provider;
 /** Minutos desde la medianoche local de `date` (negativos: la víspera). */
 const minutesFrom = (date, time) => Math.round((new Date(time) - parseISODate(date)) / 60_000);
 
-/** Qué comida del día es (summary.mealType, como en @digitaltwin/nutrition). Las antiguas no lo llevan. */
-export const MEAL_TYPE_LABELS = Object.freeze({
-  breakfast: 'Desayuno',
-  'mid-morning': 'Media mañana',
-  lunch: 'Comida',
-  'afternoon-snack': 'Merienda',
-  dinner: 'Cena',
-  snack: 'Picoteo',
-});
+export { MEAL_TYPE_LABELS };
 
 export function mealEvent(episode) {
   const s = episode.summary ?? {};
@@ -829,22 +823,16 @@ const NO_SLEEP = {
  * Objetivos mientras no se puedan poner desde la app (los pondrá el módulo de objetivos). Las kcal
  * no tienen: el objetivo es lo que gastas ese día (basal + activas), cuando se sabe.
  */
-export const DEFAULT_TARGETS = Object.freeze({ proteinG: 160, fluidMl: 2500 });
-// Lo que se suda entrenando a intensidad moderada, por hora, que hay que reponer bebiendo
-const FLUID_PER_TRAINING_HOUR_ML = 500;
+export const DEFAULT_TARGETS = Object.freeze({ proteinG: 160, fluidMl: FLUID_BASE_ML });
 
-/**
- * Líquidos del día (agua + otras bebidas): la base de un adulto activo (~2,5 L de bebidas;
- * la comida aporta aparte) más lo que se suda en los entrenos de ese día, en pasos de 100 ml.
- */
+/** Líquidos del día según lo entrenado (la fórmula, en @digitaltwin/engine: la misma del informe). */
 export function fluidTargetMl(workouts = []) {
   const minutes = workouts.reduce((sum, w) => {
     const seconds =
       w.summary?.durationS ?? (w.end ? (new Date(w.end) - new Date(w.start)) / 1000 : 0);
     return sum + Math.max(0, seconds) / 60;
   }, 0);
-  const extra = (minutes / 60) * FLUID_PER_TRAINING_HOUR_ML;
-  return DEFAULT_TARGETS.fluidMl + Math.round(extra / 100) * 100;
+  return fluidFor(minutes);
 }
 
 /**

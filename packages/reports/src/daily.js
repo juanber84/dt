@@ -1,10 +1,6 @@
 import { MEAL_TYPE_LABELS } from '@digitaltwin/nutrition';
 import { DAY_MS, localMidnight } from '@digitaltwin/timeline';
-
-// Como fluidTargetMl de la web (apps/web/src/services/timeline.js): base de un adulto activo más
-// lo que se suda entrenando, en pasos de 100 ml
-const FLUID_BASE_ML = 2500;
-const FLUID_PER_TRAINING_HOUR_ML = 500;
+import { PERIOD_NAMES, currentPeriod, fluidTargetMl, periodPhrase } from '@digitaltwin/engine';
 
 const DAY_METRICS = [
   'intake.energy',
@@ -95,7 +91,7 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
     .filter((s) => s.summary?.asleepMinutes)
     .sort((a, b) => b.summary.asleepMinutes - a.summary.asleepMinutes)[0];
   const ready = state?.ready === true;
-  const period = periodOf(
+  const period = currentPeriod(
     periods.filter((p) => p.summary?.from && p.summary?.to).map((p) => p.summary),
     date,
   );
@@ -122,9 +118,7 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
       waterMl: water,
       beveragesMl: beverages,
       totalMl: water == null && beverages == null ? null : (water ?? 0) + (beverages ?? 0),
-      targetMl:
-        FLUID_BASE_ML +
-        Math.round(((trainingMinutes / 60) * FLUID_PER_TRAINING_HOUR_ML) / 100) * 100,
+      targetMl: fluidTargetMl(trainingMinutes),
     },
     meals: of('meal').map((m) => ({
       time: localTime(m.start, timeZone),
@@ -169,23 +163,6 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
   };
 }
 
-// Como SETTLING_DAYS del motor: los días después de un periodo en los que el peso trae agua
-const SETTLING_DAYS = 3;
-
-/** El periodo que toca `date`: durante, o recién acabado (settling), o null. */
-function periodOf(periods, date) {
-  const during = periods.find((p) => date >= p.from && date <= p.to);
-  if (during) return { ...during, phase: 'during' };
-  const daysSince = (p) => Math.round((Date.parse(date) - Date.parse(p.to)) / DAY_MS);
-  const recent = periods
-    .filter((p) => p.to < date && daysSince(p) <= SETTLING_DAYS)
-    .sort((a, b) => b.to.localeCompare(a.to))[0];
-  return recent ? { ...recent, phase: 'settling', daysSince: daysSince(recent) } : null;
-}
-
-const PERIOD_NAME = { away: 'Fuera de casa', sick: 'Enfermo', other: 'Periodo' };
-const dmShort = (date) => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`;
-
 function minutesOf(w) {
   const seconds =
     w.summary?.durationS ?? (w.end ? (Date.parse(w.end) - Date.parse(w.start)) / 1000 : 0);
@@ -222,13 +199,13 @@ export function composeDaily(day, { comment = null } = {}) {
     blocks.push({
       type: 'callout',
       tone: 'info',
-      text: `${PERIOD_NAME[p.type]} (del ${dmShort(p.from)} al ${dmShort(p.to)}): el motor no aprende de estos días y el objetivo está en mantenimiento.`,
+      text: `${PERIOD_NAMES[p.type] ?? PERIOD_NAMES.other} (${periodPhrase(p)}): el motor no aprende de estos días y el objetivo está en mantenimiento.`,
     });
   } else if (p?.phase === 'settling') {
     blocks.push({
       type: 'callout',
       tone: 'info',
-      text: `Volviste el ${dmShort(p.to)}: estos días el peso suele venir con agua y sal, así que cuenta menos en la tendencia.`,
+      text: `Volviste ${periodPhrase({ from: p.to, to: p.to })}: estos días el peso suele venir con agua y sal, así que cuenta menos en la tendencia.`,
     });
   }
 
@@ -392,11 +369,11 @@ export function commentFacts(day) {
   const p = day.period;
   if (p?.phase === 'during') {
     lines.push(
-      `Periodo: ese día estaba ${p.type === 'away' ? 'fuera de casa' : p.type === 'sick' ? 'enfermo' : 'en un periodo especial'} (del ${dmShort(p.from)} al ${dmShort(p.to)}). No le reproches no apuntar ni no pesarse; el objetivo está en mantenimiento.`,
+      `Periodo: ese día estaba ${p.type === 'away' ? 'fuera de casa' : p.type === 'sick' ? 'enfermo' : 'en un periodo especial'} (${periodPhrase(p)}). No le reproches no apuntar ni no pesarse; el objetivo está en mantenimiento.`,
     );
   } else if (p?.phase === 'settling') {
     lines.push(
-      `Periodo: volvió el ${dmShort(p.to)} (${p.type === 'away' ? 'de fuera de casa' : p.type === 'sick' ? 'de estar enfermo' : 'de un periodo'}). Si el peso ha subido, es sobre todo agua y sal: dilo para que no se agobie.`,
+      `Periodo: volvió ${periodPhrase({ from: p.to, to: p.to })} (${p.type === 'away' ? 'de fuera de casa' : p.type === 'sick' ? 'de estar enfermo' : 'de un periodo'}). Si el peso ha subido, es sobre todo agua y sal: dilo para que no se agobie.`,
     );
   }
   const i = day.intake;

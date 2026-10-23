@@ -6,7 +6,8 @@
   "description": "Informes hechos de bloques (texto, cifras, gráficas, tablas): el de cada mañana, su correo y sus gráficas en PNG",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./format": "./src/format.js"
   },
   "scripts": {
     "test": "vitest run"
@@ -14,6 +15,7 @@
   "dependencies": {
     "@digitaltwin/coach": "^0.1.0",
     "@digitaltwin/email": "^0.1.0",
+    "@digitaltwin/engine": "^0.1.0",
     "@digitaltwin/nutrition": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@resvg/resvg-js": "2.6.2",

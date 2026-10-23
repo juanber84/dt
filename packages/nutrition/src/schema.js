@@ -1,25 +1,9 @@
 import { z } from 'zod';
+import { MEAL_TYPES } from './meal-types.js';
+
+export { MEAL_TYPES, MEAL_TYPE_LABELS } from './meal-types.js';
 
 const grams = z.number().nonnegative();
-
-/** Qué comida del día es cada plato. El orden es el del día. */
-export const MEAL_TYPES = Object.freeze([
-  'breakfast',
-  'mid-morning',
-  'lunch',
-  'afternoon-snack',
-  'dinner',
-  'snack',
-]);
-
-export const MEAL_TYPE_LABELS = Object.freeze({
-  breakfast: 'Desayuno',
-  'mid-morning': 'Media mañana',
-  lunch: 'Comida',
-  'afternoon-snack': 'Merienda',
-  dinner: 'Cena',
-  snack: 'Picoteo',
-});
 
 /** Un ingrediente (o alimento suelto) con sus macros para la cantidad tomada. */
 export const ingredientSchema = z.object({

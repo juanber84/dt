@@ -6,7 +6,8 @@
   "description": "Estimación de macros de lo que comes con un LLM (DeepSeek/OpenAI) y esquemas de las entradas",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./meal-types": "./src/meal-types.js"
   },
   "scripts": {
     "test": "vitest run"

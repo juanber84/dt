@@ -22,6 +22,8 @@ services:
       DOCS_URL: http://digitaltwin-docs:5174
     volumes:
       - ./apps/web:/app/apps/web
+      # Funciones de los paquetes que importa la web (motor, tipos de comida, formato)
+      - ./packages:/app/packages:ro
       # node_modules y la caché de Vite se quedan en el contenedor
       - /app/apps/web/node_modules
     healthcheck:

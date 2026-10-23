@@ -16,6 +16,8 @@
  *     resto hidratos.
  */
 
+import { currentPeriod, markPeriods } from './periods.js';
+
 const DAY_MS = 24 * 3600 * 1000;
 const KCAL_PER_KG_FAT = 7700;
 const KCAL_PER_KG_LEAN = 1800;
@@ -35,31 +37,8 @@ export const MAX_GAP_DAYS = 7;
 /** Días apuntados que hacen falta para avisar de que lo apuntado no cuadra con el peso. */
 export const MISMATCH_MIN_DAYS = 14;
 
-/**
- * Días después de un periodo (viaje, enfermedad) en los que el peso aún viene con agua y sal: sus
- * pesajes cuentan menos en la tendencia y el gasto no aprende de ellos.
- */
-export const SETTLING_DAYS = 3;
-/** Lo que pesa un pesaje "dudoso" (al volver, o enfermo) frente a uno normal en la tendencia. */
+/** Lo que pesa un pesaje "dudoso" (al volver de un periodo, o enfermo) frente a uno normal. */
 export const DOUBTFUL_WEIGHT = 1 / 3;
-
-/**
- * Marca cada día según los periodos que apunta la persona:
- *   away      fuera de casa: no se pesa en su báscula (lo de otra báscula no entra) ni come lo de
- *             siempre
- *   sick      enfermo: come raro y retiene agua
- *   settling  los SETTLING_DAYS después de cualquier periodo
- * @param {Array<{ date: string }>} days
- * @param {Array<{ type: 'away' | 'sick' | 'other', from: string, to: string }>} periods  días locales
- */
-export function markPeriods(days, periods = []) {
-  return days.map((d) => {
-    const inside = periods.find((p) => d.date >= p.from && d.date <= p.to);
-    if (inside) return { ...d, period: inside.type === 'away' ? 'away' : 'sick' };
-    const after = periods.find((p) => d.date > p.to && daysBetween(p.to, d.date) <= SETTLING_DAYS);
-    return after ? { ...d, period: 'settling' } : d;
-  });
-}
 
 /**
  * Peso de la báscula día a día: los días sin pesaje, en línea recta entre el anterior y el
@@ -316,20 +295,15 @@ export function computeState({ profile, days: input, today, periods = [] }) {
   };
 }
 
-/**
- * El periodo que afecta a `today`: en curso ('during') o recién acabado ('settling', con los días
- * que han pasado), o null.
- */
-export function currentPeriod(periods, today) {
-  const during = periods.find((p) => today >= p.from && today <= p.to);
-  if (during) return { ...during, phase: 'during' };
-  const recent = periods
-    .filter((p) => p.to < today && daysBetween(p.to, today) <= SETTLING_DAYS)
-    .sort((a, b) => b.to.localeCompare(a.to))[0];
-  return recent ? { ...recent, phase: 'settling', daysSince: daysBetween(recent.to, today) } : null;
-}
-
 export { addDays };
+export {
+  PERIOD_NAMES,
+  SETTLING_DAYS,
+  markPeriods,
+  currentPeriod,
+  periodPhrase,
+} from './periods.js';
+export { fluidTargetMl, FLUID_BASE_ML, FLUID_PER_TRAINING_HOUR_ML } from './fluids.js';
 // El motor ya con los datos de un usuario (BD): su perfil y su estado. Lo usan la API y el worker.
 export { createEngine } from './service.js';
 export { createProfiles } from './profiles.js';
