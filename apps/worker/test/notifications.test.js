@@ -69,6 +69,25 @@ describe('avisos', () => {
     );
   });
 
+  it('comidas sin apuntar: fuera de casa (un periodo que incluye hoy) no se avisa', async () => {
+    const at = new Date('2026-10-21T14:00:00Z');
+    const notify = vi.fn();
+    const rules = createPushRules({
+      push: { subscribedUsers: async () => ['ana'], settings: async () => ({ disabled: [] }) },
+      queries: {
+        episodes: async ({ kinds }) =>
+          kinds.includes('period')
+            ? [{ kind: 'period', summary: { type: 'away', from: '2026-10-19', to: '2026-10-22' } }]
+            : [],
+      },
+      notify,
+      timeZone: TZ,
+      now: () => at,
+    });
+    expect(await rules.run('meals-missing')).toEqual({ users: 1, notified: 0 });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
   it('el job push aplaza a después del silencio', async () => {
     const retryAt = new Date('2026-10-22T06:00:00Z');
     const queue = { send: vi.fn() };

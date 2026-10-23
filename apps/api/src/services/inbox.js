@@ -23,11 +23,12 @@ const DEBOUNCE_SECONDS = 30;
  * @param {ReturnType<typeof import('@digitaltwin/queue').createQueue>} deps.queue
  * @param {ReturnType<typeof import('@digitaltwin/connections').createDbConnectionStore>} deps.connections
  * @param {ReturnType<typeof import('./telegram-link.js').createTelegramLink>} [deps.telegramLink]
+ * @param {string} [deps.timeZone]  La del usuario (los días de un periodo)
  * @param {import('pino').Logger} [deps.logger]
  */
-export function createInbox({ pipeline, queue, connections, telegramLink, logger }) {
+export function createInbox({ pipeline, queue, connections, telegramLink, timeZone, logger }) {
   const { store } = pipeline;
-  const entries = createEntries({ pipeline, queue });
+  const entries = createEntries({ pipeline, queue, timeZone });
 
   async function settle(id, fn) {
     try {

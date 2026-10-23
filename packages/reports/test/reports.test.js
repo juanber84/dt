@@ -115,6 +115,38 @@ describe('composeDaily', () => {
   });
 });
 
+describe('periodos en el informe', () => {
+  it('fuera de casa: lo dice y no reprocha no haber apuntado', () => {
+    const day = {
+      ...emptyDay(),
+      period: { type: 'away', from: '2026-10-21', to: '2026-10-24', phase: 'during' },
+    };
+    const report = composeDaily(day);
+    expect(report.blocks[0]).toEqual({
+      type: 'callout',
+      tone: 'info',
+      text: 'Fuera de casa (del 21/10 al 24/10): el motor no aprende de estos días y el objetivo está en mantenimiento.',
+    });
+    expect(JSON.stringify(report.blocks)).not.toContain('No apuntaste ninguna comida');
+    expect(commentFacts(day)).toContain('ese día estaba fuera de casa (del 21/10 al 24/10)');
+  });
+
+  it('al volver: avisa de que el peso viene con agua', () => {
+    const day = {
+      ...fullDay(),
+      period: {
+        type: 'away',
+        from: '2026-10-18',
+        to: '2026-10-21',
+        phase: 'settling',
+        daysSince: 1,
+      },
+    };
+    expect(composeDaily(day).blocks[0].text).toContain('Volviste el 21/10');
+    expect(commentFacts(day)).toContain('volvió el 21/10 (de fuera de casa)');
+  });
+});
+
 describe('commentFacts (lo que lee el coach)', () => {
   it('la tendencia dice si sube o baja frente al objetivo, sin signos que interpretar', () => {
     const text = commentFacts(fullDay());

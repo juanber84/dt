@@ -50,4 +50,39 @@ describe('contexto del coach', () => {
     expect(prompt).toContain('Persona: hombre.');
     expect(prompt).toContain('Lo primero, su salud');
   });
+
+  it('un periodo: fuera de casa (mantenimiento, sin reproches) o recién vuelto (el peso es agua)', () => {
+    const engine = {
+      ready: true,
+      weight: { trend: 81.8, last: 81.5, bodyFat: null },
+      expenditure: { kcal: 2300, confidence: 'high', loggedDays: 30, intakeAvg: null },
+      weeklyRatePct: -0.5,
+      targets: { kcal: 2300, proteinG: 150, fatG: 65, carbsG: 290, kgPerWeek: 0 },
+    };
+    const during = buildContext({
+      timeZone: TZ,
+      engine: {
+        ...engine,
+        period: { type: 'away', from: '2026-11-01', to: '2026-11-04', phase: 'during' },
+      },
+    });
+    expect(during).toContain('Ahora está fuera de casa (del 1/11 al 4/11)');
+    expect(during).toContain('No le metas prisa con el déficit');
+
+    const back = buildContext({
+      timeZone: TZ,
+      engine: {
+        ...engine,
+        period: {
+          type: 'away',
+          from: '2026-11-01',
+          to: '2026-11-04',
+          phase: 'settling',
+          daysSince: 1,
+        },
+      },
+    });
+    expect(back).toContain('Volvió hace 1 día');
+    expect(back).toContain('es sobre todo agua y sal');
+  });
 });

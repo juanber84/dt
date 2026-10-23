@@ -4,7 +4,7 @@
 
 - **Las kcal aún no se reparten según el entreno.** Hoy el objetivo es el mismo cada día.
 - **Los factores de actividad por pasos son aproximados.** Solo cuentan para el punto de partida; con días apuntados manda lo observado.
-- **El agua engaña unos días.** Una enfermedad, un antiinflamatorio o un viaje mueven el peso sin cambiar la grasa. La tendencia y los pasos pequeños del predictor lo suavizan, pero un periodo largo despista un poco el gasto.
+- **El agua engaña unos días.** Una enfermedad, un antiinflamatorio o un viaje mueven el peso sin cambiar la grasa. La tendencia y los pasos pequeños del predictor lo suavizan; si lo marcas como [periodo](/motor/periodos), el motor no aprende de esos días.
 - **Necesita días completos.** Con menos de 7 días bien apuntados, la confianza es baja.
 
 ## Lo siguiente

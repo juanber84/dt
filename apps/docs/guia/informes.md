@@ -12,6 +12,7 @@ Cada mañana te llega por correo un **informe de lo de ayer**, y lo tienes tambi
 - **Entrenos** del día, si los hubo.
 - **El peso de las últimas semanas**: cada pesada como un punto y la tendencia como línea.
 - **Salud**: síntomas y medicación del día.
+- Si ese día estabas **fuera de casa o enfermo** (un [periodo](/motor/periodos)), lo dice arriba y no te reprocha no haber apuntado; al volver, avisa de que el peso viene con agua.
 
 Las cifras salen de tus datos y del motor, nunca del LLM: el coach solo escribe el comentario. Lo que no está apuntado sale como **"sin datos"**, no como cero.
 

@@ -36,6 +36,32 @@ export const MAX_GAP_DAYS = 7;
 export const MISMATCH_MIN_DAYS = 14;
 
 /**
+ * Días después de un periodo (viaje, enfermedad) en los que el peso aún viene con agua y sal: sus
+ * pesajes cuentan menos en la tendencia y el gasto no aprende de ellos.
+ */
+export const SETTLING_DAYS = 3;
+/** Lo que pesa un pesaje "dudoso" (al volver, o enfermo) frente a uno normal en la tendencia. */
+export const DOUBTFUL_WEIGHT = 1 / 3;
+
+/**
+ * Marca cada día según los periodos que apunta la persona:
+ *   away      fuera de casa: no se pesa en su báscula (lo de otra báscula no entra) ni come lo de
+ *             siempre
+ *   sick      enfermo: come raro y retiene agua
+ *   settling  los SETTLING_DAYS después de cualquier periodo
+ * @param {Array<{ date: string }>} days
+ * @param {Array<{ type: 'away' | 'sick' | 'other', from: string, to: string }>} periods  días locales
+ */
+export function markPeriods(days, periods = []) {
+  return days.map((d) => {
+    const inside = periods.find((p) => d.date >= p.from && d.date <= p.to);
+    if (inside) return { ...d, period: inside.type === 'away' ? 'away' : 'sick' };
+    const after = periods.find((p) => d.date > p.to && daysBetween(p.to, d.date) <= SETTLING_DAYS);
+    return after ? { ...d, period: 'settling' } : d;
+  });
+}
+
+/**
  * Peso de la báscula día a día: los días sin pesaje, en línea recta entre el anterior y el
  * siguiente (como MacroFactor), si el hueco no pasa de MAX_GAP_DAYS. Antes del primero, nada;
  * después del último, se mantiene hasta MAX_GAP_DAYS.
@@ -62,7 +88,13 @@ export function fillWeights(days) {
  * @returns {Array<{ date: string, weight: number|null, filled: number|null, trend: number|null }>}
  */
 export function weightTrend(days, { alpha = 0.1 } = {}) {
-  const filled = fillWeights(days);
+  // Fuera de casa no hay pesajes válidos (otra báscula marca distinto): se quitan y el hueco se
+  // mantiene en el último peso de casa, no en línea recta hacia el de la vuelta (que trae agua)
+  const home = days.map((d) => (d.period === 'away' ? { ...d, weight: null } : d));
+  const filled = fillWeights(home);
+  for (let i = 1; i < days.length; i++) {
+    if (days[i].period === 'away' && filled[i - 1] != null) filled[i] = filled[i - 1];
+  }
   // Tras un hueco largo (o al principio) se vuelve a arrancar: mediana de los 5 pesajes siguientes
   const seed = (from) => {
     const next = days
@@ -80,8 +112,15 @@ export function weightTrend(days, { alpha = 0.1 } = {}) {
       return { date: d.date, weight: null, filled: null, trend: null };
     }
     trend ??= seed(i);
-    trend += alpha * (filled[i] - trend);
-    return { date: d.date, weight: d.weight ?? null, filled: filled[i], trend: round(trend, 0.01) };
+    // Al volver de un periodo, o enfermo, el pesaje cuenta menos: el salto suele ser agua
+    const doubtful = d.period === 'settling' || d.period === 'sick';
+    trend += (doubtful ? alpha * DOUBTFUL_WEIGHT : alpha) * (filled[i] - trend);
+    return {
+      date: d.date,
+      weight: home[i].weight ?? null,
+      filled: filled[i],
+      trend: round(trend, 0.01),
+    };
   });
 }
 
@@ -127,6 +166,8 @@ export function energyPerKg(weeklyRatePct) {
  */
 export function isLoggedDay(day, { since, today, expected }) {
   if (day.date >= today || (since && day.date < since)) return false;
+  // En un periodo (o justo después) ni lo comido ni el peso dicen cuánto gastas de normal
+  if (day.period) return false;
   if (day.kcal == null || (day.dishes ?? 0) < 2) return false;
   return day.kcal >= expected * 0.4;
 }
@@ -148,6 +189,11 @@ export function predictExpenditure({ days, initial, since, today, density }) {
     const day = days[i];
     if (day.date >= today) break;
     const window = days.slice(i - 6, i + 1);
+    // Si la ventana toca un periodo, el cambio de la tendencia lleva agua o un hueco: no se aprende
+    if (window.some((d) => d.period)) {
+      history.push({ date: day.date, kcal: round(kcal, 10) });
+      continue;
+    }
     const inWindow = window.filter(logged);
     const start = window[0].trend;
     const end = window[6].trend;
@@ -201,8 +247,11 @@ export function nutritionTargets({ expenditure, weightKg, bodyFatPct, weeklyRate
  * @param {Array<{ date, weight?, bodyFat?, kcal?, dishes?, steps? }>} input.days
  *   días seguidos y ordenados (los que falten, con nulls), hasta hoy incluido
  * @param {string} input.today  YYYY-MM-DD local
+ * @param {Array<{ type: 'away' | 'sick' | 'other', from: string, to: string }>} [input.periods]
+ *   fuera de casa, enfermo...: el motor no aprende de esos días (ver markPeriods)
  */
-export function computeState({ profile, days, today }) {
+export function computeState({ profile, days: input, today, periods = [] }) {
+  const days = markPeriods(input, periods);
   const withTrend = weightTrend(days);
   const current = [...withTrend].reverse().find((d) => d.trend != null);
   const missing = [
@@ -240,27 +289,44 @@ export function computeState({ profile, days, today }) {
     density,
   });
   const bodyFat = [...days].reverse().find((d) => d.bodyFat != null)?.bodyFat ?? null;
+  const period = currentPeriod(periods, today);
 
   return {
     ready: true,
     today,
     weight: {
       trend: current.trend,
-      last: [...days].reverse().find((d) => d.weight != null)?.weight ?? null,
+      // El último de su báscula: lo de otra báscula, fuera de casa, no cuenta
+      last: [...withTrend].reverse().find((d) => d.weight != null)?.weight ?? null,
       bodyFat,
     },
+    period,
     bmr: basal,
     weeklyRatePct,
     expenditure,
+    // Fuera de casa o enfermo, a mantenimiento: no es momento de déficit
     targets: nutritionTargets({
       expenditure: expenditure.kcal,
       weightKg: current.trend,
       bodyFatPct: bodyFat,
-      weeklyRatePct,
+      weeklyRatePct: period?.phase === 'during' ? 0 : weeklyRatePct,
       density,
     }),
     trend: withTrend.slice(-42).map(({ date, weight, trend }) => ({ date, weight, trend })),
   };
+}
+
+/**
+ * El periodo que afecta a `today`: en curso ('during') o recién acabado ('settling', con los días
+ * que han pasado), o null.
+ */
+export function currentPeriod(periods, today) {
+  const during = periods.find((p) => today >= p.from && today <= p.to);
+  if (during) return { ...during, phase: 'during' };
+  const recent = periods
+    .filter((p) => p.to < today && daysBetween(p.to, today) <= SETTLING_DAYS)
+    .sort((a, b) => b.to.localeCompare(a.to))[0];
+  return recent ? { ...recent, phase: 'settling', daysSince: daysBetween(recent.to, today) } : null;
 }
 
 export { addDays };

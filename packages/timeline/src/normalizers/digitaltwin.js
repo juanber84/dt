@@ -66,6 +66,13 @@ export function normalizeMeal(entry) {
   return { mode: 'exact', observations, episodes };
 }
 
+/** Nombre de cada tipo de periodo (si no se le pone otro). */
+export const PERIOD_TITLES = Object.freeze({
+  away: 'Fuera de casa',
+  sick: 'Enfermo',
+  other: 'Periodo',
+});
+
 /** Lo que se apunta a mano (app o bot) además de las comidas. */
 export const ENTRY_KINDS = Object.freeze([
   'water',
@@ -75,6 +82,7 @@ export const ENTRY_KINDS = Object.freeze([
   'symptom',
   'note',
   'medication',
+  'period',
 ]);
 
 /**
@@ -163,6 +171,21 @@ export function normalizeEntry(entry) {
             summary: { weight: entry.value, bodyFat: null },
             schema: 'weigh-in@1',
             details: { ...base.details, weight: entry.value, manual: true },
+          },
+        ],
+      };
+    case 'period':
+      return {
+        mode: 'exact',
+        observations: [],
+        episodes: [
+          {
+            ...base,
+            kind: 'period',
+            end: new Date(entry.endAt).toISOString(),
+            title: entry.text || PERIOD_TITLES[entry.periodType] || 'Periodo',
+            summary: { type: entry.periodType, from: entry.from, to: entry.to },
+            schema: 'period@1',
           },
         ],
       };

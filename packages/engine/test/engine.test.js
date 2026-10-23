@@ -3,10 +3,12 @@ import {
   addDays,
   bmr,
   computeState,
+  currentPeriod,
   energyPerKg,
   fillWeights,
   initialExpenditure,
   isLoggedDay,
+  markPeriods,
   nutritionTargets,
   weightTrend,
 } from '../src/index.js';
@@ -165,5 +167,92 @@ describe('objetivos', () => {
       today: '2026-10-02',
     });
     expect(state).toEqual({ ready: false, missing: ['age', 'heightCm'] });
+  });
+});
+
+describe('periodos (fuera de casa, enfermo)', () => {
+  const profile = { age: 40, sex: 'male', heightCm: 180, weeklyRatePct: -0.5 };
+
+  it('marca los días del periodo y los 3 siguientes', () => {
+    const days = series('2026-11-01', 9, () => ({}));
+    const marked = markPeriods(days, [{ type: 'away', from: '2026-11-02', to: '2026-11-04' }]);
+    expect(marked.map((d) => d.period ?? '-')).toEqual([
+      '-',
+      'away',
+      'away',
+      'away',
+      'settling',
+      'settling',
+      'settling',
+      '-',
+      '-',
+    ]);
+    expect(
+      markPeriods(days, [{ type: 'sick', from: '2026-11-01', to: '2026-11-01' }])[0].period,
+    ).toBe('sick');
+  });
+
+  it('fuera de casa: lo de otra báscula no entra y el hueco se mantiene en el peso de casa', () => {
+    const days = markPeriods(
+      series('2026-11-01', 6, (i) => ({ weight: [80, 80, 83, 83, 80, 80][i] })),
+      [{ type: 'away', from: '2026-11-03', to: '2026-11-04' }],
+    );
+    const trend = weightTrend(days);
+    // Los pesajes de fuera (83) no aparecen ni mueven la tendencia
+    expect(trend[2].weight).toBeNull();
+    expect(trend[3].filled).toBe(80);
+    expect(trend[3].trend).toBe(80);
+  });
+
+  it('al volver, el salto de agua pesa un tercio en la tendencia', () => {
+    const base = series('2026-11-01', 8, (i) => ({ weight: i < 5 ? 80 : 81.5 }));
+    const plain = weightTrend(base);
+    const marked = weightTrend(
+      markPeriods(base, [{ type: 'away', from: '2026-11-03', to: '2026-11-05' }]),
+    );
+    // Día 6 (vuelta): sin periodo sube 0,15; con periodo, un tercio
+    const rise = (t) => t[5].trend - t[4].trend;
+    expect(rise(plain)).toBeCloseTo(0.15, 2);
+    expect(rise(marked)).toBeCloseTo(0.05, 2);
+  });
+
+  it('el gasto no aprende de una semana que toca un periodo', () => {
+    // 2 meses comiendo 2.500 con el peso estable, y un puente apuntado a medias (1.500 al día:
+    // por encima del 40 % que el motor ya descarta solo)
+    const days = series('2026-09-01', 60, (i) => ({
+      weight: 80,
+      kcal: i >= 50 && i < 54 ? 1500 : 2500,
+      dishes: 4,
+    }));
+    const today = '2026-10-31';
+    const without = computeState({ profile, days, today });
+    const withPeriod = computeState({
+      profile,
+      days,
+      today,
+      periods: [{ type: 'away', from: '2026-10-21', to: '2026-10-24' }],
+    });
+    // Sin marcarlo, los días a medias le hacen creer que gasta menos
+    expect(without.expenditure.kcal).toBeLessThan(withPeriod.expenditure.kcal - 50);
+    expect(withPeriod.expenditure.kcal).toBeGreaterThan(2400);
+  });
+
+  it('durante el periodo, objetivo de mantenimiento; al volver, el normal y cuántos días hace', () => {
+    const days = series('2026-09-01', 61, () => ({ weight: 80, kcal: 2500, dishes: 4 }));
+    const period = { type: 'away', from: '2026-10-30', to: '2026-11-02' };
+    const during = computeState({ profile, days, today: '2026-10-31', periods: [period] });
+    expect(during.period).toMatchObject({ type: 'away', phase: 'during' });
+    expect(during.targets.kgPerWeek).toBe(0);
+    expect(during.targets.kcal).toBe(during.expenditure.kcal);
+
+    const back = computeState({
+      profile,
+      days,
+      today: '2026-10-31',
+      periods: [{ ...period, from: '2026-10-25', to: '2026-10-29' }],
+    });
+    expect(back.period).toMatchObject({ phase: 'settling', daysSince: 2 });
+    expect(back.targets.kgPerWeek).toBeLessThan(0);
+    expect(currentPeriod([period], '2026-11-10')).toBeNull();
   });
 });

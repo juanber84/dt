@@ -1,6 +1,9 @@
 import { addDays, computeState } from './index.js';
 
 const HISTORY_DAYS = 70;
+const DAY_MS = 24 * 3600 * 1000;
+// Un periodo (vacaciones largas) puede haber empezado antes de la ventana de días
+const PERIOD_LOOKBACK_DAYS = 60;
 const METRICS = ['intake.energy', 'body.weight', 'body.fat_percent', 'activity.steps'];
 
 const localDate = (date, timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(date);
@@ -21,10 +24,18 @@ export function createEngine({ queries, profiles, timeZone, now = () => new Date
       const first = addDays(today, -HISTORY_DAYS + 1);
       const from = new Date(`${first}T00:00:00Z`);
       const to = new Date(Date.parse(`${today}T00:00:00Z`) + 2 * 24 * 3600 * 1000);
-      const [profile, series, meals] = await Promise.all([
+      const [profile, series, meals, periods] = await Promise.all([
         profiles.get(userId),
         queries.series({ userId, from, to, bucket: 'day', metrics: METRICS, timeZone }),
         queries.episodes({ userId, from, to, kinds: ['meal'], timeZone }),
+        // Los que empezaron antes de la ventana también cuentan si llegan a ella
+        queries.episodes({
+          userId,
+          from: new Date(from.getTime() - PERIOD_LOOKBACK_DAYS * DAY_MS),
+          to,
+          kinds: ['period'],
+          timeZone,
+        }),
       ]);
 
       const days = new Map();
@@ -45,7 +56,14 @@ export function createEngine({ queries, profiles, timeZone, now = () => new Date
         if (day) day.dishes = (day.dishes ?? 0) + 1;
       }
 
-      return computeState({ profile, days: [...days.values()], today });
+      return computeState({
+        profile,
+        days: [...days.values()],
+        today,
+        periods: periods
+          .filter((p) => p.summary?.from && p.summary?.to)
+          .map((p) => ({ type: p.summary.type, from: p.summary.from, to: p.summary.to })),
+      });
     },
   };
 }

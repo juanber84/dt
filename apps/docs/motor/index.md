@@ -23,8 +23,9 @@ Es el método que hizo famosa a **MacroFactor**. Seguimos lo que publican de él
 1. [Peso real](/motor/peso): la tendencia, sin el ruido del agua.
 2. [Gasto real](/motor/gasto): adaptativo, aprende de tus días apuntados.
 3. [Objetivos de comida](/motor/objetivos): kcal y macros para tu ritmo.
-4. [Límites y siguiente](/motor/siguiente): lo que aún no hace y lo que viene.
-5. [Referencias](/motor/referencias).
+4. [Periodos](/motor/periodos): fuera de casa o enfermo, para que no aprenda mal.
+5. [Límites y siguiente](/motor/siguiente): lo que aún no hace y lo que viene.
+6. [Referencias](/motor/referencias).
 
 ## Dónde se ve
 

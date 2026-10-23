@@ -66,6 +66,7 @@ export default defineConfig({
           { text: 'Peso real', link: '/motor/peso' },
           { text: 'Gasto real', link: '/motor/gasto' },
           { text: 'Objetivos de comida', link: '/motor/objetivos' },
+          { text: 'Periodos', link: '/motor/periodos' },
           { text: 'Límites y siguiente', link: '/motor/siguiente' },
           { text: 'Referencias', link: '/motor/referencias' },
         ],

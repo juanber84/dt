@@ -39,9 +39,10 @@ export const REAL_KINDS = [
   'symptom',
   'note',
   'medication',
+  'period',
   ...CLINICAL_KINDS,
 ];
-const ENTRY_KINDS = ['drink', 'symptom', 'note', 'medication'];
+const ENTRY_KINDS = ['drink', 'symptom', 'note', 'medication', 'period'];
 
 /** Métrica del timeline → campo del resumen diario (con su conversión). */
 const DAILY_METRICS = {
@@ -240,6 +241,18 @@ export function mealEvent(episode) {
 /**
  * Lo apuntado a mano (agua, café, síntoma, nota): `entryId` deja borrarlo desde el lateral.
  */
+/** "Del 1 al 4 de noviembre" / "Solo el 1 de noviembre" (sin año: es de días cercanos). */
+export function periodRange({ from, to }) {
+  if (!from || !to) return '';
+  const fmt = (d, opts) =>
+    new Intl.DateTimeFormat('es-ES', { timeZone: 'UTC', ...opts }).format(
+      new Date(`${d}T12:00:00Z`),
+    );
+  if (from === to) return `Solo el ${fmt(from, { day: 'numeric', month: 'long' })}`;
+  const sameMonth = from.slice(0, 7) === to.slice(0, 7);
+  return `Del ${fmt(from, sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'long' })} al ${fmt(to, { day: 'numeric', month: 'long' })}`;
+}
+
 export function entryEvent(episode) {
   const s = episode.summary ?? {};
   const base = {
@@ -299,6 +312,17 @@ export function entryEvent(episode) {
       icon: 'Pill',
       title: episode.title,
       subtitle: s.dose ? `Medicación · ${s.dose}` : 'Medicación',
+      metrics: [],
+    };
+  }
+  // Un periodo (fuera de casa, enfermo): sale el día que empieza, con hasta cuándo
+  if (episode.kind === 'period') {
+    return {
+      ...base,
+      category: 'note',
+      icon: s.type === 'away' ? 'Luggage' : s.type === 'sick' ? 'Thermometer' : 'CalendarRange',
+      title: episode.title,
+      subtitle: periodRange(s),
       metrics: [],
     };
   }

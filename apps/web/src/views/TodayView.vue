@@ -20,7 +20,7 @@ import { useAsync } from '../composables/useAsync.js';
 import Skeleton from '../components/ui/Skeleton.vue';
 import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchEngine, fetchSummaries } from '../services/twin.js';
-import { documentDay, documentEvent, withDocuments } from '../services/timeline.js';
+import { documentDay, documentEvent, periodRange, withDocuments } from '../services/timeline.js';
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
 import { setBadge } from '../services/push.js';
 import { formatShortDate, todayISO } from '../lib/dates.js';
@@ -45,6 +45,12 @@ const loadEngine = () =>
     .catch(() => (engine.value = null));
 loadEngine();
 const targets = computed(() => engine.value?.targets ?? null);
+// Un periodo en curso o recién acabado (fuera de casa, enfermo): solo en el día de hoy, que es al
+// que se refiere el estado del motor
+const period = computed(() =>
+  engine.value?.period && date.value === todayISO() ? engine.value.period : null,
+);
+const PERIOD_NAME = { away: 'Fuera de casa', sick: 'Enfermo', other: 'Periodo' };
 const CONFIDENCE_TEXT = {
   none: 'por fórmula, aún sin tus datos',
   low: 'confianza baja',
@@ -366,6 +372,19 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
         Registrar
       </button>
     </header>
+
+    <div v-if="period" class="card period" role="status">
+      <strong>{{
+        period.phase === 'during'
+          ? `${PERIOD_NAME[period.type]} · ${periodRange(period).toLowerCase()}`
+          : `Has vuelto hace ${period.daysSince} ${period.daysSince === 1 ? 'día' : 'días'}`
+      }}</strong>
+      <span class="muted">{{
+        period.phase === 'during'
+          ? 'El motor no aprende de estos días y el objetivo está en mantenimiento. Apunta días enteros (aunque sea a ojo) o nada.'
+          : 'El peso de estos días suele venir con agua y sal: cuenta menos en la tendencia. En 3-5 días se normaliza.'
+      }}</span>
+    </div>
 
     <!-- Si falla no se enseña nada inventado: el error y un reintento -->
     <div v-if="dayError" class="card card-pad load-error" role="alert">
@@ -698,6 +717,20 @@ const hourLabels = hours.map((h) => `${h}:00 – ${h}:59`);
 </template>
 
 <style scoped>
+.period {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+}
+
+.period strong {
+  font-size: 14px;
+}
+
 .today {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -1,6 +1,15 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Droplets, CupSoda, Scale, Stethoscope, NotebookPen, FileHeart, Pill } from '@lucide/vue';
+import {
+  Droplets,
+  CupSoda,
+  Scale,
+  Stethoscope,
+  NotebookPen,
+  FileHeart,
+  Pill,
+  Luggage,
+} from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { uploadDocument, uploadProblem } from '../../services/clinical.js';
 import { createEntry, fetchMedications } from '../../services/twin.js';
@@ -69,8 +78,16 @@ const KINDS = [
   },
   // Una toma: qué medicamento y, si quieres, cuánto
   { id: 'medication', label: 'Medicación', icon: Pill, unit: null },
+  // Fuera de casa, enfermo...: el motor no aprende de esos días (ni de los 3 siguientes)
+  { id: 'period', label: 'Periodo', icon: Luggage, unit: null },
   // Sube el PDF a Clínica: la fecha la saca del informe (si no trae, la de este día)
   { id: 'report', label: 'Informe', icon: FileHeart, unit: null },
+];
+
+const PERIOD_TYPES = [
+  { id: 'away', label: 'Fuera de casa' },
+  { id: 'sick', label: 'Enfermo' },
+  { id: 'other', label: 'Otro' },
 ];
 
 // Bebidas típicas: rellenan nombre, ml que hidratan y cafeína aproximada
@@ -93,6 +110,8 @@ const dose = ref('');
 const caffeine = ref(0);
 const medications = ref([]);
 const file = ref(null);
+const periodType = ref('away');
+const until = ref(props.date);
 const uploading = ref(false);
 const uploadError = ref(null);
 const current = computed(() => KINDS.find((k) => k.id === kind.value));
@@ -104,6 +123,8 @@ watch(
     if (!open) return;
     if (props.initialKind) kind.value = props.initialKind;
     day.value = props.date;
+    until.value = props.date;
+    periodType.value = 'away';
     time.value = props.date === todayISO() ? fmtClock(minutesOfDay()) : '12:00';
     text.value = '';
     dose.value = '';
@@ -139,6 +160,8 @@ const titles = {
   symptom: () => `${text.value || 'Síntoma'} · intensidad ${value.value}/5`,
   note: () => text.value || 'Nota',
   medication: () => `${text.value}${dose.value ? ` · ${dose.value}` : ''}`,
+  period: () =>
+    `${PERIOD_TYPES.find((t) => t.id === periodType.value).label} · ${formatShortDate(day.value)} – ${formatShortDate(until.value)}`,
 };
 
 async function uploadReport() {
@@ -160,6 +183,7 @@ const saving = ref(false);
 // Síntomas y notas sin texto no dicen nada; el resto necesita su número
 const canSave = computed(() => {
   if (!day.value) return false;
+  if (kind.value === 'period') return Boolean(until.value) && until.value >= day.value;
   if (['symptom', 'note', 'medication'].includes(kind.value)) return Boolean(text.value.trim());
   if (kind.value === 'drink' && !text.value.trim()) return false;
   return value.value != null && value.value !== '' && Number(value.value) > 0;
@@ -173,6 +197,18 @@ async function submit() {
   saving.value = true;
   uploadError.value = null;
   try {
+    if (k.id === 'period') {
+      await createEntry({
+        kind: 'period',
+        periodType: periodType.value,
+        from: day.value,
+        to: until.value,
+        ...(text.value.trim() && { text: text.value.trim() }),
+      });
+      emit('add', { date: day.value, subtitle: titles.period() });
+      emit('close');
+      return;
+    }
     await createEntry({
       kind: k.id,
       at,
@@ -220,6 +256,47 @@ async function submit() {
         Analítica, prueba (holter, esfuerzo, ECG, ecografía…) o informe médico. Va al día de la
         prueba, que se saca del propio informe (si no la trae, al {{ formatShortDate(date) }}). Lo
         revisas en el lateral antes de que entre en tu timeline.
+      </p>
+      <p v-if="uploadError" class="error" role="alert">{{ uploadError }}</p>
+    </template>
+    <template v-else-if="kind === 'period'">
+      <div class="drinks" role="radiogroup" aria-label="Tipo de periodo">
+        <button
+          v-for="t in PERIOD_TYPES"
+          :key="t.id"
+          type="button"
+          role="radio"
+          class="chip"
+          :aria-checked="periodType === t.id"
+          :class="{ active: periodType === t.id }"
+          @click="periodType = t.id"
+        >
+          {{ t.label }}
+        </button>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span>Desde</span>
+          <input v-model="day" class="input num" type="date" required />
+        </label>
+        <label class="field">
+          <span>Hasta (incluido)</span>
+          <input v-model="until" class="input num" type="date" :min="day" required />
+        </label>
+      </div>
+      <label class="field">
+        <span>Nota (opcional)</span>
+        <input
+          v-model="text"
+          class="input"
+          maxlength="100"
+          placeholder="Puente en Asturias, gripe…"
+        />
+      </label>
+      <p class="muted hint">
+        Esos días (y los 3 siguientes) el motor no aprende tu gasto, el objetivo pasa a
+        mantenimiento y, al volver, el peso cuenta menos (suele venir con agua). Fuera de casa, no
+        te peses en otra báscula: no entra. Puedes apuntarlo antes de irte.
       </p>
       <p v-if="uploadError" class="error" role="alert">{{ uploadError }}</p>
     </template>
@@ -303,8 +380,10 @@ async function submit() {
         "
       />
     </label>
-    <p v-if="kind !== 'report' && uploadError" class="error" role="alert">{{ uploadError }}</p>
-    <p v-if="kind !== 'report'" class="muted hint">
+    <p v-if="kind !== 'report' && kind !== 'period' && uploadError" class="error" role="alert">
+      {{ uploadError }}
+    </p>
+    <p v-if="kind !== 'report' && kind !== 'period'" class="muted hint">
       Se guarda como fuente «Manual». Las comidas mejor por el bot: estima los macros.
     </p>
     <template #footer>

@@ -93,6 +93,18 @@ function engineLines(engine) {
     `Gasto real: ${e.kcal} kcal/día, ${CONFIDENCE[e.confidence]}; ${e.loggedDays} días con la comida apuntada entera${eating}.`,
     `Objetivo diario (ritmo ${engine.weeklyRatePct} % del peso por semana = ${t.kgPerWeek} kg/semana): ${t.kcal} kcal, proteína ${t.proteinG} g, grasa ${t.fatG} g, hidratos ${t.carbsG} g.`,
   ];
+  const p = engine.period;
+  const dm = (date) => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`;
+  const where = { away: 'fuera de casa', sick: 'enfermo', other: 'en un periodo especial' };
+  if (p?.phase === 'during') {
+    lines.push(
+      `Ahora está ${where[p.type] ?? where.other} (del ${dm(p.from)} al ${dm(p.to)}): el objetivo de arriba ya es de mantenimiento y el motor no aprende de estos días. No le metas prisa con el déficit ni le reproches no pesarse o no apuntarlo todo; si apunta, mejor días enteros a ojo que a medias.`,
+    );
+  } else if (p?.phase === 'settling') {
+    lines.push(
+      `Volvió hace ${p.daysSince} ${p.daysSince === 1 ? 'día' : 'días'} (${where[p.type] ?? where.other}, del ${dm(p.from)} al ${dm(p.to)}): si el peso ha subido es sobre todo agua y sal, se va en 3-5 días; la tendencia ya lo tiene en cuenta. Que no recorte comida para compensar.`,
+    );
+  }
   if (e.mismatch) {
     lines.push(
       'Tras semanas apuntando, lo apuntado no cuadra con su peso (según lo apuntado come poco y no baja): o se escapa comida al apuntar o el peso va con agua. Sácalo solo si habla de peso o comida, una vez, con tacto; no le recomiendes comer menos por eso.',

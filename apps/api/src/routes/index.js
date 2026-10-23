@@ -122,7 +122,9 @@ export function createApiRouter({
       router.use(
         '/entries',
         requireUser,
-        createEntriesRouter({ entries: createEntries({ pipeline, queue }) }),
+        createEntriesRouter({
+          entries: createEntries({ pipeline, queue, timeZone: config.TIMEZONE }),
+        }),
       );
     }
   }

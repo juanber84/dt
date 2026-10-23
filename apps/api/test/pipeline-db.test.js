@@ -597,6 +597,50 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     expect((await episodes()).filter((e) => e.kind === 'drink')).toHaveLength(1);
   });
 
+  it('Registrar periodo: días locales a su franja (zona del usuario), se valida y se borra', async () => {
+    const post = (body) => request(app).post('/api/v1/entries').set('Cookie', cookie).send(body);
+    const created = await post({
+      kind: 'period',
+      periodType: 'away',
+      from: '2026-11-01',
+      to: '2026-11-04',
+      text: 'Puente',
+    }).expect(201);
+    await post({ kind: 'period', periodType: 'away', from: '2026-11-04', to: '2026-11-01' }).expect(
+      400,
+    );
+    await post({
+      kind: 'period',
+      periodType: 'holiday',
+      from: '2026-11-01',
+      to: '2026-11-02',
+    }).expect(400);
+
+    const list = await request(app)
+      .get('/api/v1/timeline/episodes')
+      .query({ from: '2026-10-31T00:00:00Z', to: '2026-11-06T00:00:00Z', kinds: 'period' })
+      .set('Cookie', cookie)
+      .expect(200);
+    const period = list.body.items.find((e) => e.kind === 'period');
+    // Del 1 al 4 de noviembre en Madrid: de la medianoche del 1 (23:00 UTC del 31) a la del 5
+    expect(period).toMatchObject({
+      title: 'Puente',
+      start: '2026-10-31T23:00:00.000Z',
+      end: '2026-11-04T23:00:00.000Z',
+      summary: { type: 'away', from: '2026-11-01', to: '2026-11-04' },
+    });
+
+    await request(app)
+      .delete(`/api/v1/entries/${created.body.id}`)
+      .set('Cookie', cookie)
+      .expect(204);
+    const after = await request(app)
+      .get('/api/v1/timeline/episodes')
+      .query({ from: '2026-10-31T00:00:00Z', to: '2026-11-06T00:00:00Z', kinds: 'period' })
+      .set('Cookie', cookie);
+    expect(after.body.items.filter((e) => e.kind === 'period')).toEqual([]);
+  });
+
   it('Registrar bebida: agua y café a la misma hora cuentan los dos (cada uno en su métrica)', async () => {
     const post = (body) => request(app).post('/api/v1/entries').set('Cookie', cookie).send(body);
     await post({ kind: 'water', at: '2026-10-22T10:00:00+02:00', value: 500 }).expect(201);

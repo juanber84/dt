@@ -4,6 +4,7 @@ import {
   byDay,
   dailyValues,
   mealEvent,
+  periodRange,
   mergeDay,
   mergeSummary,
   realTotals,
@@ -84,6 +85,28 @@ describe('timeline real', () => {
     expect(dinner.mealType).toBe('dinner');
     expect(mealEvent(meal).subtitle).toMatch(/^343 kcal/);
     expect(mealEvent(meal).mealType).toBeNull();
+  });
+
+  it('periodo → evento con su tipo y hasta cuándo', () => {
+    expect(periodRange({ from: '2026-11-01', to: '2026-11-04' })).toBe('Del 1 al 4 de noviembre');
+    expect(periodRange({ from: '2026-10-30', to: '2026-11-02' })).toBe(
+      'Del 30 de octubre al 2 de noviembre',
+    );
+    expect(periodRange({ from: '2026-11-01', to: '2026-11-01' })).toBe('Solo el 1 de noviembre');
+    const event = entryEvent({
+      id: 'p1',
+      kind: 'period',
+      externalId: 'e1',
+      start: '2026-10-31T23:00:00Z',
+      title: 'Fuera de casa',
+      summary: { type: 'away', from: '2026-11-01', to: '2026-11-04' },
+    });
+    expect(event).toMatchObject({
+      icon: 'Luggage',
+      title: 'Fuera de casa',
+      subtitle: 'Del 1 al 4 de noviembre',
+      entryId: 'e1',
+    });
   });
 
   it('entreno → evento con icono por tipo y fin', () => {

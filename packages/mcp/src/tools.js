@@ -12,6 +12,7 @@ const EPISODE_KINDS = [
   'symptom',
   'note',
   'medication',
+  'period',
   'lab',
   'holter',
   'stress-test',
@@ -188,7 +189,9 @@ export function createTools({
         'Episodios del usuario entre dos días (hasta 31): comidas (meal; summary.mealType dice si ' +
         'fue desayuno, media mañana, comida, merienda, cena o picoteo, si lo tiene), entrenos (workout), ' +
         'noches de sueño (sleep), pesajes (weigh-in), agua y café (drink), síntomas (symptom, con ' +
-        'intensidad 1-5), notas (note), tomas de medicación (medication) y pruebas médicas ' +
+        'intensidad 1-5), notas (note), tomas de medicación (medication), periodos fuera de casa o ' +
+        'enfermo (period: summary.type away/sick/other, from y to; el motor no aprende de esos ' +
+        'días) y pruebas médicas ' +
         '(lab, holter, stress-test, ecg, imaging, medical-test, medical-report). Devuelve el resumen ' +
         'de cada uno; con details=true, también el detalle completo (platos y alimentos, ' +
         'vueltas...), que ocupa mucho: pídelo solo para rangos cortos.',

@@ -19,6 +19,9 @@ import {
   ScanLine,
   ClipboardList,
   Pill,
+  Luggage,
+  Thermometer,
+  CalendarRange,
 } from '@lucide/vue';
 
 // Los eventos traen el icono por nombre (vienen de la API); aquí se resuelve el componente
@@ -43,6 +46,9 @@ const ICONS = {
   ScanLine,
   ClipboardList,
   Pill,
+  Luggage,
+  Thermometer,
+  CalendarRange,
 };
 
 export const iconFor = (name) => ICONS[name] ?? Activity;

@@ -46,7 +46,7 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
   const from = localMidnight(date, timeZone);
   const to = new Date(from.getTime() + DAY_MS);
   const weekFrom = localMidnight(addDays(date, -6), timeZone);
-  const [episodes, sleeps, series, week, state] = await Promise.all([
+  const [episodes, sleeps, series, week, state, periods] = await Promise.all([
     queries.episodes({
       userId,
       from,
@@ -72,6 +72,14 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
       timeZone,
     }),
     engine.state(userId),
+    // Periodos que tocan el día o acabaron hace poco (pueden haber empezado mucho antes)
+    queries.episodes({
+      userId,
+      from: new Date(from.getTime() - 90 * DAY_MS),
+      to,
+      kinds: ['period'],
+      timeZone,
+    }),
   ]);
 
   const dayValue = (code) => {
@@ -87,9 +95,14 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
     .filter((s) => s.summary?.asleepMinutes)
     .sort((a, b) => b.summary.asleepMinutes - a.summary.asleepMinutes)[0];
   const ready = state?.ready === true;
+  const period = periodOf(
+    periods.filter((p) => p.summary?.from && p.summary?.to).map((p) => p.summary),
+    date,
+  );
 
   return {
     date,
+    period,
     weight: ready
       ? {
           last: state.weight.last,
@@ -156,6 +169,23 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
   };
 }
 
+// Como SETTLING_DAYS del motor: los días después de un periodo en los que el peso trae agua
+const SETTLING_DAYS = 3;
+
+/** El periodo que toca `date`: durante, o recién acabado (settling), o null. */
+function periodOf(periods, date) {
+  const during = periods.find((p) => date >= p.from && date <= p.to);
+  if (during) return { ...during, phase: 'during' };
+  const daysSince = (p) => Math.round((Date.parse(date) - Date.parse(p.to)) / DAY_MS);
+  const recent = periods
+    .filter((p) => p.to < date && daysSince(p) <= SETTLING_DAYS)
+    .sort((a, b) => b.to.localeCompare(a.to))[0];
+  return recent ? { ...recent, phase: 'settling', daysSince: daysSince(recent) } : null;
+}
+
+const PERIOD_NAME = { away: 'Fuera de casa', sick: 'Enfermo', other: 'Periodo' };
+const dmShort = (date) => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`;
+
 function minutesOf(w) {
   const seconds =
     w.summary?.durationS ?? (w.end ? (Date.parse(w.end) - Date.parse(w.start)) / 1000 : 0);
@@ -187,6 +217,20 @@ export function composeDaily(day, { comment = null } = {}) {
   const t = day.targets;
   const blocks = [];
   if (comment) blocks.push({ type: 'text', text: comment });
+  const p = day.period;
+  if (p?.phase === 'during') {
+    blocks.push({
+      type: 'callout',
+      tone: 'info',
+      text: `${PERIOD_NAME[p.type]} (del ${dmShort(p.from)} al ${dmShort(p.to)}): el motor no aprende de estos días y el objetivo está en mantenimiento.`,
+    });
+  } else if (p?.phase === 'settling') {
+    blocks.push({
+      type: 'callout',
+      tone: 'info',
+      text: `Volviste el ${dmShort(p.to)}: estos días el peso suele venir con agua y sal, así que cuenta menos en la tendencia.`,
+    });
+  }
 
   blocks.push({
     type: 'stats',
@@ -218,7 +262,7 @@ export function composeDaily(day, { comment = null } = {}) {
         m.proteinG == null ? null : `${Math.round(m.proteinG)} g`,
       ]),
     });
-  } else {
+  } else if (p?.phase !== 'during') {
     blocks.push({ type: 'callout', tone: 'info', text: 'No apuntaste ninguna comida.' });
   }
   if (day.kcalWeek.some((d) => d.kcal != null)) {
@@ -345,6 +389,16 @@ const dm = (date) => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`;
  */
 export function commentFacts(day) {
   const lines = [];
+  const p = day.period;
+  if (p?.phase === 'during') {
+    lines.push(
+      `Periodo: ese día estaba ${p.type === 'away' ? 'fuera de casa' : p.type === 'sick' ? 'enfermo' : 'en un periodo especial'} (del ${dmShort(p.from)} al ${dmShort(p.to)}). No le reproches no apuntar ni no pesarse; el objetivo está en mantenimiento.`,
+    );
+  } else if (p?.phase === 'settling') {
+    lines.push(
+      `Periodo: volvió el ${dmShort(p.to)} (${p.type === 'away' ? 'de fuera de casa' : p.type === 'sick' ? 'de estar enfermo' : 'de un periodo'}). Si el peso ha subido, es sobre todo agua y sal: dilo para que no se agobie.`,
+    );
+  }
   const i = day.intake;
   const t = day.targets;
   if (i.kcal == null && !day.meals.length) {

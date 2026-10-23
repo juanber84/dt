@@ -93,18 +93,32 @@ export function withExpiryAlerts(connections, onExpired, logger) {
  */
 export function createPushRules({ push, queries, notify, timeZone, now = () => new Date() }) {
   const rules = {
-    /** A media tarde, si no hay ninguna comida apuntada hoy (bot o app). */
+    /**
+     * A media tarde, si no hay ninguna comida apuntada hoy (bot o app). Fuera de casa o enfermo
+     * (un periodo que incluye hoy) no se avisa: esos días no hace falta apuntar.
+     */
     async 'meals-missing'(userId, at) {
       const today = localDate(at, timeZone);
       const from = new Date(`${today}T00:00:00Z`);
-      // Margen de un día a cada lado y se filtra por el día local (las comidas van por día local)
-      const meals = await queries.episodes({
-        userId,
-        from: new Date(from.getTime() - 24 * 3600 * 1000),
-        to: at,
-        kinds: ['meal'],
-        timeZone,
-      });
+      // Margen de un día a cada lado y se filtra por el día local (las comidas van por día local).
+      // Los periodos, desde mucho antes: unas vacaciones pueden haber empezado hace días
+      const [meals, periods] = await Promise.all([
+        queries.episodes({
+          userId,
+          from: new Date(from.getTime() - 24 * 3600 * 1000),
+          to: at,
+          kinds: ['meal'],
+          timeZone,
+        }),
+        queries.episodes({
+          userId,
+          from: new Date(from.getTime() - 90 * 24 * 3600 * 1000),
+          to: at,
+          kinds: ['period'],
+          timeZone,
+        }),
+      ]);
+      if (periods.some((p) => p.summary?.from <= today && p.summary?.to >= today)) return false;
       const todays = meals.filter((m) => localDate(new Date(m.start), timeZone) === today);
       if (todays.length) return false;
       await notify(userId, messages.mealsMissing(today));

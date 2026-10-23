@@ -208,6 +208,7 @@ export function createApp({
           queue,
           connections,
           telegramLink,
+          timeZone: config.TIMEZONE,
           logger: log.child({ module: 'inbox' }),
         })
       : undefined;
