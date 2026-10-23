@@ -3,6 +3,43 @@
 Cosas por hacer. Cómo se despliega está en [INSTALL.md](INSTALL.md). La sección **Plan** (entreno,
 combustible por día, objetivos de composición, sueño) tiene su diseño en [PLAN.md](PLAN.md).
 
+## Revisión del 23/10 (por orden)
+
+- [ ] **1. Cortafuegos en el VPS.** `ufw` inactivo y abiertos a internet 3306 (MySQL de
+      proyecto-x), 3005, 5000 (deepseek-proxy, pide clave), 8060, 8070 y 8083. No son de TwinMe pero
+      comparten máquina. Dejar solo el 22 (lo web entra por el túnel de Cloudflare). Antes, ver si
+      alguno se usa desde fuera por IP.
+- [ ] **2. Local sin tocar las cuentas reales.** La BD local se copió de prod con sus conexiones: el
+      worker local sincroniza Xiaomi, intervals.icu y Motra con las credenciales reales (doble carga,
+      riesgo de bloqueo de Xiaomi) y podía mandar correos con datos viejos (el informe se apagó en
+      local a mano). `PUBLIC_URL` de dev/bot apunta a prod. Un `DRY_RUN` (o similar) fuera de prod que
+      apague sincronizaciones y envíos, o conexiones de prueba propias.
+- [ ] **3. Tests con BD en CI.** El workflow pasa los tests normales pero no los ~150 con BD (no hay
+      Postgres): meter TimescaleDB como servicio.
+- [ ] **4. Despliegue con red.** `pg_dump` justo antes de migrar (la copia diaria es a las 4:00),
+      comprobar `/health` y errores al acabar, y que el workflow falle en rojo si algo va mal.
+- [ ] **5. Rotar claves que han pasado por el chat** (historial local de Claude Code): client secret
+      de Google, tokens de los bots de Telegram, clave de Resend. Nueva → Infisical con el script por
+      teclado → borrar la vieja. Primero la de Google.
+- [ ] **6. Avisos mínimos**: comprobación externa de que twinme.app responde y aviso al móvil si el
+      worker registra errores (lo de Grafana, en Producción, puede esperar).
+- [ ] **7. Tope de gasto de IA** por usuario (ya está abajo, en IA): hoy solo se apunta y hay aviso
+      de saldo bajo.
+- [ ] **8. Navegación antes de Plan.** La barra del móvil está llena (Informes quedó fuera) y viene
+      Plan: p. ej. Hoy · Plan · Tendencias · Coach · Más (Entrenos, Clínica, Informes dentro).
+- [ ] **9. Un solo sitio para cada cálculo.** Duplicados web ↔ paquetes: objetivo de líquidos,
+      nombres de los tipos de comida, formato de cifras, los 3 días tras un periodo. Que la web los
+      importe de los paquetes (son JS puro).
+- [ ] **10. Partir los componentes enormes** (`ClinicalPanel.vue` 1.125 líneas, `TodayView.vue`
+      1.049) y tests de las vistas de la web (hoy solo de la lógica).
+- [ ] **11. Medicación por el bot**: el bot quedó para comidas y agua, pero apunta medicación.
+      Decidir si se queda o se quita.
+- [ ] **12. Menores**: `npm audit fix` (ip-address, moderada); cerrar la alerta de GitHub de la
+      clave de Firebase de Motra como falso positivo.
+- Datos y motor (ya apuntado en su sitio): objetivo de kcal plano y objetivos de peso pobres
+  (PLAN.md), kcal activas del Watch infladas, Google borra el nombre de las fuentes de Apple Salud
+  (HealthSave aparcado).
+
 ## Datos
 
 - [ ] **Periodos, lo que falta** (hecho el 23/10: Registrar → Periodo, motor, Hoy, coach,
