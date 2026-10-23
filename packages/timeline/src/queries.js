@@ -89,11 +89,23 @@ export function createTimelineQueries({ db, catalog }) {
      * prioridad que tenga comidas ese día (si apuntas con el bot, las de Google no se suman), y un
      * entreno que se solapa con otro de un proveedor con más prioridad no sale (la misma salida en
      * bici por intervals.icu y por Google).
+     * Con `details: false` no se lee el detalle (fases del sueño, vueltas, ingredientes...), que es
+     * casi todo el peso: para rangos largos en los que basta el resumen.
      */
-    async episodes({ userId, from, to, kinds, canonical = true, timeZone = 'UTC' }) {
+    async episodes({
+      userId,
+      from,
+      to,
+      kinds,
+      canonical = true,
+      details = true,
+      timeZone = 'UTC',
+    }) {
       const rows = await db`
         with found as (
-          select e.*, s.provider, s.origin, s.details as origin_details,
+          select e.id, e.kind, e.external_id, e.start_time, e.end_time, e.title, e.summary,
+            e.schema, ${details ? db`e.details` : db`null::jsonb as details`},
+            s.provider, s.origin, s.details as origin_details,
             coalesce(p.priority, 100) as priority,
             (e.start_time at time zone ${timeZone})::date as local_day
           from episodes e
@@ -131,7 +143,7 @@ export function createTimelineQueries({ db, catalog }) {
         title: r.title,
         summary: r.summary,
         schema: r.schema,
-        details: r.details,
+        ...(details && { details: r.details }),
         provider: r.provider,
         origin: r.origin_details,
       }));

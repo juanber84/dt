@@ -28,16 +28,16 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 
 ## Datos 🔒
 
-|          |                          |                                                              |
-| -------- | ------------------------ | ------------------------------------------------------------ |
-| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                            |
-| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`            |
-| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`                           |
-| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                  |
-| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos e historial |
-| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota o medicación     |
-| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                      |
-| `DELETE` | `/entries/:id`           | Borrar un registro                                           |
+|          |                          |                                                                                              |
+| -------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                                                            |
+| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`                                            |
+| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`, `details` (`false`: solo el resumen, para rangos largos) |
+| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                                                  |
+| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos e historial                                 |
+| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota o medicación                                     |
+| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                                                      |
+| `DELETE` | `/entries/:id`           | Borrar un registro                                                                           |
 
 ## Clínica 🔒
 

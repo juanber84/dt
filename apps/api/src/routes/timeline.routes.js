@@ -34,6 +34,8 @@ const episodesQuery = z.object({
   kinds: list.optional(),
   // all=true: también las comidas que tapa una fuente con más prioridad
   all: z.enum(['true', 'false']).default('false'),
+  // details=false: solo el resumen de cada uno (para rangos largos: pesa una sexta parte)
+  details: z.enum(['true', 'false']).default('true'),
   tz: z.string().max(64).optional(),
 });
 const observationsQuery = z
@@ -80,6 +82,7 @@ export function createTimelineRouter({ queries, timeZone }) {
         ...dates(q),
         kinds: q.kinds,
         canonical: q.all !== 'true',
+        details: q.details !== 'false',
         timeZone: q.tz ?? timeZone,
       }),
     });

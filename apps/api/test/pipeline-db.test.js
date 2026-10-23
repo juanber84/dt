@@ -158,6 +158,13 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
         details: { text: 'tostada con aceite', items: [{ name: 'pan' }, { name: 'aceite' }] },
       },
     ]);
+    // Sin detalle (rangos largos): el resumen igual, el detalle ni se lee
+    const lite = await request(app)
+      .get('/api/v1/timeline/episodes')
+      .query({ from: '2026-10-15T00:00:00Z', to: '2026-10-16T00:00:00Z', details: 'false' })
+      .set('Cookie', cookie);
+    expect(lite.body.items[0]).toMatchObject({ kind: 'meal', summary: { kcal: 250 } });
+    expect(lite.body.items[0]).not.toHaveProperty('details');
 
     await db`call refresh_continuous_aggregate('observations_hourly', null, null)`.catch(() => {});
     const series = await request(app)

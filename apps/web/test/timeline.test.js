@@ -109,6 +109,21 @@ describe('timeline real', () => {
     });
   });
 
+  it('sueño sin detalle (rangos largos): los totales salen del resumen, igual que con él', () => {
+    const summaryOnly = {
+      ...sleep,
+      details: undefined,
+      summary: { asleepMinutes: 360, stages: { light: 190, deep: 60, rem: 110, awake: 10 } },
+    };
+    expect(sleepFrom('2026-10-15', summaryOnly).totals).toMatchObject({
+      minutes: 360,
+      deep: 60,
+      rem: 110,
+      light: 190,
+      awake: 10,
+    });
+  });
+
   it('entreno → evento con icono por tipo y fin', () => {
     expect(workoutEvent(workout)).toMatchObject({
       category: 'activity',
