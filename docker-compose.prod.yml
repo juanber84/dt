@@ -177,12 +177,18 @@ services:
     container_name: digitaltwin-alloy
     environment:
       <<: *infisical
+    # cAdvisor necesita ver los cgroups de todos los contenedores (cgroups v2) y, con el almacén de
+    # imágenes de containerd que usa Docker aquí, también su socket
+    cgroup: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
       - /:/host/root:ro,rslave
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /run/udev/data:/run/udev/data:ro
       - /dev/disk/:/dev/disk:ro
       - digitaltwin-alloy-data:/var/lib/alloy/data
     mem_limit: 384m

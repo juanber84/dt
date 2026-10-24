@@ -46,7 +46,8 @@ prometheus.scrape "containers" {
 }
 
 prometheus.scrape "api" {
-  targets         = [{"__address__" = "digitaltwin-api:3000", "service" = "digitaltwin-api"}]
+  // Sin etiqueta "service" en el target: la llevan las métricas (worker, bot) y la pisaría
+  targets         = [{"__address__" = "digitaltwin-api:3000"}]
   metrics_path    = "/metrics"
   forward_to      = [prometheus.relabel.common.receiver]
   scrape_interval = "60s"
