@@ -1,0 +1,18 @@
+# Agente de Grafana (métricas, logs y trazas → Grafana Cloud). Lleva la CLI de Infisical para
+# arrancar con los secretos, como el resto de contenedores (docker/digitaltwin-run.sh).
+FROM grafana/alloy:v1.20.1
+
+ARG INFISICAL_VERSION=0.43.137
+ARG TARGETARCH=amd64
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+  && curl -fsSL "https://github.com/Infisical/cli/releases/download/v${INFISICAL_VERSION}/cli_${INFISICAL_VERSION}_linux_${TARGETARCH}.tar.gz" \
+    | tar -xz -C /usr/local/bin infisical \
+  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+COPY --chmod=755 docker/digitaltwin-run.sh /usr/local/bin/digitaltwin-run
+COPY --chmod=755 docker/alloy/run.sh /usr/local/bin/digitaltwin-alloy
+COPY docker/alloy/config.alloy /etc/alloy/config.alloy
+
+ENTRYPOINT []
+CMD ["digitaltwin-run", "/observability", "digitaltwin-alloy"]

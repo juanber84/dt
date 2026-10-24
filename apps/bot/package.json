@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Bot de Telegram para registrar lo que comes (macros con LLM, confirmación y envío a la API)",
+  "description": "Bot de Telegram para registrar lo que comes (macros con LLM, confirmaci\u00f3n y env\u00edo a la API)",
   "main": "./src/index.js",
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env src/index.js",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@digitaltwin/logger": "^0.1.0",
     "@digitaltwin/nutrition": "^0.1.0",
+    "@digitaltwin/telemetry": "^0.1.0",
     "grammy": "^1.46.0",
     "zod": "^4.6.7"
   }

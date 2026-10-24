@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Worker del pipeline: sincronizaciones, cargas iniciales, normalización y cron",
+  "description": "Worker del pipeline: sincronizaciones, cargas iniciales, normalizaci\u00f3n y cron",
   "main": "./src/index.js",
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env src/index.js",
@@ -25,6 +25,7 @@
     "@digitaltwin/push": "^0.1.0",
     "@digitaltwin/queue": "^0.1.0",
     "@digitaltwin/reports": "^0.1.0",
+    "@digitaltwin/telemetry": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@digitaltwin/xiaomi": "^0.1.0",
     "zod": "^4.6.5"

@@ -72,29 +72,14 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 
 ## Producción
 
-- [ ] **Observabilidad (como Elastic antes, sin pagar ni instalarlo). SIN DECIDIR:** hay que ver
-      cómo y con qué. Lo único claro: nada de guardar el tráfico en nuestra BD. Lo que se ha
-      hablado, como propuesta: medir con **OpenTelemetry** (estándar: el código vale para
-      cualquier proveedor) y mandarlo a **Grafana Cloud** (plan gratis: logs, métricas, trazas,
-      alertas y comprobaciones desde fuera). Volumen real: ~4 MB de logs al día (~120 MB/mes).
-  - Agente Grafana Alloy en el VPS: CPU/RAM/disco del servidor y de cada contenedor, y los logs de
-    Docker (solo nuestros contenedores, sin los /health).
-  - OpenTelemetry en la API (cada endpoint) y en el worker (una traza por trabajo: sync, fetch,
-    normalize, clinical-extract, push, db-backup…), con las llamadas a Google, Xiaomi,
-    intervals.icu y DeepSeek. Ojo: `postgres.js` no se mide solo (pg-boss sí, usa `pg`).
-  - Métricas de la cola (pendientes, en marcha, fallidos por cola) cada minuto.
-  - Alertas: API caída, errores disparados, cola atascada, worker sin latido, backup que no sale.
-  - Alternativas valoradas: Axiom (logs), Netdata (estado en tiempo real), OpenObserve en el VPS
-    - UptimeRobot (lo más parecido a Elastic autoalojado), y New Relic gratis (100 GB/mes, APM ya hecho, 8 días; solo 500
-      comprobaciones desde fuera al mes → UptimeRobot aparte). Con OpenTelemetry se puede cambiar.
-  - 21/10: probado New Relic (cuenta EU, clave de ingesta `digitaltwin-prod` creada; no está
-    guardada en ningún sitio: crear otra si se monta). Preferencia: **OpenTelemetry** (Collector en
-    el compose con un interruptor + SDK en API, worker y bot, con la traza pasando por la cola vía
-    el `wrap` de `jobs.js`) mandando por OTLP, en vez del agente propio de New Relic (más
-    `privileged` y ata al proveedor). Plan por pasos: primero el collector (servidor,
-    contenedores y logs), y las trazas si convence. **Parado** por decisión del usuario.
-  - Falta: decidir herramienta y alcance; luego, la cuenta y sus credenciales.
-
+- [x] **Observabilidad (25/10): Grafana Cloud**, stack `juanber84`. `digitaltwin-alloy` (servidor,
+      contenedores `digitaltwin-*`, logs y `/metrics` de la API), trazas OpenTelemetry en API, worker
+      y bot (la traza sigue por la cola), comprobaciones desde fuera (España, París, Frankfurt),
+      dashboard _TwinMe · Estado_ y 15 alertas por correo. Todo como código: `make grafana`.
+      Ver INSTALL.md §7 y la documentación (Por dentro → Observabilidad).
+  - Pendiente: las consultas de `postgres.js` no salen en las trazas (no hay instrumentación);
+    enlazar logs ↔ trazas en Grafana (el `trace_id` ya va en cada log); las alertas solo por correo
+    (¿push o Telegram aparte?).
 - [ ] **Rediseñar Sistema (es enorme y no dice lo importante).** Propuesta: arriba una frase de
       estado ("Todo funciona" / "2 cosas a mirar" con enlaces), servicios en una rejilla compacta,
       4 cifras de las últimas 24 h, y el detalle plegado (solo colas con algo, entradas agrupadas,

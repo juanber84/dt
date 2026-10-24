@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Bot, InlineKeyboard } from 'grammy';
+import { SpanKind, withSpan } from '@digitaltwin/telemetry';
 import { DraftStore } from './drafts.js';
 import { HELP, escapeHtml, formatAnalysis } from './format.js';
 
@@ -51,6 +52,30 @@ export function createBot({
     if (!response.ok) throw new Error(`No se pudo descargar la foto (${response.status})`);
     return { data: new Uint8Array(await response.arrayBuffer()), mimeType: 'image/jpeg' };
   };
+
+  // Cada mensaje es una traza: las llamadas a la API y a Telegram cuelgan de ella (sin el SDK de
+  // OpenTelemetry arrancado no hace nada). Sin ids ni texto del usuario: solo de qué tipo es.
+  bot.use((ctx, next) =>
+    withSpan(
+      'telegram update',
+      {
+        kind: SpanKind.CONSUMER,
+        attributes: {
+          'messaging.system': 'telegram',
+          'digitaltwin.telegram.kind': ctx.message?.photo
+            ? 'photo'
+            : ctx.message?.text?.startsWith('/')
+              ? 'command'
+              : ctx.message?.text
+                ? 'text'
+                : ctx.callbackQuery
+                  ? 'callback'
+                  : 'other',
+        },
+      },
+      () => next(),
+    ),
+  );
 
   // Solo atiende a los usuarios autorizados; al resto ni se le contesta.
   // Sin ninguno configurado, le dice a cada uno su ID para que pueda ponerlo en el .env.

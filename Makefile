@@ -1,12 +1,12 @@
 .DEFAULT_GOAL := help
-.PHONY: docs test-db user telegram mcp-token renormalize worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
+.PHONY: grafana docs test-db user telegram mcp-token renormalize worker worker-env up web web-env web-build bot bot-env docker-up docker-down xiaomi-login xiaomi-data google-login google-data google-webhook google-subscriber help setup install env dev start test test-watch coverage lint lint-fix format format-check check new-lib clean
 
 API_ENV := apps/api/.env
 BOT_ENV := apps/bot/.env
 WORKER_ENV := apps/worker/.env
 WEB_ENV := apps/web/.env
 # Docker en local como en el VPS: mismo compose, secretos de Infisical (.env.infisical) y red local
-DOCKER_LOCAL := DIGITALTWIN_NETWORK=digitaltwin-local docker compose --env-file .env.infisical \
+DOCKER_LOCAL := DIGITALTWIN_NETWORK=digitaltwin-local OTEL_SDK_DISABLED=true docker compose --env-file .env.infisical \
 	-f docker-compose.prod.yml -f docker-compose.local.yml
 
 help: ## Muestra esta ayuda
@@ -134,3 +134,6 @@ google-webhook: ## Servidor local de webhooks (:8787): make google-webhook args=
 
 google-subscriber: ## Suscriptor de webhooks: make google-subscriber args="list|create|delete ..."
 	cd packages/google-health && node examples/subscriber.js $(args)
+
+grafana: ## Monta/actualiza Grafana Cloud (alertas, dashboard, comprobaciones, token de Alloy)
+	node scripts/grafana/provision.js $(args)

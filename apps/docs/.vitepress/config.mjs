@@ -93,6 +93,7 @@ export default defineConfig({
           { text: 'Arquitectura', link: '/arquitectura/' },
           { text: 'Del dato al timeline', link: '/arquitectura/pipeline' },
           { text: 'Trabajos y avisos', link: '/arquitectura/worker' },
+          { text: 'Observabilidad', link: '/arquitectura/observabilidad' },
         ],
       },
       { text: 'Novedades', link: '/novedades' },

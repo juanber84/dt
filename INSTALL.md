@@ -25,7 +25,8 @@ Xiaomi, Google ◀── digitaltwin-worker ◀── cola (pg-boss) en digitalt
 4. [Primer despliegue](#4-primer-despliegue)
 5. [Día a día](#5-día-a-día)
 6. [Copias de seguridad](#6-copias-de-seguridad)
-7. [Problemas frecuentes](#7-problemas-frecuentes)
+7. [Observabilidad](#7-observabilidad)
+8. [Problemas frecuentes](#8-problemas-frecuentes)
 
 ---
 
@@ -136,13 +137,14 @@ otros proyectos de la red:
 | `digitaltwin-worker` | Cola, sincronizaciones, cron e informes; arranca con la API sana       |
 | `digitaltwin-bot`    | Bot; arranca cuando la API está sana                                   |
 | `digitaltwin-web`    | nginx en el puerto 80: el front y `/api` reenviado a `digitaltwin-api` |
+| `digitaltwin-alloy`  | Métricas, logs y trazas a Grafana Cloud (apartado 7)                   |
 
 Todos en la red `red-n8n`. El bot habla con la API por `http://digitaltwin-api:3000` (red interna
 de Docker). Ninguno publica puertos en el VPS: se llega por cloudflared (apartado 3.4).
 
-**Secretos:** viven en **Infisical**. Cada contenedor arranca con `digitaltwin-run /api|/bot`
+**Secretos:** viven en **Infisical**. Cada contenedor arranca con `digitaltwin-run /api|/bot` (Alloy, con `/observability`)
 (`docker/digitaltwin-run.sh`): se autentica (token o machine identity) y ejecuta
-`infisical run --path=/api|/bot --watch -- node .`, así que los secretos no están ni en el repo,
+`infisical run --path=/api|/bot --watch -- node --import @digitaltwin/telemetry/register .`, así que los secretos no están ni en el repo,
 ni en la imagen, ni en ficheros del VPS. Con `--watch`, si cambias un secreto en Infisical el
 proceso se reinicia solo.
 
@@ -339,7 +341,41 @@ contraseñas). Sin ella las copias no se pueden abrir.
 
 ---
 
-## 7. Problemas frecuentes
+## 7. Observabilidad
+
+Métricas, logs, trazas, comprobaciones desde fuera y alertas por correo en **Grafana Cloud**
+(stack `juanber84`, plan gratis). Qué se recoge y qué alertas hay: en la documentación,
+Por dentro → Observabilidad. En el VPS lo manda todo `digitaltwin-alloy` (`docker/alloy/`), que
+arranca con los secretos de Infisical `prod` → `/observability`; sin ellos se queda esperando y el
+resto despliega igual.
+
+**Montarlo (una vez) o cambiarlo** (alertas, dashboard, comprobaciones): desde local,
+
+```bash
+make grafana                       # se puede repetir: actualiza, no duplica
+make grafana args=--rotate-ingest  # token nuevo para Alloy (luego, redesplegar)
+```
+
+Necesita `.env.infisical` (para escribir en Infisical) y `.env.grafana`, que no se sube:
+
+| Variable                    | Qué es                                                                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GRAFANA_CLOUD_ADMIN_TOKEN` | token de la política `twinme-admin` (grafana.com → Administration → Cloud access policies): `metrics`/`logs`/`traces`/`stacks` read, `accesspolicies` read/write/delete, `stack-service-accounts` write |
+| `GRAFANA_SM_TOKEN`          | lo añade el script al activar Synthetic Monitoring                                                                                                                                                      |
+| `GRAFANA_STACK`             | opcional, por defecto `juanber84`                                                                                                                                                                       |
+| `GRAFANA_ALERT_EMAIL`       | opcional, a quién llegan las alertas                                                                                                                                                                    |
+
+El script crea la política `twinme-ingest` (solo escribir) y su token, y lo guarda en Infisical
+`prod` → `/observability` con las URLs del stack (`GRAFANA_PROM_*`, `GRAFANA_LOKI_*`,
+`GRAFANA_OTLP_*`, `GRAFANA_INGEST_TOKEN`). Con `--watch`, Alloy se reinicia solo si cambian.
+
+Las trazas no necesitan nada más: API, worker y bot las mandan a `digitaltwin-alloy:4318`
+(`OTEL_EXPORTER_OTLP_ENDPOINT` en `docker-compose.prod.yml`). En local van apagadas
+(`OTEL_SDK_DISABLED=true` en `make docker-up`).
+
+---
+
+## 8. Problemas frecuentes
 
 | Síntoma                                                          | Causa / solución                                                                                    |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |

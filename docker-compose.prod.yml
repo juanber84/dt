@@ -16,6 +16,10 @@ x-infisical:
   INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
   INFISICAL_ENV: ${INFISICAL_ENV:-prod}
   NODE_ENV: production
+  # Trazas → digitaltwin-alloy → Grafana Cloud (packages/telemetry). El nombre, en cada servicio.
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://digitaltwin-alloy:4318}
+  OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=${INFISICAL_ENV:-prod}
+  OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
 
 services:
   # TimescaleDB (Postgres 18 + series temporales). Imagen Alpine normal, no la -ha (3-7 veces más
@@ -78,6 +82,7 @@ services:
     command: ['digitaltwin-run', '/api']
     environment:
       <<: *infisical
+      OTEL_SERVICE_NAME: digitaltwin-api
       PORT: 3000
       # No va en Infisical: se construye con la misma clave que usa digitaltwin-db
       DATABASE_URL: postgres://digitaltwin:${DIGITALTWIN_DB_PASSWORD}@digitaltwin-db:5432/digitaltwin
@@ -112,6 +117,7 @@ services:
     command: ['digitaltwin-run', '/api']
     environment:
       <<: *infisical
+      OTEL_SERVICE_NAME: digitaltwin-worker
       DATABASE_URL: postgres://digitaltwin:${DIGITALTWIN_DB_PASSWORD}@digitaltwin-db:5432/digitaltwin
     mem_limit: 512m
     cpus: 1
@@ -132,6 +138,7 @@ services:
     command: ['digitaltwin-run', '/bot']
     environment:
       <<: *infisical
+      OTEL_SERVICE_NAME: digitaltwin-bot
       API_URL: http://digitaltwin-api:3000
     depends_on:
       digitaltwin-api:
@@ -158,7 +165,36 @@ services:
     networks:
       - red-n8n
 
+  # Observabilidad: métricas del servidor y de los contenedores, logs y /metrics de la API → Grafana
+  # Cloud (ver docker/alloy/config.alloy). Secretos en Infisical prod /observability; sin ellos se
+  # queda esperando sin hacer nada. Lee el socket de Docker y /proc, /sys y / del servidor (solo
+  # lectura) para ver CPU, memoria y disco. Interfaz de depuración en el :12345 (sin publicar).
+  digitaltwin-alloy:
+    build:
+      context: .
+      dockerfile: Dockerfile.alloy
+    image: digitaltwin-alloy:latest
+    container_name: digitaltwin-alloy
+    environment:
+      <<: *infisical
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host/root:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - digitaltwin-alloy-data:/var/lib/alloy/data
+    mem_limit: 384m
+    cpus: 0.5
+    restart: always
+    networks:
+      - red-n8n
+
 volumes:
+  # Lo que Alloy aún no ha podido mandar (si Grafana Cloud no responde) y por dónde va en cada log
+  digitaltwin-alloy-data:
+    name: digitaltwin-alloy-data
   # Los datos sobreviven a los despliegues (el workflow borra el código, no los volúmenes)
   digitaltwin-db-data:
     name: digitaltwin-db-data

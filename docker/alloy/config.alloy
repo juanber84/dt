@@ -1,0 +1,239 @@
+// digitaltwin-alloy: lo que se manda a Grafana Cloud (stack twinme).
+//   - Métricas: servidor (CPU, RAM, disco), cada contenedor digitaltwin-* y /metrics de la API.
+//   - Logs: los de los contenedores digitaltwin-*, sin las comprobaciones de salud.
+//   - Trazas (OTLP en :4317/:4318): de momento nadie las manda; quedan listas para la API y el worker.
+// Solo lo nuestro: en el VPS hay otros proyectos y no se miran. Las URLs, usuarios y el token
+// vienen de Infisical (prod, carpeta /observability; ver docker/alloy/run.sh).
+// Ojo con el plan gratis (10k series): las métricas pasan por listas de las que se guardan.
+
+// ---------------------------------------------------------------------------------- Métricas
+
+prometheus.exporter.unix "host" {
+  rootfs_path = "/host/root"
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  set_collectors = ["cpu", "loadavg", "meminfo", "filesystem", "diskstats", "netdev", "pressure", "uname", "time", "stat"]
+
+  filesystem {
+    mount_points_exclude = "^/(dev|proc|run|sys|var/lib/docker/.+|snap/.+)($|/)"
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tmpfs|tracefs)$"
+  }
+  netdev {
+    device_exclude = "^(lo|veth.*|br-.*|docker.*)$"
+  }
+}
+
+prometheus.exporter.cadvisor "containers" {
+  docker_host      = "unix:///var/run/docker.sock"
+  docker_only      = true
+  storage_duration = "2m"
+  // Menos trabajo y menos series: sin procesos, hilos, hugetlb...
+  enabled_metrics = ["cpu", "memory", "network", "oom_event"]
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.relabel.host.receiver]
+  scrape_interval = "60s"
+  job_name        = "digitaltwin-host"
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  forward_to      = [prometheus.relabel.containers.receiver]
+  scrape_interval = "60s"
+  job_name        = "digitaltwin-containers"
+}
+
+prometheus.scrape "api" {
+  targets         = [{"__address__" = "digitaltwin-api:3000", "service" = "digitaltwin-api"}]
+  metrics_path    = "/metrics"
+  forward_to      = [prometheus.relabel.common.receiver]
+  scrape_interval = "60s"
+  scrape_timeout  = "15s"
+  job_name        = "digitaltwin-api"
+}
+
+prometheus.relabel "host" {
+  forward_to = [prometheus.relabel.common.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|SwapTotal|SwapFree)_bytes|node_filesystem_(avail|size)_bytes|node_disk_io_time_seconds_total|node_disk_(read|written)_bytes_total|node_network_(receive|transmit)_bytes_total|node_pressure_(cpu|memory|io)_waiting_seconds_total|node_boot_time_seconds|node_time_seconds|node_uname_info"
+    action        = "keep"
+  }
+  // node_cpu_seconds_total va por núcleo y modo: con los modos que importan basta
+  rule {
+    source_labels = ["__name__", "mode"]
+    regex         = "node_cpu_seconds_total;(guest|guest_nice|nice|irq|softirq)"
+    action        = "drop"
+  }
+}
+
+prometheus.relabel "containers" {
+  forward_to = [prometheus.relabel.common.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_rss|container_spec_memory_limit_bytes|container_network_(receive|transmit)_bytes_total|container_oom_events_total|container_last_seen|container_start_time_seconds"
+    action        = "keep"
+  }
+  // Solo nuestros contenedores (cAdvisor ve todos los del servidor). "up" no lleva name: se queda.
+  rule {
+    source_labels = ["__name__", "name"]
+    regex         = "up;|.+;digitaltwin-.+"
+    action        = "keep"
+  }
+  rule {
+    regex  = "id|image"
+    action = "labeldrop"
+  }
+}
+
+prometheus.relabel "common" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    target_label = "env"
+    replacement  = "prod"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = "twinme-vps"
+  }
+}
+
+prometheus.remote_write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_PROM_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_PROM_USER")
+      password = sys.env("GRAFANA_INGEST_TOKEN")
+    }
+  }
+}
+
+// -------------------------------------------------------------------------------------- Logs
+
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(digitaltwin-.+)"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.+)"
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.+)"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.containers.output
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.process.containers.receiver]
+}
+
+loki.process "containers" {
+  forward_to = [loki.write.cloud.receiver]
+
+  // Comprobaciones de salud: la de Docker al frontal (wget), la del navegador y las de Grafana a
+  // /api/v1/health y lo que el balanceador pida a /health. No dicen nada y son la mayor parte.
+  stage.drop {
+    expression = "\"Wget\"|GET /(api/v1/)?health(/ready)? |GET /metrics |grafana-synthetic-monitoring|SyntheticMonitoring"
+  }
+
+  // API, worker y bot escriben JSON de pino: nivel como etiqueta y la hora la suya
+  stage.match {
+    selector = "{container=~\"digitaltwin-(api|worker|bot)\"}"
+
+    stage.json {
+      expressions = { level = "level", time = "time", module = "module" }
+    }
+    stage.template {
+      source   = "level"
+      template = "{{ if eq .Value \"10\" }}trace{{ else if eq .Value \"20\" }}debug{{ else if eq .Value \"30\" }}info{{ else if eq .Value \"40\" }}warn{{ else if eq .Value \"50\" }}error{{ else if eq .Value \"60\" }}fatal{{ else }}{{ .Value }}{{ end }}"
+    }
+    stage.labels {
+      values = { level = "" }
+    }
+    stage.structured_metadata {
+      values = { module = "" }
+    }
+    stage.timestamp {
+      source = "time"
+      format = "UnixMs"
+    }
+  }
+
+  // nginx: el código de respuesta para filtrar 5xx sin regex en cada consulta
+  stage.match {
+    selector = "{container=\"digitaltwin-web\"}"
+
+    stage.regex {
+      expression = "\" (?P<status>\\d{3}) \\d+ \""
+    }
+    stage.structured_metadata {
+      values = { status = "" }
+    }
+  }
+
+  stage.static_labels {
+    values = { env = "prod" }
+  }
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_LOKI_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_LOKI_USER")
+      password = sys.env("GRAFANA_INGEST_TOKEN")
+    }
+  }
+}
+
+// ----------------------------------------------------------------------- Trazas (OTLP, listas)
+
+otelcol.receiver.otlp "apps" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces = [otelcol.processor.batch.apps.input]
+  }
+}
+
+otelcol.processor.batch "apps" {
+  output {
+    traces = [otelcol.exporter.otlphttp.cloud.input]
+  }
+}
+
+otelcol.auth.basic "cloud" {
+  username = sys.env("GRAFANA_OTLP_USER")
+  password = sys.env("GRAFANA_INGEST_TOKEN")
+}
+
+otelcol.exporter.otlphttp "cloud" {
+  client {
+    endpoint = sys.env("GRAFANA_OTLP_URL")
+    auth     = otelcol.auth.basic.cloud.handler
+  }
+}

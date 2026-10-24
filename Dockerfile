@@ -45,6 +45,7 @@ COPY packages/push/package.json packages/push/
 COPY packages/email/package.json packages/email/
 COPY packages/reports/package.json packages/reports/
 COPY packages/queue/package.json packages/queue/
+COPY packages/telemetry/package.json packages/telemetry/
 COPY packages/timeline/package.json packages/timeline/
 COPY packages/google-health/package.json packages/google-health/
 COPY packages/intervals-icu/package.json packages/intervals-icu/

@@ -1,5 +1,9 @@
 # Novedades
 
+## 25 de octubre de 2026
+
+- **Observabilidad en Grafana Cloud**: comprobaciones desde fuera (España, París y Frankfurt) cada 2 min, métricas del servidor, de cada contenedor y de la app (peticiones, colas, latidos, copias), los logs y trazas de cada petición, mensaje al bot y trabajo del worker (la traza sigue por la cola). Dashboard _TwinMe · Estado_ y 15 alertas por correo: caída desde fuera, worker o bot sin latido, 5xx, trabajos fallando, colas atascadas, copia que no sale, disco, memoria… Ver [Observabilidad](/arquitectura/observabilidad).
+
 ## 23 de octubre de 2026
 
 - **Periodos**: en Registrar → Periodo apuntas que estás fuera de casa o enfermo (con fechas, también por adelantado). Esos días el motor no aprende tu gasto, el objetivo pasa a mantenimiento, lo de otra báscula no entra y, al volver, el salto de agua casi no mueve la tendencia. Hoy, el coach y el informe lo saben. Ver [Periodos](/motor/periodos).

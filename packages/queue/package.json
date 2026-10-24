@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@digitaltwin/telemetry": "^0.1.0",
     "pg-boss": "12.35.1"
   }
 }

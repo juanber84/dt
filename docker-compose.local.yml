@@ -45,3 +45,8 @@ services:
       - /app/apps/docs/node_modules
     networks:
       - red-n8n
+
+  # En local no se manda nada a Grafana Cloud (`--profile observability` y OTEL_SDK_DISABLED=false
+  # para probarlo); sin Alloy, las trazas tampoco se arrancan
+  digitaltwin-alloy:
+    profiles: [observability]

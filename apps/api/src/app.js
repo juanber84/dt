@@ -15,6 +15,7 @@ import { notFound } from './middlewares/not-found.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { HttpError } from './utils/http-error.js';
 import { createHeartbeats } from './services/heartbeats.js';
+import { createMetrics } from './services/metrics.js';
 import { createXiaomiLogin } from './services/xiaomi-login.js';
 import { createXiaomiSync } from './services/xiaomi-sync.js';
 import {
@@ -339,13 +340,18 @@ export function createApp({
         res.setHeader('X-Request-Id', id);
         return id;
       },
-      autoLogging: { ignore: (req) => req.url.startsWith('/health') },
+      autoLogging: {
+        ignore: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics'),
+      },
       serializers: {
         req: (req) => ({ id: req.id, method: req.method, url: req.url }),
         res: (res) => ({ statusCode: res.statusCode }),
       },
     }),
   );
+
+  const metrics = createMetrics({ heartbeats, queue, pipeline, logger: log });
+  app.use(metrics.httpMiddleware);
 
   // Seguridad
   app.use(helmet());
@@ -407,6 +413,9 @@ export function createApp({
   // Health fuera del rate limit (para k8s / balanceadores). /health es liveness: no mira la BD,
   // así un fallo de la BD no hace que Docker reinicie la API.
   app.use('/health', createHealthRouter());
+  // Para Grafana (lo lee digitaltwin-alloy por la red de Docker). nginx solo reenvía /api y
+  // /webhooks, así que desde fuera no se ve.
+  app.get('/metrics', metrics.handler);
 
   app.use(
     '/api',

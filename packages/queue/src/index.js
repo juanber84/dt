@@ -1,4 +1,5 @@
 import { PgBoss } from 'pg-boss';
+import { withTraceContext } from '@digitaltwin/telemetry';
 
 /**
  * Trabajos del pipeline. Cualquier entrada (webhook, cron, botón, bot) acaba en uno de estos:
@@ -124,17 +125,21 @@ export function createQueue({ connectionString, worker = false, logger }) {
         else await boss.createQueue(name, options);
       }
     },
+    // Con trazas, cada trabajo lleva la de quien lo encola (ver @digitaltwin/telemetry)
     /** @returns {Promise<string|null>} id del trabajo (null si un singleton/debounce lo absorbe) */
     send(name, data, options) {
-      return boss.send(name, data, options);
+      return boss.send(name, withTraceContext(data), options);
     },
     /** Agrupa ráfagas (p. ej. varios avisos de Google seguidos): uno por `key` cada `seconds`. */
     sendDebounced(name, data, options, seconds, key) {
-      return boss.sendDebounced(name, data, options ?? null, seconds, key);
+      return boss.sendDebounced(name, withTraceContext(data), options ?? null, seconds, key);
     },
     /** Muchos de golpe (los trozos de un backfill). */
     insert(name, jobs) {
-      return boss.insert(name, jobs);
+      return boss.insert(
+        name,
+        jobs.map((job) => ({ ...job, data: withTraceContext(job.data) })),
+      );
     },
     /**
      * Un trabajo cada vez por handler (pg-boss entrega lotes: se procesan uno a uno). El handler

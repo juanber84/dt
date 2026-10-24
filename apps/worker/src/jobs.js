@@ -1,4 +1,5 @@
 import { JOBS, PRIORITY } from '@digitaltwin/queue';
+import { withJobSpan } from '@digitaltwin/telemetry';
 import { EmailError } from '@digitaltwin/email';
 import { RateLimitedError } from './rate-limit.js';
 import { XIAOMI } from './providers/xiaomi.js';
@@ -252,30 +253,36 @@ export function createJobs({
     },
   };
 
-  /** Envuelve cada handler con logs y, en el sync, el aplazamiento por límite. */
+  /**
+   * Envuelve cada handler con logs, su span (hijo de la traza que lo encoló) y, en el sync, el
+   * aplazamiento por límite.
+   */
   function wrap(name, handler) {
-    return async (job) => {
-      const started = Date.now();
-      try {
-        const result = await handler(job);
-        logger.debug({ job: name, id: job.id, ms: Date.now() - started, result }, 'trabajo hecho');
-        count(name, 'done');
-        return result;
-      } catch (err) {
-        if (name === JOBS.SYNC && err instanceof RateLimitedError) {
-          return postpone(name, job.data, err);
-        }
-        logger.warn({ job: name, id: job.id, err, data: job.data }, 'trabajo fallido');
-        count(name, 'failed');
-        lastError = {
-          job: name,
-          provider: job.data?.provider ?? null,
-          message: String(err.message).slice(0, 300),
-          at: new Date().toISOString(),
-        };
-        throw err;
+    return (job) => withJobSpan(name, job, (span) => run(name, handler, job, span));
+  }
+
+  async function run(name, handler, job, span) {
+    const started = Date.now();
+    try {
+      const result = await handler(job);
+      logger.debug({ job: name, id: job.id, ms: Date.now() - started, result }, 'trabajo hecho');
+      count(name, 'done');
+      return result;
+    } catch (err) {
+      if (name === JOBS.SYNC && err instanceof RateLimitedError) {
+        span.setAttribute('digitaltwin.job.postponed', true);
+        return postpone(name, job.data, err);
       }
-    };
+      logger.warn({ job: name, id: job.id, err, data: job.data }, 'trabajo fallido');
+      count(name, 'failed');
+      lastError = {
+        job: name,
+        provider: job.data?.provider ?? null,
+        message: String(err.message).slice(0, 300),
+        at: new Date().toISOString(),
+      };
+      throw err;
+    }
   }
 
   return {
