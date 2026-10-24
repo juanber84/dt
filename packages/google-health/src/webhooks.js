@@ -223,6 +223,9 @@ export function createWebhookHandler({
 
   return async ({ headers, body }) => {
     const header = (name) => headers[name] ?? headers[name.toLowerCase()];
+    // Sin cabecera es lo normal en la verificación de Google (prueba que rechazamos lo anónimo);
+    // con una que no casa, no
+    if (!header('authorization')) return reject('Sin Authorization');
     const authorized = secrets.some((s) => safeEqual(header('authorization'), s));
     if (!authorized) return reject('Authorization no válida');
 

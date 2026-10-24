@@ -47,7 +47,14 @@ describe('createWebhookHandler', () => {
       status: 200,
       type: 'verification',
     });
-    expect((await handler({ headers: {}, body })).status).toBe(401);
+    expect(await handler({ headers: {}, body })).toMatchObject({
+      status: 401,
+      reason: 'Sin Authorization',
+    });
+    expect(await handler({ headers: { authorization: 'otro' }, body })).toMatchObject({
+      status: 401,
+      reason: 'Authorization no válida',
+    });
   });
 
   it('acepta notificaciones firmadas y responde 204', async () => {

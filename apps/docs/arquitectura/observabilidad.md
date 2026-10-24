@@ -24,7 +24,7 @@ Lo que pasa en producción se ve en **Grafana Cloud** (plan gratis), no en nuest
 | **Métricas de la app**     | `GET /metrics` de la API (formato Prometheus) | Peticiones por ruta y código, con su duración; colas de pg-boss; latido del worker y del bot; trabajos hechos, fallidos y aplazados; última copia de seguridad; memoria y event loop de Node.                                  |
 | **Servidor**               | `digitaltwin-alloy`                           | CPU, RAM, disco, carga y red del VPS.                                                                                                                                                                                          |
 | **Contenedores**           | `digitaltwin-alloy` (cAdvisor)                | CPU, memoria y OOM de cada `digitaltwin-*`. Los de otros proyectos del VPS no se miran.                                                                                                                                        |
-| **Logs**                   | `digitaltwin-alloy` (socket de Docker)        | Todo lo que escriben los `digitaltwin-*`, sin las comprobaciones de salud. Los de API, worker y bot llevan el nivel como etiqueta (`level`) y, dentro de una traza, `trace_id`.                                                |
+| **Logs**                   | `digitaltwin-alloy` (socket de Docker)        | Todo lo que escriben los `digitaltwin-*`, sin las comprobaciones de salud; de Alloy, solo sus avisos y errores. Los de API, worker y bot llevan el nivel como etiqueta (`level`) y, dentro de una traza, `trace_id`.           |
 | **Trazas**                 | OpenTelemetry (`packages/telemetry`)          | Cada petición a la API, cada mensaje al bot y cada trabajo del worker, con las llamadas que hacen fuera (Google, DeepSeek, intervals.icu, Telegram…).                                                                          |
 
 `/metrics` no se ve desde fuera: nginx solo reenvía `/api` y `/webhooks`, así que solo lo lee Alloy por la red de Docker. No lleva datos de salud ni ids de usuario: solo cuánto, cuánto tarda y si va bien.
@@ -66,3 +66,5 @@ make grafana
 ```
 
 Límites del plan gratis: 10k series de métricas, 50 GB de logs, 50 GB de trazas (14 días) y 100k ejecuciones de comprobaciones al mes. Las métricas pasan por listas de las que se guardan (`docker/alloy/config.alloy`), y las comprobaciones gastan unas 82k al mes.
+
+**Avisos que no son fallos:** en cada arranque del worker se vuelve a registrar el suscriptor de Google, y Google prueba el webhook dos veces: con el secreto (`google-health webhook verificado`) y sin él, para ver que se rechaza. Ese rechazo sale como `info`; solo es `warn` si llega una cabecera `Authorization` que no casa.

@@ -180,6 +180,26 @@ loki.process "containers" {
     }
   }
 
+  // Alloy escribe logfmt: su nivel como etiqueta, y de él solo avisos y errores
+  stage.match {
+    selector = "{container=\"digitaltwin-alloy\"}"
+
+    stage.logfmt {
+      mapping = { level = "" }
+    }
+    stage.labels {
+      values = { level = "" }
+    }
+    stage.drop {
+      source = "level"
+      value  = "info"
+    }
+    stage.drop {
+      source = "level"
+      value  = "debug"
+    }
+  }
+
   // nginx: el código de respuesta para filtrar 5xx sin regex en cada consulta
   stage.match {
     selector = "{container=\"digitaltwin-web\"}"

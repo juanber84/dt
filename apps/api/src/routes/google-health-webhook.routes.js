@@ -19,7 +19,10 @@ export function createGoogleHealthWebhookRouter({
       const result = await handle({ headers: req.headers, body: req.body ?? Buffer.alloc(0) });
 
       if (result.type === 'rejected') {
-        req.log.warn({ reason: result.reason }, 'google-health webhook rechazado');
+        // Una petición anónima rechazada es lo esperado (Google la manda al verificar el endpoint,
+        // en cada arranque del worker): no es un aviso
+        const level = req.headers.authorization ? 'warn' : 'info';
+        req.log[level]({ reason: result.reason }, 'google-health webhook rechazado');
         return res.status(result.status).end();
       }
       res.status(result.status).end();
