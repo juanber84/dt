@@ -245,7 +245,13 @@ const jobs = createJobs({
   backup,
   onBackupFailed,
   pushRules: push
-    ? createPushRules({ push, queries: pipeline.queries, notify, timeZone: config.TIMEZONE })
+    ? createPushRules({
+        push,
+        queries: pipeline.queries,
+        connections,
+        notify,
+        timeZone: config.TIMEZONE,
+      })
     : undefined,
   config,
   logger,

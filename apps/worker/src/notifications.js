@@ -1,5 +1,6 @@
 import { JOBS } from '@digitaltwin/queue';
 import { TITLES } from '@digitaltwin/clinical';
+import { refreshTokenExpiresAt } from '@digitaltwin/google-health';
 
 const PROVIDER_NAMES = {
   'google-health': 'Google Health',
@@ -9,6 +10,7 @@ const PROVIDER_NAMES = {
 };
 
 /** "2026-10-07" → "7/10" */
+const EXPIRING_MS = 2 * 24 * 3600 * 1000;
 const shortDate = (iso) => (iso ? `${Number(iso.slice(8))}/${Number(iso.slice(5, 7))}` : null);
 
 /** Fecha local (YYYY-MM-DD) de `at` en `timeZone`. */
@@ -38,6 +40,24 @@ export const messages = {
       dedupeKey: `${connection.provider}:${today}`,
       title: `${name} se ha desconectado`,
       body: connection.error ?? 'Vuelve a conectarlo para que sigan llegando tus datos.',
+      url: '/admin/connections',
+    };
+  },
+
+  /** El permiso de una conexión caduca pronto (Google con la app de OAuth en modo Prueba: 7 días). */
+  connectionExpiring(connection, expiresAt, today, timeZone) {
+    const name = PROVIDER_NAMES[connection.provider] ?? connection.provider;
+    const when = new Intl.DateTimeFormat('es-ES', {
+      timeZone,
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(expiresAt);
+    return {
+      kind: 'connection-broken',
+      dedupeKey: `${connection.provider}:expiring:${today}`,
+      title: `${name} se desconecta pronto`,
+      body: `El permiso caduca el ${when}. Vuelve a conectarlo antes para no perder datos ni avisos.`,
       url: '/admin/connections',
     };
   },
@@ -91,8 +111,28 @@ export function withExpiryAlerts(connections, onExpired, logger) {
  * @param {string} deps.timeZone
  * @param {() => Date} [deps.now]
  */
-export function createPushRules({ push, queries, notify, timeZone, now = () => new Date() }) {
+export function createPushRules({
+  push,
+  queries,
+  connections,
+  notify,
+  timeZone,
+  now = () => new Date(),
+}) {
   const rules = {
+    /** Una vez al día, si a su permiso de Google le quedan menos de 2 días. */
+    async 'connection-expiring'(userId, at) {
+      const connection = await connections?.get(userId, 'google-health');
+      if (connection?.status !== 'connected') return false;
+      const expiresAt = refreshTokenExpiresAt(connection.credentials);
+      if (!expiresAt || expiresAt - at > EXPIRING_MS) return false;
+      await notify(
+        userId,
+        messages.connectionExpiring(connection, expiresAt, localDate(at, timeZone), timeZone),
+      );
+      return true;
+    },
+
     /**
      * A media tarde, si no hay ninguna comida apuntada hoy (bot o app). Fuera de casa o enfermo
      * (un periodo que incluye hoy) no se avisa: esos días no hace falta apuntar.

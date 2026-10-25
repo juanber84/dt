@@ -1,4 +1,4 @@
-export { GoogleHealthAuth, API_URL } from './auth.js';
+export { GoogleHealthAuth, API_URL, withRefreshExpiry, refreshTokenExpiresAt } from './auth.js';
 export { GoogleHealthClient } from './client.js';
 export {
   DATA_TYPES,

@@ -41,6 +41,8 @@ const schema = z.object({
   EMAIL_FROM: z.string().min(3).default('TwinMe <informe@twinme.app>'),
   // Cuándo se mira si alguien no ha apuntado ninguna comida en el día (hora de TIMEZONE)
   PUSH_MEALS_CRON: cron.default('0 16 * * *'),
+  // Aviso de que el permiso de Google caduca en menos de 2 días (a media mañana)
+  PUSH_EXPIRING_CRON: cron.default('0 11 * * *'),
   // Copia de seguridad diaria a Google Drive, cifrada con age. Sin las dos, no se hace.
   // BACKUP_DRIVE_TOKEN: el JSON de `rclone authorize drive` (permiso drive.file)
   BACKUP_DRIVE_TOKEN: z.string().min(1).optional(),

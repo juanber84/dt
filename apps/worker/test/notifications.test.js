@@ -88,6 +88,44 @@ describe('avisos', () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
+  it('permiso de Google: avisa si caduca en menos de 2 días, no antes ni sin fecha', async () => {
+    const at = new Date('2026-10-26T10:00:00Z');
+    const expires = {
+      ana: '2026-10-27T21:20:00Z', // ~35 h
+      luis: '2026-11-01T00:00:00Z', // días
+      eva: null, // app publicada: no caduca
+    };
+    const notify = vi.fn();
+    const rules = createPushRules({
+      push: {
+        subscribedUsers: async () => Object.keys(expires),
+        settings: async () => ({ disabled: [] }),
+      },
+      queries: {},
+      connections: {
+        get: async (userId) => ({
+          userId,
+          provider: 'google-health',
+          status: 'connected',
+          credentials: { refresh_token_expires_at: expires[userId] },
+        }),
+      },
+      notify,
+      timeZone: TZ,
+      now: () => at,
+    });
+    expect(await rules.run('connection-expiring')).toEqual({ users: 3, notified: 1 });
+    expect(notify).toHaveBeenCalledWith(
+      'ana',
+      expect.objectContaining({
+        kind: 'connection-broken',
+        dedupeKey: 'google-health:expiring:2026-10-26',
+        title: 'Google Health se desconecta pronto',
+      }),
+    );
+    expect(notify.mock.calls[0][1].body).toMatch(/martes, 22:20/);
+  });
+
   it('el job push aplaza a después del silencio', async () => {
     const retryAt = new Date('2026-10-22T06:00:00Z');
     const queue = { send: vi.fn() };

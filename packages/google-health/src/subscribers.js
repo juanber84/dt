@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 import { API_URL } from './auth.js';
-import { toGoogleHealthError } from './errors.js';
+import { GoogleHealthErrorCode, toGoogleHealthError } from './errors.js';
 import { DATA_TYPES } from './data-types.js';
 import { toAuthorization } from './webhooks.js';
 
@@ -217,28 +217,27 @@ export class GoogleHealthSubscribers {
 
   /**
    * Deja las suscripciones (MANUAL) del suscriptor como `wanted`: crea las que faltan, corrige los
-   * tipos de las que han cambiado y borra las de usuarios que ya no están.
+   * tipos de las que han cambiado y borra las de usuarios que ya no están. Las que Google niega
+   * (403: el consentimiento del usuario no vale para el proyecto) van en `denied`.
    * @param {string} subscriberId
    * @param {Array<{ subscriptionId: string, healthUserId: string, dataTypes: string[] }>} wanted
-   * @returns {Promise<{ created: number, updated: number, deleted: number, unchanged: number }>}
+   * @returns {Promise<{ created: number, updated: number, deleted: number, unchanged: number, denied: string[] }>}
    */
   async ensureSubscriptions(subscriberId, wanted) {
     const idOf = (s) => s.name?.split('/subscriptions/')[1];
     const existing = new Map((await this.listSubscriptions(subscriberId)).map((s) => [idOf(s), s]));
-    const result = { created: 0, updated: 0, deleted: 0, unchanged: 0 };
+    const result = { created: 0, updated: 0, deleted: 0, unchanged: 0, denied: [] };
     const same = (a = [], b = []) => [...a].sort().join() === [...b].sort().join();
 
     for (const want of wanted) {
       const current = existing.get(want.subscriptionId);
       existing.delete(want.subscriptionId);
       if (!current) {
-        await this.createSubscription(subscriberId, want);
-        result.created++;
+        if (await this.#createOrDeny(subscriberId, want, result)) result.created++;
       } else if (current.user !== `users/${want.healthUserId}`) {
         // El usuario no se puede cambiar: se rehace
         await this.deleteSubscription(subscriberId, want.subscriptionId);
-        await this.createSubscription(subscriberId, want);
-        result.updated++;
+        if (await this.#createOrDeny(subscriberId, want, result)) result.updated++;
       } else if (!same(current.dataTypes, want.dataTypes)) {
         await this.updateSubscription(subscriberId, want.subscriptionId, want);
         result.updated++;
@@ -251,6 +250,21 @@ export class GoogleHealthSubscribers {
       result.deleted++;
     }
     return result;
+  }
+
+  /**
+   * Google niega la suscripción (403) de un usuario cuyo consentimiento ya no vale para el proyecto
+   * aunque su token siga leyendo: se apunta y se sigue con los demás, en vez de fallar todo.
+   */
+  async #createOrDeny(subscriberId, want, result) {
+    try {
+      await this.createSubscription(subscriberId, want);
+      return true;
+    } catch (error) {
+      if (error.code !== GoogleHealthErrorCode.PERMISSION_DENIED) throw error;
+      result.denied.push(want.subscriptionId);
+      return false;
+    }
   }
 
   deleteSubscription(subscriberId, subscriptionId) {

@@ -14,11 +14,11 @@ En **Ajustes → Cuenta → Face ID → Activar Face ID en este dispositivo**. E
 
 En **Ajustes → Cuenta → Notificaciones → Activar** (solo con la app instalada en iOS 16.4 o posterior). Solo llegan a los dispositivos donde las actives. Elige qué avisos quieres y tus horas de no molestar (lo que caiga en ellas llega al acabar); como mucho 6 al día.
 
-| Aviso                      | Cuándo                                          | Al tocarlo                     |
-| -------------------------- | ----------------------------------------------- | ------------------------------ |
-| Informe listo para revisar | Cuando la IA termina de leer un informe         | Su día, con el informe abierto |
-| Conexión caída             | Si una fuente pide volver a conectar            | Conexiones                     |
-| ¿Qué has comido hoy?       | A las 16:00 si no has apuntado nada             | Hoy                            |
-| Copias de seguridad        | Si falla la copia diaria (solo administradores) | Sistema                        |
+| Aviso                      | Cuándo                                                                            | Al tocarlo                     |
+| -------------------------- | --------------------------------------------------------------------------------- | ------------------------------ |
+| Informe listo para revisar | Cuando la IA termina de leer un informe                                           | Su día, con el informe abierto |
+| Conexión caída             | Si una fuente pide volver a conectar, o si a su permiso le quedan menos de 2 días | Conexiones                     |
+| ¿Qué has comido hoy?       | A las 16:00 si no has apuntado nada                                               | Hoy                            |
+| Copias de seguridad        | Si falla la copia diaria (solo administradores)                                   | Sistema                        |
 
 El número del icono de la app son los informes que tienes por revisar.

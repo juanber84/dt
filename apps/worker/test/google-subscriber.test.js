@@ -24,7 +24,7 @@ function setup(googleSubscribers, connected = []) {
 }
 
 describe('google-subscriber', () => {
-  const none = { created: 0, updated: 0, deleted: 0, unchanged: 0 };
+  const none = { created: 0, updated: 0, deleted: 0, unchanged: 0, denied: [] };
 
   it('deja el suscriptor (MANUAL) apuntando al webhook de PUBLIC_URL', async () => {
     const ensure = vi.fn().mockResolvedValue({ action: 'created' });

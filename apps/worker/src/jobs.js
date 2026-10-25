@@ -211,7 +211,6 @@ export function createJobs({
       return clinical.run(data, { last: retryCount >= retryLimit });
     },
 
-    /** Suscriptor de webhooks de Google: al arrancar con `force` (por si cambió el secreto). */
     /**
      * El suscriptor de webhooks de Google y una suscripción MANUAL por usuario conectado. Con la
      * política AUTOMATIC Google dejó de avisar el 24-10-2026 sin ningún error (y esas no se pueden
@@ -236,6 +235,13 @@ export function createJobs({
       );
       if (subscriptions.created || subscriptions.updated || subscriptions.deleted) {
         logger.info(subscriptions, 'suscripciones de Google');
+      }
+      if (subscriptions.denied.length) {
+        // Su token sigue leyendo, pero Google no le deja avisar: tiene que volver a conectar Google
+        logger.warn(
+          { denied: subscriptions.denied },
+          'Google niega la suscripción: hay que volver a conectar Google',
+        );
       }
       return { action, subscriptions };
     },
@@ -397,6 +403,12 @@ export function createJobs({
           config.PUSH_MEALS_CRON,
           { rule: 'meals-missing' },
           { tz, key: 'meals-missing' },
+        );
+        await queue.schedule(
+          JOBS.PUSH_RULES,
+          config.PUSH_EXPIRING_CRON,
+          { rule: 'connection-expiring' },
+          { tz, key: 'connection-expiring' },
         );
       }
 

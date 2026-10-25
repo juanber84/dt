@@ -20,6 +20,23 @@ export const API_URL = 'https://health.googleapis.com/v4';
  * Flujo OAuth2 (authorization code) para conectar la cuenta de Google de un usuario.
  * API: getAuthUrl → redirigir al usuario → callback con ?code&state → exchangeCode.
  */
+/**
+ * Google dice cuánto le queda al refresh token (`refresh_token_expires_in`, en segundos) solo
+ * cuando caduca: con la app de OAuth en modo Prueba, a los 7 días de dar permiso. Se guarda
+ * también como fecha, porque el "quedan N segundos" deja de valer en cuanto se guarda.
+ */
+export function withRefreshExpiry(tokens, now = Date.now()) {
+  const seconds = Number(tokens?.refresh_token_expires_in);
+  if (!Number.isFinite(seconds) || seconds <= 0) return tokens;
+  return { ...tokens, refresh_token_expires_at: new Date(now + seconds * 1000).toISOString() };
+}
+
+/** Cuándo deja de valer el permiso (null si no caduca o no se sabe). */
+export function refreshTokenExpiresAt(credentials) {
+  const at = credentials?.refresh_token_expires_at;
+  return at && !Number.isNaN(Date.parse(at)) ? new Date(at) : null;
+}
+
 export class GoogleHealthAuth {
   /**
    * @param {object} options
@@ -82,7 +99,7 @@ export class GoogleHealthAuth {
       const { tokens } = await client.getToken(code);
       client.setCredentials(tokens);
       const { data } = await client.request({ url: `${API_URL}/users/me/identity` });
-      return { ...tokens, healthUserId: data.healthUserId ?? null };
+      return { ...withRefreshExpiry(tokens), healthUserId: data.healthUserId ?? null };
     } catch (error) {
       throw toGoogleHealthError(error);
     }

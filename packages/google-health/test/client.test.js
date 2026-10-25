@@ -93,3 +93,16 @@ describe('GoogleHealthAuth', () => {
     expect(a).toMatchObject({ clientId: 'x', redirectUri: 'http://localhost:3000/cb' });
   });
 });
+
+describe('caducidad del permiso', () => {
+  it('guarda cuándo caduca el refresh token (modo Prueba de OAuth) como fecha', async () => {
+    const { withRefreshExpiry, refreshTokenExpiresAt } = await import('../src/auth.js');
+    const now = Date.parse('2026-10-25T21:28:00Z');
+    const tokens = withRefreshExpiry({ access_token: 'a', refresh_token_expires_in: 186815 }, now);
+    expect(tokens.refresh_token_expires_at).toBe('2026-10-28T01:21:35.000Z');
+    expect(refreshTokenExpiresAt(tokens)).toEqual(new Date('2026-10-28T01:21:35.000Z'));
+    // Sin caducidad (app publicada), nada
+    expect(withRefreshExpiry({ access_token: 'a' })).toEqual({ access_token: 'a' });
+    expect(refreshTokenExpiresAt({})).toBeNull();
+  });
+});

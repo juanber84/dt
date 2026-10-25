@@ -179,6 +179,12 @@ Crea el proyecto **digitaltwin** con el entorno **`prod`** y dos carpetas:
 | `PUBLIC_URL`                                | URL pública del front (p. ej. `https://twin.tudominio.com`); por defecto `http://localhost:3081`, que en producción rompe el OAuth |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | cliente OAuth de Google; da de alta `<PUBLIC_URL>/api/v1/connections/google-health/callback`                                       |
 
+**El cliente OAuth de Google tiene que estar publicado** (Google Auth Platform → Público →
+_Publicar aplicación_, estado "En producción"). En modo **Prueba**, el permiso de cada usuario
+caduca a los 7 días: deja de sincronizar y Google niega su suscripción a los avisos (`403` al
+crearla). La app avisa dos días antes (regla `connection-expiring`, `PUSH_EXPIRING_CRON`), y tras
+publicar hay que volver a conectar Google una vez.
+
 Opcionales: `LLM_BASE_URL` y `LLM_MODEL` (para cambiar de proveedor), `COACH_LLM_*`, `LOG_LEVEL`,
 `CORS_ORIGINS`, `GOOGLE_HEALTH_WEBHOOK_SECRET`, `CLINICAL_UPLOAD_LIMIT` (15mb; nginx deja hasta
 16m)... (ver `apps/api/.env.example`).
@@ -389,17 +395,17 @@ el rol **Visor de registros** (`roles/logging.viewer`) en el proyecto de Google 
 
 ## 8. Problemas frecuentes
 
-| Síntoma                                                          | Causa / solución                                                                                               |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| El bot no responde y en el log sale `409: Conflict`              | Otra instancia usa el mismo token (¿`make up` en local?). Usa un bot de desarrollo.                            |
-| El bot contesta "Tu ID de Telegram es..."                        | `TELEGRAM_ALLOWED_USER_IDS` vacío: pon tu ID.                                                                  |
-| El bot ignora tus mensajes                                       | Tu ID no está en `TELEGRAM_ALLOWED_USER_IDS` (el log dice `usuario no autorizado` con tu `userId`).            |
-| `API 401 UNAUTHORIZED` en el bot                                 | `DIGITALTWIN_API_KEY` del bot no coincide con ninguna clave de `DIGITALTWIN_API_KEYS` de la API.               |
-| `API 503 LLM_NOT_CONFIGURED`                                     | Falta `LLM_API_KEY` en la API.                                                                                 |
-| `API 502 LLM_API_ERROR: ... Insufficient Balance`                | Sin saldo en DeepSeek.                                                                                         |
-| El contenedor se reinicia en bucle con `Configuración inválida`  | Falta o está mal una variable; el mensaje dice cuál. Revisa la carpeta de Infisical.                           |
-| `The provided access token is malformed` / `Invalid credentials` | Token o Client ID/Secret de Infisical mal copiados, o `INFISICAL_DOMAIN` de otra región (US/EU).               |
-| `failed to fetch secrets for path "/api"` con 403/404            | La identidad no tiene acceso a ese entorno, o el slug del entorno o la carpeta no coinciden.                   |
-| El deploy falla en _Comprobar los secrets_                       | Falta algún secret del repo (apartado 3.3); el error dice cuáles.                                              |
-| El deploy falla en _Tests, lint y formato_                       | Lo mismo que `make check` en local (`make format` arregla el formato) y vuelve a hacer push.                   |
-| Alerta _Google no manda avisos_                                  | Mira las entregas con `scripts/google-subscriber.js` (apartado 7). Si Google no intenta ninguna, `--recreate`. |
+| Síntoma                                                          | Causa / solución                                                                                                                                                                                         |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El bot no responde y en el log sale `409: Conflict`              | Otra instancia usa el mismo token (¿`make up` en local?). Usa un bot de desarrollo.                                                                                                                      |
+| El bot contesta "Tu ID de Telegram es..."                        | `TELEGRAM_ALLOWED_USER_IDS` vacío: pon tu ID.                                                                                                                                                            |
+| El bot ignora tus mensajes                                       | Tu ID no está en `TELEGRAM_ALLOWED_USER_IDS` (el log dice `usuario no autorizado` con tu `userId`).                                                                                                      |
+| `API 401 UNAUTHORIZED` en el bot                                 | `DIGITALTWIN_API_KEY` del bot no coincide con ninguna clave de `DIGITALTWIN_API_KEYS` de la API.                                                                                                         |
+| `API 503 LLM_NOT_CONFIGURED`                                     | Falta `LLM_API_KEY` en la API.                                                                                                                                                                           |
+| `API 502 LLM_API_ERROR: ... Insufficient Balance`                | Sin saldo en DeepSeek.                                                                                                                                                                                   |
+| El contenedor se reinicia en bucle con `Configuración inválida`  | Falta o está mal una variable; el mensaje dice cuál. Revisa la carpeta de Infisical.                                                                                                                     |
+| `The provided access token is malformed` / `Invalid credentials` | Token o Client ID/Secret de Infisical mal copiados, o `INFISICAL_DOMAIN` de otra región (US/EU).                                                                                                         |
+| `failed to fetch secrets for path "/api"` con 403/404            | La identidad no tiene acceso a ese entorno, o el slug del entorno o la carpeta no coinciden.                                                                                                             |
+| El deploy falla en _Comprobar los secrets_                       | Falta algún secret del repo (apartado 3.3); el error dice cuáles.                                                                                                                                        |
+| El deploy falla en _Tests, lint y formato_                       | Lo mismo que `make check` en local (`make format` arregla el formato) y vuelve a hacer push.                                                                                                             |
+| Alerta _Google no manda avisos_                                  | Mira las entregas con `scripts/google-subscriber.js` (apartado 7). Si el worker dice `Google niega la suscripción`, vuelve a conectar Google (y mira que el cliente OAuth esté publicado, apartado 3.2). |

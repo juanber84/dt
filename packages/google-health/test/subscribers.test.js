@@ -122,7 +122,7 @@ describe('GoogleHealthSubscribers.ensureSubscriptions', () => {
       { subscriptionId: 'nuevo', healthUserId: '4', dataTypes: ['steps'] },
     ]);
 
-    expect(result).toEqual({ created: 1, updated: 2, deleted: 1, unchanged: 1 });
+    expect(result).toEqual({ created: 1, updated: 2, deleted: 1, unchanged: 1, denied: [] });
     expect(writes()).toEqual([
       'PATCH /subscriptions/ana',
       'DELETE /subscriptions/eva',
@@ -130,5 +130,36 @@ describe('GoogleHealthSubscribers.ensureSubscriptions', () => {
       'POST /subscriptions',
       'DELETE /subscriptions/vieja',
     ]);
+  });
+});
+
+describe('GoogleHealthSubscribers.ensureSubscriptions con permiso denegado', () => {
+  it('apunta al usuario que Google niega y sigue con los demás', async () => {
+    const request = vi.fn(async ({ method = 'GET', data }) => {
+      if (method === 'GET') return { data: { subscriptions: [] } };
+      if (data.user === 'users/1')
+        throw Object.assign(new Error('denied'), { response: { status: 403, data: {} } });
+      return { data: {} };
+    });
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+    expect(
+      await subscribers.ensureSubscriptions('digitaltwin', [
+        { subscriptionId: 'ana', healthUserId: '1', dataTypes: ['steps'] },
+        { subscriptionId: 'luis', healthUserId: '2', dataTypes: ['steps'] },
+      ]),
+    ).toEqual({ created: 1, updated: 0, deleted: 0, unchanged: 0, denied: ['ana'] });
+  });
+
+  it('otros errores sí paran (la cola reintenta)', async () => {
+    const request = vi.fn(async ({ method = 'GET' }) => {
+      if (method === 'GET') return { data: { subscriptions: [] } };
+      throw Object.assign(new Error('boom'), { response: { status: 500, data: {} } });
+    });
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+    await expect(
+      subscribers.ensureSubscriptions('digitaltwin', [
+        { subscriptionId: 'ana', healthUserId: '1', dataTypes: ['steps'] },
+      ]),
+    ).rejects.toThrow();
   });
 });

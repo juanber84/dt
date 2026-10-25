@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import { API_URL } from './auth.js';
+import { API_URL, withRefreshExpiry } from './auth.js';
 import { toGoogleHealthError } from './errors.js';
 
 /**
@@ -28,7 +28,7 @@ export class GoogleHealthClient {
     this.oauth.setCredentials(this.credentials);
     this.oauth.on('tokens', (tokens) => {
       // Google no siempre reenvía el refresh_token: se conserva el anterior
-      this.credentials = { ...this.credentials, ...tokens };
+      this.credentials = { ...this.credentials, ...withRefreshExpiry(tokens) };
       this.logger?.debug?.({ expiry: tokens.expiry_date }, 'google-health token renovado');
       if (onCredentialsRefreshed) {
         const snapshot = { ...this.credentials };
