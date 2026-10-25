@@ -111,7 +111,9 @@ export const ALERTS = [
     threshold: 3,
     for: '0s',
     severity: 'warning',
-    summary: 'Más de 3 trabajos fallidos en 30 min en la cola {{ $labels.queue }}.',
+    // Solo los que se dan por perdidos: los intentos que pg-boss repite (result="retried") no cuentan
+    summary:
+      'Más de 3 trabajos fallidos (agotados sus reintentos) en 30 min en la cola {{ $labels.queue }}.',
   },
   {
     uid: 'twinme-queue-stuck',

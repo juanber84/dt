@@ -3,6 +3,7 @@
 ## 25 de octubre de 2026
 
 - **Observabilidad en Grafana Cloud**: comprobaciones desde fuera (España, París y Frankfurt) cada 2 min, métricas del servidor, de cada contenedor y de la app (peticiones, colas, latidos, copias), los logs y trazas de cada petición, mensaje al bot y trabajo del worker (la traza sigue por la cola). Dashboard _TwinMe · Estado_ y 15 alertas por correo: caída desde fuera, worker o bot sin latido, 5xx, trabajos fallando, colas atascadas, copia que no sale, disco, memoria… Ver [Observabilidad](/arquitectura/observabilidad).
+- **Fallido es fallido de verdad**: un intento que el worker va a repetir (por ejemplo, intervals.icu devolviendo 503 un rato) cuenta como reintento, no como fallo; la alerta de trabajos fallando solo salta con los que agotan sus reintentos.
 
 ## 23 de octubre de 2026
 

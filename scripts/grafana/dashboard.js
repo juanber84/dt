@@ -311,6 +311,11 @@ export function buildDashboard() {
           'sum by (queue) (increase(digitaltwin_worker_jobs_total{result="failed"}[1h])) > 0',
           '{{queue}}',
         ),
+        // Intentos que fallaron pero pg-boss repite: avisan de un proveedor inestable
+        prom(
+          'sum by (queue) (increase(digitaltwin_worker_jobs_total{result="retried"}[1h])) > 0',
+          '{{queue}} (reintento)',
+        ),
       ],
       { h: 7, w: 8, x: 8, y: 22 },
       { unit: 'short' },

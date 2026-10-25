@@ -57,11 +57,12 @@ export function createJobs({
   }
 
   /** Si la API de fuera pide esperar, el trabajo se vuelve a encolar para luego (no es un fallo). */
-  // Contadores desde que arrancó (los enseña la página de Sistema con el latido)
+  // Contadores desde que arrancó (los enseña la página de Sistema con el latido). Un intento que
+  // pg-boss va a repetir cuenta como reintento; fallido es solo el último, el que se da por perdido.
   const counters = {};
   let lastError = null;
   const count = (name, field) => {
-    const c = (counters[name] ??= { done: 0, failed: 0, postponed: 0 });
+    const c = (counters[name] ??= { done: 0, failed: 0, retried: 0, postponed: 0 });
     c[field]++;
   };
 
@@ -273,8 +274,12 @@ export function createJobs({
         span.setAttribute('digitaltwin.job.postponed', true);
         return postpone(name, job.data, err);
       }
-      logger.warn({ job: name, id: job.id, err, data: job.data }, 'trabajo fallido');
-      count(name, 'failed');
+      const willRetry = (job.retryCount ?? 0) < (job.retryLimit ?? 0);
+      logger.warn(
+        { job: name, id: job.id, err, data: job.data, retryCount: job.retryCount },
+        willRetry ? 'trabajo fallido, se reintentará' : 'trabajo fallido',
+      );
+      count(name, willRetry ? 'retried' : 'failed');
       lastError = {
         job: name,
         provider: job.data?.provider ?? null,
@@ -288,7 +293,7 @@ export function createJobs({
   return {
     handlers,
 
-    /** Trabajos hechos, fallidos y aplazados por cola desde que arrancó, y el último error. */
+    /** Trabajos hechos, fallidos, reintentados y aplazados por cola desde que arrancó, y el último error. */
     stats() {
       return { jobs: structuredClone(counters), lastError };
     },

@@ -92,7 +92,7 @@ export function createMetrics({ heartbeats, queue, pipeline, logger, now = Date.
       workerSeen = { startedAt: worker.startedAt, counts: {} };
     }
     for (const [name, counts] of Object.entries(worker.stats?.jobs ?? {})) {
-      for (const result of ['done', 'failed', 'postponed']) {
+      for (const result of ['done', 'failed', 'retried', 'postponed']) {
         const key = `${name}:${result}`;
         const delta = (counts[result] ?? 0) - (workerSeen.counts[key] ?? 0);
         if (delta > 0) workerJobs.inc({ queue: name, result }, delta);
