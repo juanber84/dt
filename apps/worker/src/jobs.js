@@ -1,4 +1,5 @@
 import { JOBS, PRIORITY } from '@digitaltwin/queue';
+import { WEBHOOK_DATA_TYPES, dataTypesForScopes } from '@digitaltwin/google-health';
 import { withJobSpan } from '@digitaltwin/telemetry';
 import { EmailError } from '@digitaltwin/email';
 import { RateLimitedError } from './rate-limit.js';
@@ -9,6 +10,25 @@ import { GOOGLE } from './providers/google.js';
 
 const DAY_MS = 24 * 3600 * 1000;
 export const GOOGLE_SUBSCRIBER_ID = 'digitaltwin';
+
+/** Id de la suscripción de un usuario (4-36 caracteres, empieza por letra): u + su uuid sin guiones. */
+export const googleSubscriptionId = (userId) =>
+  `u${String(userId).replaceAll('-', '')}`.slice(0, 36);
+
+/** Una suscripción por usuario conectado, con los tipos que avisan y él ha concedido. */
+export function googleSubscriptionsFor(connections) {
+  return connections
+    .filter((c) => c.externalUserId)
+    .map((c) => {
+      const granted = new Set(dataTypesForScopes(c.credentials?.scope ?? '').map((t) => t.id));
+      return {
+        subscriptionId: googleSubscriptionId(c.userId),
+        healthUserId: String(c.externalUserId),
+        dataTypes: WEBHOOK_DATA_TYPES.filter((t) => granted.has(t)),
+      };
+    })
+    .filter((s) => s.dataTypes.length);
+}
 
 /**
  * Registra los consumidores de cada cola y el cron.
@@ -192,6 +212,11 @@ export function createJobs({
     },
 
     /** Suscriptor de webhooks de Google: al arrancar con `force` (por si cambió el secreto). */
+    /**
+     * El suscriptor de webhooks de Google y una suscripción MANUAL por usuario conectado. Con la
+     * política AUTOMATIC Google dejó de avisar el 24-10-2026 sin ningún error (y esas no se pueden
+     * ver ni tocar); las manuales se listan, se comprueban y se rehacen aquí cada día.
+     */
     async [JOBS.GOOGLE_SUBSCRIBER]({ data }) {
       if (!googleSubscribers) return { skipped: 'unconfigured' };
       const endpointUri = `${config.PUBLIC_URL}/webhooks/google-health`;
@@ -199,10 +224,20 @@ export function createJobs({
         subscriberId: GOOGLE_SUBSCRIBER_ID,
         endpointUri,
         secret: config.GOOGLE_HEALTH_WEBHOOK_SECRET,
+        policy: 'MANUAL',
         force: Boolean(data?.force),
       });
       if (action !== 'unchanged') logger.info({ endpointUri, action }, 'suscriptor de Google');
-      return { action };
+
+      const wanted = googleSubscriptionsFor(await connections.listByProvider(GOOGLE));
+      const subscriptions = await googleSubscribers.ensureSubscriptions(
+        GOOGLE_SUBSCRIBER_ID,
+        wanted,
+      );
+      if (subscriptions.created || subscriptions.updated || subscriptions.deleted) {
+        logger.info(subscriptions, 'suscripciones de Google');
+      }
+      return { action, subscriptions };
     },
 
     /** Un aviso: sale si sus preferencias lo dejan; en horas de silencio, se aplaza a cuando acaben. */

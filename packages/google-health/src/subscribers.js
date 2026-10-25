@@ -204,6 +204,55 @@ export class GoogleHealthSubscribers {
     return items;
   }
 
+  updateSubscription(subscriberId, subscriptionId, { dataTypes }) {
+    return this.#request(
+      `${this.parent}/subscribers/${subscriberId}/subscriptions/${subscriptionId}`,
+      {
+        method: 'PATCH',
+        params: { updateMask: 'dataTypes' },
+        data: { dataTypes },
+      },
+    );
+  }
+
+  /**
+   * Deja las suscripciones (MANUAL) del suscriptor como `wanted`: crea las que faltan, corrige los
+   * tipos de las que han cambiado y borra las de usuarios que ya no están.
+   * @param {string} subscriberId
+   * @param {Array<{ subscriptionId: string, healthUserId: string, dataTypes: string[] }>} wanted
+   * @returns {Promise<{ created: number, updated: number, deleted: number, unchanged: number }>}
+   */
+  async ensureSubscriptions(subscriberId, wanted) {
+    const idOf = (s) => s.name?.split('/subscriptions/')[1];
+    const existing = new Map((await this.listSubscriptions(subscriberId)).map((s) => [idOf(s), s]));
+    const result = { created: 0, updated: 0, deleted: 0, unchanged: 0 };
+    const same = (a = [], b = []) => [...a].sort().join() === [...b].sort().join();
+
+    for (const want of wanted) {
+      const current = existing.get(want.subscriptionId);
+      existing.delete(want.subscriptionId);
+      if (!current) {
+        await this.createSubscription(subscriberId, want);
+        result.created++;
+      } else if (current.user !== `users/${want.healthUserId}`) {
+        // El usuario no se puede cambiar: se rehace
+        await this.deleteSubscription(subscriberId, want.subscriptionId);
+        await this.createSubscription(subscriberId, want);
+        result.updated++;
+      } else if (!same(current.dataTypes, want.dataTypes)) {
+        await this.updateSubscription(subscriberId, want.subscriptionId, want);
+        result.updated++;
+      } else {
+        result.unchanged++;
+      }
+    }
+    for (const id of existing.keys()) {
+      await this.deleteSubscription(subscriberId, id);
+      result.deleted++;
+    }
+    return result;
+  }
+
   deleteSubscription(subscriberId, subscriptionId) {
     return this.#request(
       `${this.parent}/subscribers/${subscriberId}/subscriptions/${subscriptionId}`,

@@ -3,7 +3,7 @@
 ## 25 de octubre de 2026
 
 - **Observabilidad en Grafana Cloud**: comprobaciones desde fuera (España, París y Frankfurt) cada 2 min, métricas del servidor, de cada contenedor y de la app (peticiones, colas, latidos, copias), los logs y trazas de cada petición, mensaje al bot y trabajo del worker (la traza sigue por la cola). Dashboard _TwinMe · Estado_ y 15 alertas por correo: caída desde fuera, worker o bot sin latido, 5xx, trabajos fallando, colas atascadas, copia que no sale, disco, memoria… Ver [Observabilidad](/arquitectura/observabilidad).
-- **Avisos de Google vigilados**: Google dejó de entregar los avisos de datos nuevos el 24 de octubre sin dar error (los datos seguían entrando cada hora, con retraso). Se ha recreado el suscriptor, hay una alerta si pasa un día sin avisos y un script para ver las entregas y arreglarlo. El worker ya no reescribe el suscriptor en cada arranque.
+- **Avisos de Google vigilados**: Google dejó de entregar los avisos de datos nuevos el 24 de octubre sin dar error (los datos seguían entrando cada hora, con retraso). Ahora cada usuario tiene su propia suscripción (manual, que se puede comprobar) en vez de la automática de Google, hay una alerta si pasa un día sin avisos y un script para ver las entregas y arreglarlo. El worker ya no reescribe el suscriptor en cada arranque.
 - **Fallido es fallido de verdad**: un intento que el worker va a repetir (por ejemplo, intervals.icu devolviendo 503 un rato) cuenta como reintento, no como fallo; la alerta de trabajos fallando solo salta con los que agotan sus reintentos.
 
 ## 23 de octubre de 2026

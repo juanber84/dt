@@ -170,11 +170,14 @@ export function createInbox({ pipeline, queue, connections, telegramLink, timeZo
         { userId, provider },
         { singletonKey: `${provider}:${userId}`, priority: PRIORITY.LIVE },
       );
+      // Su suscripción a los avisos de Google (la crea el worker)
+      if (provider === GOOGLE) await queue.send(JOBS.GOOGLE_SUBSCRIBER, {});
     },
 
-    /** Al desconectar: se para la carga inicial que hubiera en marcha. */
+    /** Al desconectar: se para la carga inicial que hubiera en marcha (y, en Google, sus avisos). */
     async disconnected(userId, provider) {
       await store.cancelBackfills(userId, provider);
+      if (provider === GOOGLE) await queue.send(JOBS.GOOGLE_SUBSCRIBER, {});
     },
   };
 

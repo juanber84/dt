@@ -87,3 +87,48 @@ describe('GoogleHealthSubscribers.deliveries', () => {
     expect(second.pageToken).toBe('p2');
   });
 });
+
+describe('GoogleHealthSubscribers.ensureSubscriptions', () => {
+  const sub = (id, user, dataTypes) => ({
+    name: `projects/123/subscribers/digitaltwin/subscriptions/${id}`,
+    user: `users/${user}`,
+    dataTypes,
+  });
+
+  function withExisting(existing) {
+    const request = vi.fn(async ({ method = 'GET' }) => ({
+      data: method === 'GET' ? { subscriptions: existing } : {},
+    }));
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+    const writes = () =>
+      request.mock.calls
+        .map(([r]) => r)
+        .filter((r) => r.method !== 'GET')
+        .map((r) => `${r.method} ${r.url.split('/subscribers/digitaltwin')[1] || '/'}`);
+    return { subscribers, writes };
+  }
+
+  it('crea las que faltan, corrige tipos, rehace si cambia el usuario y borra las sobrantes', async () => {
+    const { subscribers, writes } = withExisting([
+      sub('ana', '1', ['steps']),
+      sub('luis', '2', ['steps', 'sleep']),
+      sub('eva', '3', ['steps']),
+      sub('vieja', '9', ['steps']),
+    ]);
+    const result = await subscribers.ensureSubscriptions('digitaltwin', [
+      { subscriptionId: 'ana', healthUserId: '1', dataTypes: ['steps', 'sleep'] },
+      { subscriptionId: 'luis', healthUserId: '2', dataTypes: ['sleep', 'steps'] },
+      { subscriptionId: 'eva', healthUserId: '33', dataTypes: ['steps'] },
+      { subscriptionId: 'nuevo', healthUserId: '4', dataTypes: ['steps'] },
+    ]);
+
+    expect(result).toEqual({ created: 1, updated: 2, deleted: 1, unchanged: 1 });
+    expect(writes()).toEqual([
+      'PATCH /subscriptions/ana',
+      'DELETE /subscriptions/eva',
+      'POST /subscriptions',
+      'POST /subscriptions',
+      'DELETE /subscriptions/vieja',
+    ]);
+  });
+});
