@@ -61,3 +61,29 @@ describe('GoogleHealthSubscribers.ensure', () => {
     expect(writes()).toHaveLength(1);
   });
 });
+
+describe('GoogleHealthSubscribers.deliveries', () => {
+  it('lee de Cloud Logging los intentos de entrega con su código, página a página', async () => {
+    const entry = (at, status) => ({
+      timestamp: at,
+      resource: { labels: { subscriber_id: 'digitaltwin' } },
+      jsonPayload: { httpResponse: { status } },
+    });
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: { entries: [entry('2026-10-24T12:09:16Z', 204)], nextPageToken: 'p2' },
+      })
+      .mockResolvedValueOnce({ data: { entries: [entry('2026-10-24T12:09:17Z', 503)] } });
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+
+    expect(await subscribers.deliveries({ since: '2026-10-24T00:00:00Z' })).toEqual([
+      { at: '2026-10-24T12:09:16Z', status: 204, subscriber: 'digitaltwin' },
+      { at: '2026-10-24T12:09:17Z', status: 503, subscriber: 'digitaltwin' },
+    ]);
+    const [first, second] = request.mock.calls.map(([r]) => r.data);
+    expect(first.resourceNames).toEqual(['projects/123']);
+    expect(first.filter).toContain('timestamp >= "2026-10-24T00:00:00.000Z"');
+    expect(second.pageToken).toBe('p2');
+  });
+});

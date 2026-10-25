@@ -146,6 +146,41 @@ export class GoogleHealthSubscribers {
     });
   }
 
+  /**
+   * Intentos de entrega de avisos desde `since`, de Cloud Logging (la cuenta de servicio necesita
+   * el rol Visor de registros). Cada uno con su hora y el código que le dimos.
+   * @returns {Promise<Array<{ at: string, status: number|null, subscriber: string|null }>>}
+   */
+  async deliveries({ since }) {
+    const client = await this.auth.getClient();
+    const entries = [];
+    let pageToken;
+    do {
+      const { data } = await client
+        .request({
+          url: 'https://logging.googleapis.com/v2/entries:list',
+          method: 'POST',
+          data: {
+            resourceNames: [this.parent],
+            orderBy: 'timestamp asc',
+            pageSize: 1000,
+            pageToken,
+            filter: `resource.type="health.googleapis.com/Subscriber" AND logName:"webhook_notification" AND timestamp >= "${new Date(since).toISOString()}"`,
+          },
+        })
+        .catch((error) => {
+          throw toGoogleHealthError(error);
+        });
+      entries.push(...(data.entries ?? []));
+      pageToken = data.nextPageToken;
+    } while (pageToken && entries.length < 10_000);
+    return entries.map((e) => ({
+      at: e.timestamp,
+      status: e.jsonPayload?.httpResponse?.status ?? null,
+      subscriber: e.resource?.labels?.subscriber_id ?? null,
+    }));
+  }
+
   // Suscripciones por usuario: solo para tipos configurados como MANUAL
 
   createSubscription(subscriberId, { subscriptionId, healthUserId, dataTypes }) {

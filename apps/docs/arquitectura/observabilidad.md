@@ -54,6 +54,7 @@ Llegan por correo. Están en `scripts/grafana/alerts.js` y llevan la etiqueta `p
 | Cola atascada                      | Más de 50 esperando durante 30 min (sin contar `fetch`, `backfill` y `normalize`) |
 | Sin copia de seguridad reciente    | La última buena es de hace más de 26 h, o la última falló                         |
 | Muchos errores en los logs         | Más de 10 líneas de error en 15 min                                               |
+| Google no manda avisos             | Un día entero sin ningún aviso de Google Health (ver [Webhooks](/api/webhooks))   |
 | Disco · memoria · OOM              | Disco > 90 %, RAM disponible < 5 %, un contenedor sin memoria                     |
 | Certificado                        | Caduca en menos de 14 días                                                        |
 

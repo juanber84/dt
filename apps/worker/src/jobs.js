@@ -388,8 +388,10 @@ export function createJobs({
           {},
           wrap(JOBS.GOOGLE_SUBSCRIBER, handlers[JOBS.GOOGLE_SUBSCRIBER]),
         );
-        // Un poco después de arrancar, para dar tiempo al front y al túnel
-        await queue.send(JOBS.GOOGLE_SUBSCRIBER, { force: true }, { startAfter: 20 });
+        // Un poco después de arrancar, para dar tiempo al front y al túnel. Sin forzar: si ya está
+        // bien no se toca (antes se reescribía en cada arranque, decenas de veces por semana). Al
+        // cambiar GOOGLE_HEALTH_WEBHOOK_SECRET hay que forzarlo a mano (ver INSTALL.md).
+        await queue.send(JOBS.GOOGLE_SUBSCRIBER, {}, { startAfter: 20 });
         await queue.schedule(JOBS.GOOGLE_SUBSCRIBER, '45 4 * * *', {}, { tz });
       }
     },

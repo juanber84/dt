@@ -147,6 +147,22 @@ export const ALERTS = [
     severity: 'warning',
     summary: 'Más de 10 líneas de error en 15 min en los contenedores digitaltwin-*.',
   },
+  {
+    uid: 'twinme-google-webhooks',
+    title: 'Google no manda avisos',
+    // El iPhone sube a Google varias veces al día y cada subida trae avisos. Un día entero sin
+    // ninguno es que Google ha dejado de entregarlos (pasó el 24-10-2026 con el suscriptor activo);
+    // los datos siguen entrando por la sincronización de cada hora, pero con retraso.
+    datasource: LOGS,
+    expr: 'sum(count_over_time({container="digitaltwin-api"} |= "google-health notificaciones recibidas" [24h]))',
+    below: 1,
+    window: 86400,
+    for: '0s',
+    severity: 'warning',
+    summary:
+      'Ningún aviso de Google Health en 24 h. Mira las entregas en Cloud Logging (health.googleapis.com/webhook_notification) y, si Google no las intenta, recrea el suscriptor (INSTALL.md, Observabilidad).',
+    noData: 'Alerting',
+  },
 
   // ------------------------------------------------------------------------- Servidor
   {
