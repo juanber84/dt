@@ -70,6 +70,8 @@ header {
 .body {
   padding: 16px 18px;
   display: grid;
+  /* Que nada de dentro ensanche el popup (en el móvil se salía de la pantalla) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 

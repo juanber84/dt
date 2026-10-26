@@ -184,6 +184,9 @@ textarea {
 /* Campos */
 .field {
   display: grid;
+  /* minmax(0, …): lo de dentro no ensancha el campo (las fechas de iOS lo hacían) */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 6px;
 }
 
@@ -204,6 +207,21 @@ textarea {
 
 .input:focus {
   border-color: var(--text-2);
+}
+
+/* Fechas y horas en iOS Safari: con su aspecto nativo tienen un ancho propio, no hacen caso a
+   width y se salen de la columna (y el texto va centrado). Sin él, se comportan como un input. */
+.field > .input:is([type='date'], [type='time'], [type='datetime-local']) {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  line-height: 34px;
+}
+
+.input::-webkit-date-and-time-value {
+  text-align: left;
 }
 
 textarea.input {

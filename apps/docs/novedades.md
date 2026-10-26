@@ -2,6 +2,7 @@
 
 ## 26 de octubre de 2026
 
+- **Registrar en el iPhone**: las fechas y horas ya no se salen del popup.
 - **Por dentro, más ordenado**: el timeline de la web y el coach, partidos en piezas pequeñas con sus tests; nada cambia por fuera. Dependencias al día (`npm audit` sin avisos) y esta documentación en VitePress 2. El enlace "Abrir la app" de aquí arriba ya lleva a twinme.app.
 
 ## 25 de octubre de 2026
