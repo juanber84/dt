@@ -29,19 +29,16 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
       Plan: p. ej. Hoy · Plan · Tendencias · Coach · Más (Entrenos, Clínica, Informes dentro).
 - [x] **9. Un solo sitio para cada cálculo** (hecho el 23/10, ea967fd): tipos de comida, líquidos,
       periodos y formato de cifras, en los paquetes; la web los importa.
-- [ ] **10. Web mantenible: lo que falta** (hecho el 23/10: Hoy de 1.049 a 379 líneas y el lateral
-      de Clínica de 1.125 a 404, con tests de componentes; los rangos largos sin el detalle de los
-      episodios: 30 días de 350 a 54 KB):
-  - `services/timeline.js` (~950 líneas): separar las llamadas a la API, la agrupación por días y
-    cómo se pinta cada tipo de evento, sin cambiar nada hacia fuera.
-  - `CoachView.vue` (810 líneas): la lógica del chat (envío, streaming, conversaciones) a su
-    propio módulo.
-  - Vistas de 500-570 líneas (Clínica, Sistema, Conexiones, Login): grandes pero manejables;
-    Sistema, mejor con su rediseño (abajo, en Producción).
+- [x] **10. Web mantenible** (23/10 y 26/10): Hoy de 1.049 a 379 líneas, el lateral de Clínica de
+      1.125 a 404; `services/timeline.js` en `services/timeline/` (api, días, un fichero por tipo
+      de evento, resumen) y `CoachView.vue` de 810 a ~240 con `useCoachChat` y tres componentes,
+      todo con tests. Quedan vistas de 500-570 líneas (Clínica, Sistema, Conexiones, Login),
+      manejables; Sistema, mejor con su rediseño (abajo, en Producción).
 - [ ] **11. Medicación por el bot**: el bot quedó para comidas y agua, pero apunta medicación.
       Decidir si se queda o se quita.
-- [ ] **12. Menores**: `npm audit fix` (ip-address, moderada); cerrar la alerta de GitHub de la
-      clave de Firebase de Motra como falso positivo.
+- [x] **12. Menores** (26/10): `npm audit` a 0 (audit fix y VitePress 2.0.0-alpha.20: la 1.6.4
+      traía vite 5 y esbuild con avisos sin arreglo); la alerta de la clave de Firebase de Motra ya
+      estaba cerrada como falso positivo (23/10).
 - Datos y motor (ya apuntado en su sitio): objetivo de kcal plano y objetivos de peso pobres
   (PLAN.md), kcal activas del Watch infladas, Google borra el nombre de las fuentes de Apple Salud
   (HealthSave aparcado).

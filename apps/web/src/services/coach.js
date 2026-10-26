@@ -69,6 +69,36 @@ export function toChat(messages) {
   return out;
 }
 
+/**
+ * Un evento del stream sobre la respuesta que se está escribiendo (`answer`, reactiva): las
+ * herramientas que usa, sus gráficas, el texto y los errores. `conversation` no toca la respuesta
+ * (es de la lista de conversaciones) y `user`/`done` no traen nada que pintar.
+ */
+export function applyEvent(answer, event, data) {
+  switch (event) {
+    case 'tool':
+      answer.tools.push({ id: data.id, name: data.name, args: data.args, ok: null });
+      break;
+    case 'tool_result': {
+      const tool = answer.tools.find((t) => t.id === data.id);
+      if (tool) tool.ok = data.ok;
+      if (data.display?.type === 'chart') addChart(answer, data.id, data.display);
+      break;
+    }
+    case 'delta':
+      answer.content += data.text;
+      break;
+    case 'message':
+      // Texto antes de llamar a herramientas: lo siguiente va en otro párrafo
+      if (data.content && data.toolCalls) answer.content += '\n\n';
+      answer.id = data.id;
+      break;
+    case 'error':
+      answer.error = data.message;
+      break;
+  }
+}
+
 /** Una gráfica nueva en la respuesta, donde va el texto en este momento. */
 export function addChart(answer, id, chart) {
   answer.charts.push({ id, at: answer.content.length, chart });

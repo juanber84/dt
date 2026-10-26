@@ -25,7 +25,7 @@ export default defineConfig({
       { text: 'IA y MCP', link: '/ia/coach' },
       { text: 'API', link: '/api/' },
       { text: 'Novedades', link: '/novedades' },
-      { text: 'Abrir la app', link: 'https://dt.cadenceai.ovh/', target: '_self' },
+      { text: 'Abrir la app', link: 'https://twinme.app/', target: '_self' },
     ],
     sidebar: [
       {

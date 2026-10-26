@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSseParser } from '../src/api.js';
 import {
   answerParts,
+  applyEvent,
   chartGroups,
   chartLabels,
   rollingMean,
@@ -169,5 +170,40 @@ describe('gráficas del coach', () => {
       chartLabels({ bucket: 'hour', labels: ['2026-10-01 23:00', '2026-10-02 00:00'] }),
     ).toEqual(['1 oct 23:00', '2 oct 00:00']);
     expect(chartLabels({ bucket: 'hour', labels: ['2026-10-01 08:00'] })).toEqual(['08:00']);
+  });
+});
+
+describe('applyEvent', () => {
+  it('arma la respuesta con lo que llega del stream', () => {
+    const answer = { id: null, content: '', tools: [], charts: [] };
+    const events = [
+      ['tool', { id: 'a', name: 'get_series', args: { from: '2026-10-01' } }],
+      ['tool', { id: 'b', name: 'show_chart', args: {} }],
+      ['delta', { text: 'Miro.' }],
+      ['message', { id: 'm1', content: 'Miro.', toolCalls: [{}] }],
+      ['tool_result', { id: 'a', ok: true }],
+      ['tool_result', { id: 'b', ok: true, display: { type: 'chart', title: 'Peso' } }],
+      ['tool_result', { id: 'otra', ok: false }],
+      ['delta', { text: 'Bajas.' }],
+      ['message', { id: 'm2', content: 'Bajas.' }],
+      ['conversation', { id: 'c1', title: 'Peso' }],
+      ['done', {}],
+    ];
+    for (const [event, data] of events) applyEvent(answer, event, data);
+    expect(answer).toEqual({
+      id: 'm2',
+      content: 'Miro.\n\nBajas.',
+      tools: [
+        { id: 'a', name: 'get_series', args: { from: '2026-10-01' }, ok: true },
+        { id: 'b', name: 'show_chart', args: {}, ok: true },
+      ],
+      charts: [{ id: 'b', at: 7, chart: { type: 'chart', title: 'Peso' } }],
+    });
+  });
+
+  it('un error del stream queda en la respuesta', () => {
+    const answer = { content: '', tools: [], charts: [] };
+    applyEvent(answer, 'error', { message: 'Sin saldo' });
+    expect(answer.error).toBe('Sin saldo');
   });
 });
