@@ -1,13 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Check, PillBottle } from '@lucide/vue';
+import { Check, PillBottle, Plus } from '@lucide/vue';
 import { useToast } from '../../composables/useToast.js';
 import { createEntry, deleteEntry } from '../../services/twin.js';
 import { activeOn, takenAt, takenToday, timingLabel } from '../../services/supplements.js';
 
 /**
  * Los suplementos habituales del día, un chip cada uno: tocarlo apunta la toma y volver a
- * tocarlo la deshace. "Todos" marca los que falten. Lo tomado sale de los eventos del día.
+ * tocarlo la deshace. "Todos" marca los que falten. Lo tomado sale de los eventos del día. Sin
+ * ninguno en la lista, cómo añadirlos (si no, nadie sabría que esto existe).
  */
 const props = defineProps({
   supplements: { type: Array, required: true },
@@ -59,7 +60,19 @@ const takeAll = () => run(missing.value, take);
 </script>
 
 <template>
-  <section v-if="active.length" class="card card-pad">
+  <section v-if="!supplements.length" class="card card-pad">
+    <header class="col-head">
+      <h2>Suplementos</h2>
+      <RouterLink :to="{ name: 'settings', query: { add: 'supplement' } }" class="btn btn-sm">
+        <Plus class="icon icon-sm" />
+        Añadir
+      </RouterLink>
+    </header>
+    <p class="muted empty">
+      Creatina, magnesio, vitamina D… Añade los que tomas y márcalos aquí cada día de un toque.
+    </p>
+  </section>
+  <section v-else-if="active.length" class="card card-pad">
     <header class="col-head">
       <h2>Suplementos</h2>
       <button v-if="missing.length > 1" class="btn btn-sm" @click="takeAll">Todos</button>
@@ -126,6 +139,11 @@ const takeAll = () => run(missing.value, take);
   border-color: color-mix(in srgb, var(--nutrition) 55%, var(--border));
   background: color-mix(in srgb, var(--nutrition) 14%, var(--surface));
   color: var(--text);
+}
+
+.empty {
+  margin: 0;
+  font-size: 13px;
 }
 
 .chip:disabled {

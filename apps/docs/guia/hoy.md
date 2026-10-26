@@ -26,7 +26,7 @@ Lo que llevas comido frente a tu **objetivo del motor** (kcal, proteína, hidrat
 
 ## Suplementos
 
-Un chip por cada suplemento que tomas (los de Ajustes → Cuenta), en el orden del día: tócalo cuando lo tomes y queda marcado; si te equivocas, vuelve a tocarlo. **Todos** marca los que falten. En un día pasado, la toma se apunta a la hora de su momento (mañana a las 9, noche a las 22…). Cada toma sale también en el timeline. Si no tienes ninguno, la tarjeta no sale.
+Un chip por cada suplemento que tomas (los de Ajustes → Cuenta), en el orden del día: tócalo cuando lo tomes y queda marcado; si te equivocas, vuelve a tocarlo. **Todos** marca los que falten. En un día pasado, la toma se apunta a la hora de su momento (mañana a las 9, noche a las 22…). Cada toma sale también en el timeline. Si aún no tienes ninguno, la tarjeta te lleva a añadirlos.
 
 Si has **empezado la creatina** (o la has dejado) hace menos de 4 semanas, arriba sale un aviso: el peso sube (o baja) 1-2 kg de agua en el músculo, no grasa. Ver [Peso real](/motor/peso#creatina).
 

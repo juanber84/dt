@@ -8,11 +8,13 @@ import {
   NotebookPen,
   FileHeart,
   Pill,
+  PillBottle,
   Luggage,
 } from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { uploadDocument, uploadProblem } from '../../services/clinical.js';
 import { createEntry, fetchMedications } from '../../services/twin.js';
+import { activeOn, listSupplements } from '../../services/supplements.js';
 import { fmtClock } from '../../lib/format.js';
 import { formatShortDate, minutesOfDay, todayISO } from '../../lib/dates.js';
 
@@ -78,6 +80,8 @@ const KINDS = [
   },
   // Una toma: qué medicamento y, si quieres, cuánto
   { id: 'medication', label: 'Medicación', icon: Pill, unit: null },
+  // Una toma de un suplemento: de tu lista (Ajustes) o uno suelto
+  { id: 'supplement', label: 'Suplemento', icon: PillBottle, unit: null },
   // Fuera de casa, enfermo...: el motor no aprende de esos días (ni de los 3 siguientes)
   { id: 'period', label: 'Periodo', icon: Luggage, unit: null },
   // Sube el PDF a Clínica: la fecha la saca del informe (si no trae, la de este día)
@@ -109,6 +113,10 @@ const text = ref('');
 const dose = ref('');
 const caffeine = ref(0);
 const medications = ref([]);
+const supplements = ref([]);
+// El habitual elegido (si se escribe otro nombre, deja de serlo)
+const supplementId = ref(null);
+const habitual = computed(() => activeOn(supplements.value, day.value));
 const file = ref(null);
 const periodType = ref('away');
 const until = ref(props.date);
@@ -133,12 +141,26 @@ watch(
     fetchMedications()
       .then((items) => (medications.value = items))
       .catch(() => {});
+    supplementId.value = null;
+    listSupplements()
+      .then((items) => (supplements.value = items))
+      .catch(() => {});
     uploadError.value = null;
     value.value = current.value.default ?? null;
     caffeine.value = 0;
     if (kind.value === 'drink') pickDrink(DRINKS[0]);
   },
 );
+/** Uno de tus suplementos: su nombre y su dosis (la dosis se puede retocar). */
+function pickSupplement(s) {
+  text.value = s.name;
+  dose.value = s.dose ?? '';
+  supplementId.value = s.id;
+}
+watch(text, (name) => {
+  const chosen = supplements.value.find((s) => s.id === supplementId.value);
+  if (chosen && chosen.name !== name) supplementId.value = null;
+});
 /** Rellena la bebida con uno de los tipos (se puede retocar después). */
 function pickDrink(drink) {
   text.value = drink.name;
@@ -149,7 +171,11 @@ watch(kind, () => {
   value.value = current.value.default ?? null;
   caffeine.value = 0;
   if (kind.value === 'drink') pickDrink(DRINKS[0]);
-  else if (['symptom', 'note', 'medication'].includes(kind.value)) text.value = '';
+  else if (['symptom', 'note', 'medication', 'supplement'].includes(kind.value)) {
+    text.value = '';
+    dose.value = '';
+    supplementId.value = null;
+  }
 });
 
 const titles = {
@@ -160,6 +186,7 @@ const titles = {
   symptom: () => `${text.value || 'Síntoma'} · intensidad ${value.value}/5`,
   note: () => text.value || 'Nota',
   medication: () => `${text.value}${dose.value ? ` · ${dose.value}` : ''}`,
+  supplement: () => `${text.value}${dose.value ? ` · ${dose.value}` : ''}`,
   period: () =>
     `${PERIOD_TYPES.find((t) => t.id === periodType.value).label} · ${formatShortDate(day.value)} – ${formatShortDate(until.value)}`,
 };
@@ -184,7 +211,9 @@ const saving = ref(false);
 const canSave = computed(() => {
   if (!day.value) return false;
   if (kind.value === 'period') return Boolean(until.value) && until.value >= day.value;
-  if (['symptom', 'note', 'medication'].includes(kind.value)) return Boolean(text.value.trim());
+  if (['symptom', 'note', 'medication', 'supplement'].includes(kind.value)) {
+    return Boolean(text.value.trim());
+  }
   if (kind.value === 'drink' && !text.value.trim()) return false;
   return value.value != null && value.value !== '' && Number(value.value) > 0;
 });
@@ -215,7 +244,9 @@ async function submit() {
       ...(k.unit && value.value != null && { value: Number(value.value) }),
       ...(text.value.trim() && { text: text.value.trim() }),
       ...(k.id === 'drink' && caffeine.value > 0 && { caffeineMg: Number(caffeine.value) }),
-      ...(k.id === 'medication' && dose.value.trim() && { dose: dose.value.trim() }),
+      ...(['medication', 'supplement'].includes(k.id) &&
+        dose.value.trim() && { dose: dose.value.trim() }),
+      ...(k.id === 'supplement' && supplementId.value && { supplementId: supplementId.value }),
     });
     emit('add', { date: day.value, subtitle: titles[k.id]() });
     emit('close');
@@ -367,6 +398,41 @@ async function submit() {
         <span>Dosis (opcional)</span>
         <input v-model="dose" class="input" placeholder="1 comprimido, 2 pulverizaciones…" />
       </label>
+    </template>
+    <template v-if="kind === 'supplement'">
+      <div v-if="habitual.length" class="drinks" role="group" aria-label="Tus suplementos">
+        <button
+          v-for="s in habitual"
+          :key="s.id"
+          type="button"
+          class="chip"
+          :class="{ active: supplementId === s.id }"
+          @click="pickSupplement(s)"
+        >
+          {{ s.name }}
+        </button>
+      </div>
+      <label class="field">
+        <span>Suplemento</span>
+        <input v-model="text" class="input" maxlength="60" placeholder="Creatina, magnesio…" />
+      </label>
+      <label class="field">
+        <span>Dosis (opcional)</span>
+        <input v-model="dose" class="input" maxlength="40" placeholder="5 g, 2 gominolas…" />
+      </label>
+      <p class="muted hint">
+        <template v-if="habitual.length">
+          Los de tu lista también se marcan de un toque en la tarjeta Suplementos de Hoy.
+        </template>
+        <template v-else>
+          Si lo tomas a diario, añádelo a tu lista en
+          <RouterLink
+            :to="{ name: 'settings', query: { add: 'supplement' } }"
+            @click="emit('close')"
+            >Ajustes → Suplementos</RouterLink
+          >: luego se marca en Hoy de un toque.
+        </template>
+      </p>
     </template>
     <label v-if="kind === 'symptom' || kind === 'note'" class="field">
       <span>{{ kind === 'symptom' ? 'Qué notas' : 'Nota' }}</span>

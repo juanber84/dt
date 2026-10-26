@@ -124,7 +124,23 @@ describe('SupplementsCard', () => {
     expect(twin.createEntry.mock.calls.map(([e]) => e.supplementId)).toEqual(['cr', 'mg']);
   });
 
-  it('sin suplementos ese día, no sale', () => {
+  it('sin ninguno en la lista: cómo añadirlos (enlace a Ajustes con el formulario abierto)', () => {
+    const wrapper = mount(SupplementsCard, {
+      props: { supplements: [], date: '2026-10-26', events: [] },
+      global: {
+        stubs: {
+          RouterLink: { props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' },
+        },
+      },
+    });
+    expect(wrapper.text()).toContain('Añade los que tomas');
+    expect(JSON.parse(wrapper.find('a').attributes('data-to'))).toEqual({
+      name: 'settings',
+      query: { add: 'supplement' },
+    });
+  });
+
+  it('con lista pero ninguno ese día (aún no los tomabas), no sale', () => {
     const wrapper = mount(SupplementsCard, {
       props: { supplements: [zinc], date: '2026-10-26', events: [] },
     });

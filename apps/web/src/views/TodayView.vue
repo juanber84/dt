@@ -55,12 +55,12 @@ const period = computed(() =>
 const creatine = computed(() =>
   engine.value?.creatine && date.value === todayISO() ? engine.value.creatine : null,
 );
-// Los suplementos habituales (Ajustes), para marcarlos en el día
-const supplements = ref([]);
+// Los suplementos habituales (Ajustes), para marcarlos en el día (null: sin cargar o sin API)
+const supplements = ref(null);
 const loadSupplements = () =>
   listSupplements()
     .then((list) => (supplements.value = list))
-    .catch(() => (supplements.value = []));
+    .catch(() => (supplements.value = null));
 loadSupplements();
 /** Una toma marcada o deshecha: el día de nuevo (`done` suelta el chip cuando ya está). */
 async function supplementsChanged(done) {
@@ -311,6 +311,7 @@ const body = computed(() => bodyOf(history.value ?? [], date.value));
           <ActivityCard :day="day" />
           <NutritionCard :day="day" :engine="engine" />
           <SupplementsCard
+            v-if="supplements"
             :supplements="supplements"
             :date="date"
             :events="events"

@@ -2,7 +2,7 @@
 
 ## 26 de octubre de 2026
 
-- **Suplementos**: en Ajustes → Cuenta, tu lista (creatina, magnesio, vitamina D, omega-3 u otro) con dosis, momento y desde cuándo; en Hoy, un chip por cada uno para marcarlo al tomarlo. El coach sabe cuáles tomas y cuántos días los marcas. Ver [Hoy](/guia/hoy#suplementos).
+- **Suplementos**: en Ajustes → Cuenta, tu lista (creatina, magnesio, vitamina D, omega-3 u otro) con dosis, momento y desde cuándo; en Hoy, un chip por cada uno para marcarlo al tomarlo, y en Registrar → Suplemento para apuntar uno de otro día o uno suelto. El coach sabe cuáles tomas y cuántos días los marcas. Ver [Hoy](/guia/hoy#suplementos).
 - **Creatina**: las 4 semanas después de empezarla (o dejarla), Hoy, el informe y el coach avisan de que el peso sube (o baja) 1-2 kg de agua, no grasa. El motor no cambia sus cuentas. Ver [Peso real](/motor/peso#creatina).
 - **Registrar en el iPhone**: las fechas y horas ya no se salen del popup.
 - **Por dentro, más ordenado**: el timeline de la web y el coach, partidos en piezas pequeñas con sus tests; nada cambia por fuera. Dependencias al día (`npm audit` sin avisos) y esta documentación en VitePress 2. El enlace "Abrir la app" de aquí arriba ya lleva a twinme.app.

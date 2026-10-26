@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { ChevronRight, PillBottle, Plus } from '@lucide/vue';
 import Modal from '../ui/Modal.vue';
 import { useConfirm } from '../../composables/useConfirm.js';
@@ -23,6 +24,9 @@ import {
  */
 const toast = useToast();
 const { ask } = useConfirm();
+const route = useRoute();
+const router = useRouter();
+const section = ref(null);
 
 const items = ref(null);
 const current = computed(() => (items.value ?? []).filter((s) => !s.stoppedOn));
@@ -33,6 +37,14 @@ onMounted(async () => {
     items.value = await listSupplements();
   } catch {
     items.value = null;
+    return;
+  }
+  // /settings?add=supplement (desde Hoy): aquí y con el formulario abierto
+  if (route.query.add === 'supplement') {
+    router.replace({ query: { ...route.query, add: undefined } });
+    await nextTick();
+    section.value?.scrollIntoView({ block: 'start' });
+    edit();
   }
 });
 
@@ -119,7 +131,7 @@ const detail = (s) =>
 </script>
 
 <template>
-  <section v-if="items">
+  <section v-if="items" ref="section">
     <h2 class="sub">Suplementos</h2>
     <p class="secondary sub-desc">
       Los que tomas a diario: salen en Hoy para marcarlos de un toque. Lo que tiene calorías

@@ -10,6 +10,7 @@ El botón **Registrar** de Hoy sirve para apuntar a mano lo que no llega solo. T
 | **Síntoma**    | texto e intensidad del 1 al 5                 | Seguir cómo evoluciona algo ("mocos 4/5", "dolor de rodilla 2/5"). El coach lo tiene en cuenta                                          |
 | **Nota**       | texto                                         | Lo que quieras: "médico: laringitis", "mal día"                                                                                         |
 | **Medicación** | medicamento, dosis y hora                     | El historial de lo que tomas y cuándo. Sugiere los que ya has apuntado                                                                  |
+| **Suplemento** | uno de tu lista (o uno suelto), dosis y hora  | La toma, con su día y hora. Los de tu lista se marcan más rápido en la tarjeta Suplementos de [Hoy](/guia/hoy#suplementos)              |
 | **Periodo**    | fuera de casa / enfermo / otro, desde y hasta | Vacaciones, un puente o una gripe: el motor no aprende de esos días y el objetivo pasa a mantenimiento. Ver [Periodos](/motor/periodos) |
 | **Informe**    | un PDF                                        | Analíticas y pruebas médicas: ver [Clínica](/guia/clinica)                                                                              |
 
