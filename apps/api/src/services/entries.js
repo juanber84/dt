@@ -40,6 +40,14 @@ export const entrySchema = z.discriminatedUnion('kind', [
     text: text.min(1).max(100),
     dose: z.string().trim().max(60).optional(),
   }),
+  // Una toma de un suplemento: normalmente uno de los habituales (supplementId, desde Hoy)
+  z.object({
+    kind: z.literal('supplement'),
+    at,
+    text: text.min(1).max(60),
+    dose: z.string().trim().max(40).optional(),
+    supplementId: z.uuid().optional(),
+  }),
   // Un periodo (días locales, ambos incluidos): el motor no aprende de esos días. `at` lo pone la
   // API (la medianoche del primer día)
   z

@@ -686,4 +686,97 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     expect(day('intake.beverages')).toEqual([200]);
     expect(day('intake.caffeine')).toEqual([80]);
   });
+  it('Suplementos: la lista (con sus fechas), las tomas en el timeline y el aviso de la creatina', async () => {
+    const api = (method, path) => request(app)[method](`/api/v1${path}`).set('Cookie', cookie);
+    // Fechas relativas a hoy (el motor mira los últimos días de verdad), en días de calendario:
+    // restar 72 h no siempre es 3 días (cambio de hora)
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(
+      new Date(),
+    );
+    const day = (offset) =>
+      new Date(Date.parse(`${today}T12:00:00Z`) + offset * 24 * 3600 * 1000)
+        .toISOString()
+        .slice(0, 10);
+
+    const creatine = await api('post', '/supplements')
+      .send({
+        name: 'Creatina',
+        type: 'creatine',
+        dose: '5 g',
+        timing: 'morning',
+        startedOn: day(-3),
+      })
+      .expect(201);
+    expect(creatine.body).toMatchObject({ name: 'Creatina', dose: '5 g', stoppedOn: null });
+    const magnesium = await api('post', '/supplements')
+      .send({ name: 'Magnesio', timing: 'night', startedOn: day(-30) })
+      .expect(201);
+    expect(magnesium.body.type).toBe('other');
+    // Validación: tipo raro, sin nombre o dejarlo antes de empezar
+    await api('post', '/supplements')
+      .send({ name: 'X', type: 'raro', startedOn: day(0) })
+      .expect(400);
+    await api('post', '/supplements')
+      .send({ name: '', startedOn: day(0) })
+      .expect(400);
+    await api('patch', `/supplements/${magnesium.body.id}`)
+      .send({ stoppedOn: day(-40) })
+      .expect(400);
+    await api('patch', '/supplements/00000000-0000-4000-8000-000000000000')
+      .send({ dose: '1' })
+      .expect(404);
+
+    // Los que toma, por momento del día; los dejados, al final
+    await api('patch', `/supplements/${magnesium.body.id}`)
+      .send({ stoppedOn: day(-1) })
+      .expect(200);
+    const list = await api('get', '/supplements').expect(200);
+    expect(list.body.items.map((s) => [s.name, s.stoppedOn])).toEqual([
+      ['Creatina', null],
+      ['Magnesio', day(-1)],
+    ]);
+
+    // Una toma desde Hoy: episodio `supplement` con cuál de los habituales es
+    const taken = await api('post', '/entries')
+      .send({
+        kind: 'supplement',
+        at: new Date().toISOString(),
+        text: 'Creatina',
+        dose: '5 g',
+        supplementId: creatine.body.id,
+      })
+      .expect(201);
+    const episodes = await api('get', '/timeline/episodes')
+      .query({
+        from: new Date(Date.now() - 3600 * 1000).toISOString(),
+        to: new Date(Date.now() + 3600 * 1000).toISOString(),
+        kinds: 'supplement',
+      })
+      .expect(200);
+    expect(episodes.body.items).toEqual([
+      expect.objectContaining({
+        kind: 'supplement',
+        title: 'Creatina',
+        summary: { dose: '5 g', supplementId: creatine.body.id },
+      }),
+    ]);
+    await api('delete', `/entries/${taken.body.id}`).expect(204);
+
+    // El motor (con perfil y un pesaje) avisa de la creatina sin tocar sus cifras
+    await api('put', '/profile').send({ birthDate: '1984-05-01', heightCm: 180 }).expect(200);
+    await api('post', '/entries')
+      .send({ kind: 'weight', at: new Date().toISOString(), value: 82 })
+      .expect(201);
+    const engine = await api('get', '/engine').expect(200);
+    expect(engine.body.creatine).toEqual({
+      phase: 'starting',
+      name: 'Creatina',
+      since: day(-3),
+      daysSince: 3,
+    });
+
+    await api('delete', `/supplements/${creatine.body.id}`).expect(204);
+    await api('delete', `/supplements/${creatine.body.id}`).expect(404);
+    expect((await api('get', '/engine').expect(200)).body.creatine).toBeNull();
+  });
 });

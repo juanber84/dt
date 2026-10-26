@@ -1,6 +1,12 @@
 import { MEAL_TYPE_LABELS } from '@digitaltwin/nutrition';
 import { DAY_MS, localMidnight } from '@digitaltwin/timeline';
-import { PERIOD_NAMES, currentPeriod, fluidTargetMl, periodPhrase } from '@digitaltwin/engine';
+import {
+  PERIOD_NAMES,
+  creatinePhrase,
+  currentPeriod,
+  fluidTargetMl,
+  periodPhrase,
+} from '@digitaltwin/engine';
 
 const DAY_METRICS = [
   'intake.energy',
@@ -47,7 +53,7 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
       userId,
       from,
       to,
-      kinds: ['meal', 'workout', 'symptom', 'medication'],
+      kinds: ['meal', 'workout', 'symptom', 'medication', 'supplement'],
       timeZone,
     }),
     // La noche de después (la que acaba esta mañana): empieza a partir del mediodía del día
@@ -99,6 +105,8 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
   return {
     date,
     period,
+    // Creatina empezada o dejada hace poco: el peso mueve agua (aviso del motor)
+    creatine: ready ? (state.creatine ?? null) : null,
     weight: ready
       ? {
           last: state.weight.last,
@@ -148,6 +156,11 @@ export async function gatherDay({ userId, date, now, queries, engine, timeZone }
       intensity: s.summary?.intensity ?? null,
     })),
     medications: of('medication').map((m) => ({
+      time: localTime(m.start, timeZone),
+      name: m.title,
+      dose: m.summary?.dose ?? null,
+    })),
+    supplements: of('supplement').map((m) => ({
       time: localTime(m.start, timeZone),
       name: m.title,
       dose: m.summary?.dose ?? null,
@@ -303,6 +316,9 @@ export function composeDaily(day, { comment = null } = {}) {
       ]),
     });
   }
+  if (day.creatine) {
+    blocks.push({ type: 'callout', tone: 'info', text: creatinePhrase(day.creatine) });
+  }
   const weights = day.weightHistory.filter((d) => d.weight != null || d.trend != null);
   if (weights.length >= 2) {
     blocks.push({
@@ -432,6 +448,19 @@ export function commentFacts(day) {
     );
   } else {
     lines.push('Peso: sin datos suficientes para la tendencia.');
+  }
+  const c = day.creatine;
+  if (c) {
+    lines.push(
+      c.phase === 'starting'
+        ? `Creatina: empezó el ${dm(c.since)}; si el peso sube, es agua en el músculo (1-2 kg las primeras 3-4 semanas), no grasa. Dilo si comentas el peso; que no recorte comida.`
+        : `Creatina: la dejó el ${dm(c.since)}; si el peso baja, es agua (1-2 kg en unas semanas), no grasa perdida. No lo celebres como progreso.`,
+    );
+  }
+  if (day.supplements?.length) {
+    lines.push(
+      `Suplementos tomados: ${day.supplements.map((m) => `${m.time} ${m.name}${m.dose ? ` ${m.dose}` : ''}`).join('; ')}.`,
+    );
   }
   lines.push(
     `Calorías de los últimos 7 días: ${day.kcalWeek.map((d) => `${dm(d.date)} ${d.kcal == null ? 'sin apuntar' : `${n(d.kcal)} kcal`}`).join(', ')}.`,

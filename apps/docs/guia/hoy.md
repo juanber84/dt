@@ -14,7 +14,7 @@ VFC, FC en reposo, SpO2, frecuencia respiratoria, temperatura de la piel y VO2 m
 
 ## Tu día
 
-Una franja de 24 h con la frecuencia cardiaca, el sueño, la actividad, la nutrición y lo demás. Debajo, el **timeline** con cada evento (comidas, entrenos, pesajes, agua, síntomas, medicación, informes). Las comidas dicen qué comida fueron (_Cena · 520 kcal · 32 g proteína_). Al tocar uno se abre su detalle con todas las fuentes que lo registraron; los que apuntaste tú se pueden borrar desde ahí.
+Una franja de 24 h con la frecuencia cardiaca, el sueño, la actividad, la nutrición y lo demás. Debajo, el **timeline** con cada evento (comidas, entrenos, pesajes, agua, síntomas, medicación, suplementos, informes). Las comidas dicen qué comida fueron (_Cena · 520 kcal · 32 g proteína_). Al tocar uno se abre su detalle con todas las fuentes que lo registraron; los que apuntaste tú se pueden borrar desde ahí.
 
 ## Actividad
 
@@ -23,6 +23,12 @@ Pasos (y su gráfica por hora), distancia, kcal activas y pisos. Si un día no h
 ## Nutrición
 
 Lo que llevas comido frente a tu **objetivo del motor** (kcal, proteína, hidratos y grasa). El objetivo sale de tu gasto real, no de las kcal que dice el reloj (ver [Objetivos de comida](/motor/objetivos)). Debajo, los **líquidos** del día: el agua más lo que hidratan las demás bebidas (café, té, leche, zumos; el alcohol no cuenta), con el desglose de cada parte. El objetivo es 2,5 L, más 0,5 L por cada hora que entrenas ese día.
+
+## Suplementos
+
+Un chip por cada suplemento que tomas (los de Ajustes → Cuenta), en el orden del día: tócalo cuando lo tomes y queda marcado; si te equivocas, vuelve a tocarlo. **Todos** marca los que falten. En un día pasado, la toma se apunta a la hora de su momento (mañana a las 9, noche a las 22…). Cada toma sale también en el timeline. Si no tienes ninguno, la tarjeta no sale.
+
+Si has **empezado la creatina** (o la has dejado) hace menos de 4 semanas, arriba sale un aviso: el peso sube (o baja) 1-2 kg de agua en el músculo, no grasa. Ver [Peso real](/motor/peso#creatina).
 
 ## Cuerpo y sueño
 

@@ -451,6 +451,27 @@ describe('registros de bebidas', () => {
   });
 });
 
+describe('registros de suplementos', () => {
+  it('una toma: episodio `supplement` con su dosis y cuál de los habituales', () => {
+    const r = normalizeEntry({
+      id: 's1',
+      kind: 'supplement',
+      at: '2026-10-26T07:30:00Z',
+      text: 'Creatina',
+      dose: '5 g',
+      supplementId: 'abc',
+    });
+    expect(r.observations).toEqual([]);
+    expect(r.episodes[0]).toMatchObject({
+      kind: 'supplement',
+      title: 'Creatina',
+      start: '2026-10-26T07:30:00.000Z',
+      summary: { dose: '5 g', supplementId: 'abc' },
+      schema: 'supplement@1',
+    });
+  });
+});
+
 describe('fechas', () => {
   it('medianoche local con cambio de hora', () => {
     expect(localMidnight('2026-03-29', 'Europe/Madrid').toISOString()).toBe(

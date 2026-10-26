@@ -7,6 +7,7 @@ import Segmented from '../../components/ui/Segmented.vue';
 import NotificationSettings from '../../components/admin/NotificationSettings.vue';
 import EmailSettings from '../../components/admin/EmailSettings.vue';
 import ProfileSettings from '../../components/admin/ProfileSettings.vue';
+import SupplementSettings from '../../components/admin/SupplementSettings.vue';
 import McpTokens from '../../components/admin/McpTokens.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
 import { useTheme } from '../../composables/useTheme.js';
@@ -100,6 +101,8 @@ async function exit() {
     </section>
 
     <ProfileSettings />
+
+    <SupplementSettings />
 
     <h2 class="sub">Apariencia</h2>
     <p class="secondary sub-desc">"Sistema" sigue el modo claro u oscuro del dispositivo.</p>

@@ -12,6 +12,7 @@ const EPISODE_KINDS = [
   'symptom',
   'note',
   'medication',
+  'supplement',
   'period',
   'lab',
   'holter',
@@ -82,7 +83,9 @@ export function createTools({
     description:
       'Lo que calcula el motor de TwinMe con la comida apuntada y la báscula (no con el ' +
       'reloj): peso tendencia, gasto real estimado (con su confianza y días apuntados), objetivos ' +
-      'de kcal y macros para el ritmo elegido, aviso si lo apuntado no cuadra con el peso, y el ' +
+      'de kcal y macros para el ritmo elegido, aviso si lo apuntado no cuadra con el peso, aviso ' +
+      'si empezó o dejó la creatina hace menos de 4 semanas (creatine: el peso mueve 1-2 kg de ' +
+      'agua, no grasa), y el ' +
       'historial de las últimas semanas (tendencia del peso y gasto estimado día a día). Son las ' +
       'cifras buenas: úsalas en vez de las kcal activas de los relojes.',
     inputSchema: {},
@@ -184,12 +187,13 @@ export function createTools({
 
     {
       name: 'get_episodes',
-      title: 'Comidas, entrenos, sueño, pesajes, síntomas, medicación…',
+      title: 'Comidas, entrenos, sueño, pesajes, síntomas, medicación, suplementos…',
       description:
         'Episodios del usuario entre dos días (hasta 31): comidas (meal; summary.mealType dice si ' +
         'fue desayuno, media mañana, comida, merienda, cena o picoteo, si lo tiene), entrenos (workout), ' +
         'noches de sueño (sleep), pesajes (weigh-in), agua y café (drink), síntomas (symptom, con ' +
-        'intensidad 1-5), notas (note), tomas de medicación (medication), periodos fuera de casa o ' +
+        'intensidad 1-5), notas (note), tomas de medicación (medication), tomas de suplementos ' +
+        '(supplement: creatina, magnesio...; summary.dose), periodos fuera de casa o ' +
         'enfermo (period: summary.type away/sick/other, from y to; el motor no aprende de esos ' +
         'días) y pruebas médicas ' +
         '(lab, holter, stress-test, ecg, imaging, medical-test, medical-report). Devuelve el resumen ' +

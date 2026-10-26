@@ -32,7 +32,7 @@ import { createDbPasskeyStore, createPasskeys } from './services/passkeys.js';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
 import { createDbReportStore, createReports } from '@digitaltwin/reports';
-import { createEngine, createProfiles } from '@digitaltwin/engine';
+import { createEngine, createProfiles, createSupplements } from '@digitaltwin/engine';
 import {
   createDbConnectionStore,
   createMemoryConnectionStore,
@@ -233,9 +233,15 @@ export function createApp({
       })
     : undefined;
   const profiles = db ? createProfiles({ db, timeZone: config.TIMEZONE }) : undefined;
+  const supplements = db ? createSupplements({ db }) : undefined;
   const engine =
     profiles && pipeline
-      ? createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE })
+      ? createEngine({
+          queries: pipeline.queries,
+          profiles,
+          supplements,
+          timeZone: config.TIMEZONE,
+        })
       : undefined;
   push ??=
     db && config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
@@ -477,6 +483,7 @@ export function createApp({
       email,
       reports,
       profiles,
+      supplements,
       engine,
     }),
   );

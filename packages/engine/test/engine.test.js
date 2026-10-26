@@ -3,6 +3,8 @@ import {
   addDays,
   bmr,
   computeState,
+  creatineNotice,
+  creatinePhrase,
   currentPeriod,
   energyPerKg,
   fillWeights,
@@ -254,5 +256,73 @@ describe('periodos (fuera de casa, enfermo)', () => {
     expect(back.period).toMatchObject({ phase: 'settling', daysSince: 2 });
     expect(back.targets.kgPerWeek).toBeLessThan(0);
     expect(currentPeriod([period], '2026-11-10')).toBeNull();
+  });
+});
+
+describe('creatina (solo aviso)', () => {
+  const creatine = (startedOn, stoppedOn = null) => ({
+    type: 'creatine',
+    name: 'Creatina',
+    startedOn,
+    stoppedOn,
+  });
+
+  it('avisa las 4 semanas después de empezar y después ya no', () => {
+    expect(creatineNotice([creatine('2026-10-20')], '2026-10-26')).toEqual({
+      phase: 'starting',
+      name: 'Creatina',
+      since: '2026-10-20',
+      daysSince: 6,
+    });
+    expect(creatineNotice([creatine('2026-10-20')], '2026-11-16')?.daysSince).toBe(27);
+    expect(creatineNotice([creatine('2026-10-20')], '2026-11-17')).toBeNull();
+    // Apuntada para empezar mañana: aún nada
+    expect(creatineNotice([creatine('2026-10-27')], '2026-10-26')).toBeNull();
+  });
+
+  it('al dejarla también avisa (baja agua), salvo si apenas la tomó', () => {
+    expect(creatineNotice([creatine('2026-08-01', '2026-10-20')], '2026-10-26')).toMatchObject({
+      phase: 'stopping',
+      since: '2026-10-20',
+    });
+    expect(creatineNotice([creatine('2026-10-15', '2026-10-18')], '2026-10-26')).toBeNull();
+    // Dejarla más adelante (fecha futura) es que aún la toma
+    expect(creatineNotice([creatine('2026-10-20', '2026-12-01')], '2026-10-26')?.phase).toBe(
+      'starting',
+    );
+  });
+
+  it('los demás suplementos no avisan', () => {
+    const magnesium = { type: 'magnesium', name: 'Magnesio', startedOn: '2026-10-20' };
+    expect(creatineNotice([magnesium], '2026-10-26')).toBeNull();
+  });
+
+  it('el motor no cambia sus cifras: solo añade el aviso', () => {
+    const days = series('2026-08-01', 60, (i) => ({
+      weight: 80 + 0.02 * i,
+      kcal: 2500,
+      dishes: 6,
+      steps: 9000,
+    }));
+    const input = {
+      profile: { age: 40, sex: 'male', heightCm: 180 },
+      days,
+      today: '2026-09-29',
+    };
+    const without = computeState(input);
+    const withCreatine = computeState({ ...input, supplements: [creatine('2026-09-15')] });
+    expect(without.creatine).toBeNull();
+    expect(withCreatine.creatine).toMatchObject({ phase: 'starting', daysSince: 14 });
+    expect({ ...withCreatine, creatine: null }).toEqual(without);
+  });
+
+  it('la frase para la persona', () => {
+    expect(creatinePhrase({ phase: 'starting', since: '2026-10-20' })).toBe(
+      'Empezaste la creatina el 20/10: las primeras 3-4 semanas el peso sube 1-2 kg de agua en el músculo. No es grasa: no recortes comida por eso.',
+    );
+    expect(creatinePhrase({ phase: 'stopping', since: '2026-11-03' })).toMatch(
+      /^Dejaste la creatina el 3\/11: /,
+    );
+    expect(creatinePhrase(null)).toBe('');
   });
 });

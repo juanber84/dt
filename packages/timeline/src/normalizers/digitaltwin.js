@@ -82,6 +82,7 @@ export const ENTRY_KINDS = Object.freeze([
   'symptom',
   'note',
   'medication',
+  'supplement',
   'period',
 ]);
 
@@ -96,6 +97,8 @@ export const ENTRY_KINDS = Object.freeze([
  *   symptom texto + intensidad 1-5 → episodio `symptom`
  *   note    texto → episodio `note`
  *   medication  una toma: nombre (text) y dosis → episodio `medication`
+ *   supplement  una toma de un suplemento: nombre (text), dosis y cuál de los habituales
+ *               (supplementId) → episodio `supplement`
  */
 export function normalizeEntry(entry) {
   const origin = entry.channel ?? 'manual';
@@ -214,6 +217,20 @@ export function normalizeEntry(entry) {
             title: entry.text,
             summary: { dose: entry.dose ?? null },
             schema: 'medication@1',
+          },
+        ],
+      };
+    case 'supplement':
+      return {
+        mode: 'exact',
+        observations: [],
+        episodes: [
+          {
+            ...base,
+            kind: 'supplement',
+            title: entry.text,
+            summary: { dose: entry.dose ?? null, supplementId: entry.supplementId ?? null },
+            schema: 'supplement@1',
           },
         ],
       };

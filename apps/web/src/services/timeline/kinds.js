@@ -33,10 +33,11 @@ export const REAL_KINDS = [
   'symptom',
   'note',
   'medication',
+  'supplement',
   'period',
   ...CLINICAL_KINDS,
 ];
-export const ENTRY_KINDS = ['drink', 'symptom', 'note', 'medication', 'period'];
+export const ENTRY_KINDS = ['drink', 'symptom', 'note', 'medication', 'supplement', 'period'];
 
 /** Métrica del timeline → campo del resumen diario (con su conversión). */
 export const DAILY_METRICS = {

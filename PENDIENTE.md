@@ -52,11 +52,10 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
   - La franja del periodo en las gráficas de Tendencias.
   - Pesajes de otra báscula fuera de casa: hoy se descartan todos los de esos días; si un día se
     distingue la báscula (origen), se podrían enseñar aparte.
-- [ ] **Suplementos (creatina, magnesio, vitamina D, omega-3…).** Como tomas, aparte de la
-      medicación: lista de "mis suplementos habituales" en Ajustes (dosis y momento) y marcarlos
-      de un toque en Hoy o por el bot ("los de siempre"). Lo que tiene calorías (proteína en
-      polvo, barritas, geles) va como comida. El motor y el coach deben saber cuándo empieza la
-      creatina (sube 1-2 kg de agua las primeras semanas: no es grasa).
+- [x] **Suplementos** (26/10): lista en Ajustes → Cuenta (dosis, momento, desde/hasta), chips en
+      Hoy para marcar cada toma (episodio `supplement`), el coach los sabe y el informe los
+      cuenta. Creatina: solo aviso (Hoy, informe, coach, MCP) las 4 semanas después de empezarla o
+      dejarla; el motor no cambia sus cuentas. Por el bot no (decisión del usuario).
 - [ ] **Calcular nosotros el gasto de la actividad, sin fiarnos del reloj.** La energía activa del
       Apple Watch parece alta: el 19/10 fueron 517 kcal con unos 7.400 pasos y sin entreno.
       Calcularla con nuestros datos (pasos, distancia, FC por hora, peso de la báscula) y

@@ -10,7 +10,7 @@ Cada mañana te llega por correo un **informe de lo de ayer**, y lo tienes tambi
 - **Calorías de los últimos 7 días**, con la línea de tu objetivo.
 - **Cuerpo y actividad**: tu último peso, la tendencia (y cuánto sube o baja por semana), el sueño de anoche y los pasos.
 - **Entrenos** del día, si los hubo.
-- **El peso de las últimas semanas**: cada pesada como un punto y la tendencia como línea.
+- **El peso de las últimas semanas**: cada pesada como un punto y la tendencia como línea. Si empezaste o dejaste la creatina hace menos de 4 semanas, encima va el aviso de que el peso mueve agua.
 - **Salud**: síntomas y medicación del día.
 - Si ese día estabas **fuera de casa o enfermo** (un [periodo](/motor/periodos)), lo dice arriba y no te reprocha no haber apuntado; al volver, avisa de que el peso viene con agua.
 

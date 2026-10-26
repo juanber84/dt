@@ -14,7 +14,7 @@ import { createJobs } from './jobs.js';
 import { GoogleHealthSubscribers } from '@digitaltwin/google-health';
 import { createDbPushStore, createPush } from '@digitaltwin/push';
 import { createDbEmailStore, createEmail, createResendTransport } from '@digitaltwin/email';
-import { createEngine, createProfiles } from '@digitaltwin/engine';
+import { createEngine, createProfiles, createSupplements } from '@digitaltwin/engine';
 import { createChatClient } from '@digitaltwin/coach';
 import { createDbReportStore, createReports } from '@digitaltwin/reports';
 import {
@@ -211,7 +211,12 @@ const reports = config.PUBLIC_URL
   ? createReports({
       store: createDbReportStore({ db }),
       queries: pipeline.queries,
-      engine: createEngine({ queries: pipeline.queries, profiles, timeZone: config.TIMEZONE }),
+      engine: createEngine({
+        queries: pipeline.queries,
+        profiles,
+        supplements: createSupplements({ db }),
+        timeZone: config.TIMEZONE,
+      }),
       profiles,
       chat: coachLlm
         ? createChatClient({

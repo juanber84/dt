@@ -43,7 +43,16 @@ const PING_MS = 15_000;
  * @param {string} deps.timeZone
  * @param {ReturnType<typeof import('../services/llm-usage.js').createLlmUsage>} [deps.usage]
  */
-export function createCoachRouter({ coach, store, queries, profiles, engine, timeZone, usage }) {
+export function createCoachRouter({
+  coach,
+  store,
+  queries,
+  profiles,
+  supplements,
+  engine,
+  timeZone,
+  usage,
+}) {
   const router = Router();
 
   router.get('/conversations', async (req, res) => {
@@ -111,7 +120,7 @@ export function createCoachRouter({ coach, store, queries, profiles, engine, tim
         history: toModelHistory([...conversation.messages, question]),
         tools,
         userName: req.user.name ?? undefined,
-        context: await coachContext({ queries, userId, getProfile, engine, timeZone }),
+        context: await coachContext({ queries, userId, getProfile, supplements, engine, timeZone }),
         signal: abort.signal,
         onEvent: ({ type, ...data }) => send(type, data),
         onMessage: async (message) => {
@@ -154,13 +163,13 @@ export function createCoachRouter({ coach, store, queries, profiles, engine, tim
  * Perfil y salud de los últimos 14 días: el coach lo recibe siempre, antes de cada respuesta. Si
  * algo falla, el coach contesta igual (sin ese contexto).
  */
-async function coachContext({ queries, userId, getProfile, engine, timeZone }) {
+async function coachContext({ queries, userId, getProfile, supplements, engine, timeZone }) {
   const now = Date.now();
   const safe = (fn, fallback) =>
     Promise.resolve()
       .then(fn)
       .catch(() => fallback);
-  const [profile, health, state] = await Promise.all([
+  const [profile, health, state, habitual] = await Promise.all([
     safe(() => getProfile?.() ?? {}, {}),
     safe(
       () =>
@@ -168,12 +177,13 @@ async function coachContext({ queries, userId, getProfile, engine, timeZone }) {
           userId,
           from: new Date(now - 14 * 24 * 3600 * 1000),
           to: new Date(now + 3600 * 1000),
-          kinds: ['note', 'symptom', 'medication'],
+          kinds: ['note', 'symptom', 'medication', 'supplement'],
           timeZone,
         }),
       [],
     ),
     safe(() => engine?.state(userId) ?? null, null),
+    safe(() => supplements?.list(userId) ?? [], []),
   ]);
-  return buildContext({ profile, health, engine: state, timeZone });
+  return buildContext({ profile, health, engine: state, supplements: habitual, timeZone });
 }

@@ -15,16 +15,17 @@ const localDate = (date, timeZone) => new Intl.DateTimeFormat('en-CA', { timeZon
  * @param {object} deps
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
  * @param {ReturnType<typeof import('./profiles.js').createProfiles>} deps.profiles
+ * @param {ReturnType<typeof import('./supplements.js').createSupplements>} [deps.supplements]
  * @param {string} deps.timeZone
  */
-export function createEngine({ queries, profiles, timeZone, now = () => new Date() }) {
+export function createEngine({ queries, profiles, supplements, timeZone, now = () => new Date() }) {
   return {
     async state(userId) {
       const today = localDate(now(), timeZone);
       const first = addDays(today, -HISTORY_DAYS + 1);
       const from = new Date(`${first}T00:00:00Z`);
       const to = new Date(Date.parse(`${today}T00:00:00Z`) + 2 * 24 * 3600 * 1000);
-      const [profile, series, meals, periods] = await Promise.all([
+      const [profile, series, meals, periods, habitual] = await Promise.all([
         profiles.get(userId),
         queries.series({ userId, from, to, bucket: 'day', metrics: METRICS, timeZone }),
         queries.episodes({ userId, from, to, kinds: ['meal'], timeZone }),
@@ -36,6 +37,7 @@ export function createEngine({ queries, profiles, timeZone, now = () => new Date
           kinds: ['period'],
           timeZone,
         }),
+        supplements?.list(userId) ?? [],
       ]);
 
       const days = new Map();
@@ -63,6 +65,7 @@ export function createEngine({ queries, profiles, timeZone, now = () => new Date
         periods: periods
           .filter((p) => p.summary?.from && p.summary?.to)
           .map((p) => ({ type: p.summary.type, from: p.summary.from, to: p.summary.to })),
+        supplements: habitual,
       });
     },
   };

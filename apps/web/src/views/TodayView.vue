@@ -8,6 +8,7 @@ import EventDrawer from '../components/day/EventDrawer.vue';
 import QuickAddModal from '../components/day/QuickAddModal.vue';
 import VitalTile from '../components/day/VitalTile.vue';
 import PeriodBanner from '../components/today/PeriodBanner.vue';
+import CreatineBanner from '../components/today/CreatineBanner.vue';
 import TodaySkeleton from '../components/today/TodaySkeleton.vue';
 import ScoreCards from '../components/today/ScoreCards.vue';
 import DayStripCard from '../components/today/DayStripCard.vue';
@@ -15,6 +16,7 @@ import ActivityCard from '../components/today/ActivityCard.vue';
 import NutritionCard from '../components/today/NutritionCard.vue';
 import BodyCard from '../components/today/BodyCard.vue';
 import SleepCard from '../components/today/SleepCard.vue';
+import SupplementsCard from '../components/today/SupplementsCard.vue';
 import { useAsync } from '../composables/useAsync.js';
 import { useToast } from '../composables/useToast.js';
 import { clearTimelineCache, fetchDay, fetchEngine, fetchSummaries } from '../services/twin.js';
@@ -22,6 +24,7 @@ import { documentDay, documentEvent, withDocuments } from '../services/timeline.
 import { bodyOf, vitalsOf } from '../services/today.js';
 import { fmtDocDate, listDocuments, movedFrom } from '../services/clinical.js';
 import { setBadge } from '../services/push.js';
+import { listSupplements } from '../services/supplements.js';
 import { formatShortDate, todayISO } from '../lib/dates.js';
 import { fmtDec, fmtDuration, fmtInt, fmtSigned, fmtCompact } from '../lib/format.js';
 
@@ -48,6 +51,22 @@ loadEngine();
 const period = computed(() =>
   engine.value?.period && date.value === todayISO() ? engine.value.period : null,
 );
+// La creatina recién empezada o dejada: el peso mueve agua (también solo en hoy)
+const creatine = computed(() =>
+  engine.value?.creatine && date.value === todayISO() ? engine.value.creatine : null,
+);
+// Los suplementos habituales (Ajustes), para marcarlos en el día
+const supplements = ref([]);
+const loadSupplements = () =>
+  listSupplements()
+    .then((list) => (supplements.value = list))
+    .catch(() => (supplements.value = []));
+loadSupplements();
+/** Una toma marcada o deshecha: el día de nuevo (`done` suelta el chip cuando ya está). */
+async function supplementsChanged(done) {
+  await Promise.all([reloadDay(), reloadHistory()]);
+  done();
+}
 const retry = () => {
   reloadDay();
   reloadHistory();
@@ -117,6 +136,7 @@ function onVisibility() {
     reloadDay();
     reloadHistory();
     loadEngine();
+    loadSupplements();
     loadDocuments({ quiet: true });
   }
   hiddenAt = null;
@@ -240,6 +260,7 @@ const body = computed(() => bodyOf(history.value ?? [], date.value));
     </header>
 
     <PeriodBanner v-if="period" :period="period" />
+    <CreatineBanner v-if="creatine" :notice="creatine" />
 
     <!-- Si falla no se enseña nada inventado: el error y un reintento -->
     <div v-if="dayError" class="card card-pad load-error" role="alert">
@@ -289,6 +310,12 @@ const body = computed(() => bodyOf(history.value ?? [], date.value));
         <div class="side">
           <ActivityCard :day="day" />
           <NutritionCard :day="day" :engine="engine" />
+          <SupplementsCard
+            :supplements="supplements"
+            :date="date"
+            :events="events"
+            @changed="supplementsChanged"
+          />
           <BodyCard v-if="body" :body="body" />
           <SleepCard :day="day" />
         </div>

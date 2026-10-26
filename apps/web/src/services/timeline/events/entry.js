@@ -80,6 +80,18 @@ export function entryEvent(episode) {
       metrics: [],
     };
   }
+  // Una toma de un suplemento (los chips de Hoy): `supplementId` dice cuál de los habituales es
+  if (episode.kind === 'supplement') {
+    return {
+      ...base,
+      category: 'nutrition',
+      icon: 'PillBottle',
+      title: episode.title,
+      subtitle: s.dose ? `Suplemento · ${s.dose}` : 'Suplemento',
+      metrics: [],
+      supplementId: s.supplementId ?? null,
+    };
+  }
   // Un periodo (fuera de casa, enfermo): sale el día que empieza, con hasta cuándo
   if (episode.kind === 'period') {
     return {

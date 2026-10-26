@@ -147,6 +147,30 @@ describe('periodos en el informe', () => {
   });
 });
 
+describe('suplementos en el informe', () => {
+  it('creatina recién empezada: aviso junto al peso y en lo que lee el coach', () => {
+    const day = fullDay({
+      creatine: { phase: 'starting', name: 'Creatina', since: '2026-10-20', daysSince: 2 },
+      supplements: [{ time: '08:00', name: 'Creatina', dose: '5 g' }],
+    });
+    const blocks = composeDaily(day).blocks;
+    const callout = blocks.findIndex((b) => b.type === 'callout' && /creatina/.test(b.text));
+    expect(blocks[callout].text).toMatch(/^Empezaste la creatina el 20\/10: /);
+    // Justo antes de la gráfica del peso
+    expect(blocks[callout + 1].title).toBe('Peso, últimas semanas');
+    const facts = commentFacts(day);
+    expect(facts).toContain('Creatina: empezó el 20/10; si el peso sube, es agua');
+    expect(facts).toContain('Suplementos tomados: 08:00 Creatina 5 g.');
+  });
+
+  it('sin creatina ni tomas, nada', () => {
+    const facts = commentFacts(fullDay());
+    expect(facts).not.toContain('Creatina');
+    expect(facts).not.toContain('Suplementos');
+    expect(JSON.stringify(composeDaily(fullDay()).blocks)).not.toContain('creatina');
+  });
+});
+
 describe('commentFacts (lo que lee el coach)', () => {
   it('la tendencia dice si sube o baja frente al objetivo, sin signos que interpretar', () => {
     const text = commentFacts(fullDay());

@@ -17,6 +17,7 @@
  */
 
 import { currentPeriod, markPeriods } from './periods.js';
+import { creatineNotice } from './supplements.js';
 
 const DAY_MS = 24 * 3600 * 1000;
 const KCAL_PER_KG_FAT = 7700;
@@ -228,8 +229,10 @@ export function nutritionTargets({ expenditure, weightKg, bodyFatPct, weeklyRate
  * @param {string} input.today  YYYY-MM-DD local
  * @param {Array<{ type: 'away' | 'sick' | 'other', from: string, to: string }>} [input.periods]
  *   fuera de casa, enfermo...: el motor no aprende de esos días (ver markPeriods)
+ * @param {Array<{ type: string, name: string, startedOn: string, stoppedOn?: string|null }>} [input.supplements]
+ *   los habituales: no cambian las cifras, solo el aviso de la creatina (ver creatineNotice)
  */
-export function computeState({ profile, days: input, today, periods = [] }) {
+export function computeState({ profile, days: input, today, periods = [], supplements = [] }) {
   const days = markPeriods(input, periods);
   const withTrend = weightTrend(days);
   const current = [...withTrend].reverse().find((d) => d.trend != null);
@@ -280,6 +283,8 @@ export function computeState({ profile, days: input, today, periods = [] }) {
       bodyFat,
     },
     period,
+    // Creatina empezada o dejada hace poco: el peso sube (o baja) agua, no grasa. Solo es un aviso
+    creatine: creatineNotice(supplements, today),
     bmr: basal,
     weeklyRatePct,
     expenditure,
@@ -307,3 +312,11 @@ export { fluidTargetMl, FLUID_BASE_ML, FLUID_PER_TRAINING_HOUR_ML } from './flui
 // El motor ya con los datos de un usuario (BD): su perfil y su estado. Lo usan la API y el worker.
 export { createEngine } from './service.js';
 export { createProfiles } from './profiles.js';
+export {
+  CREATINE_WATER_DAYS,
+  SUPPLEMENT_TIMINGS,
+  SUPPLEMENT_TYPES,
+  createSupplements,
+  creatineNotice,
+  creatinePhrase,
+} from './supplements.js';

@@ -10,7 +10,8 @@ Antes de cada respuesta recibe, sin tener que preguntarlo:
 
 - **Tu perfil**: sexo, edad, altura y peso objetivo.
 - **Tu salud de los últimos 14 días**: notas (por ejemplo, del médico), síntomas con su intensidad y la medicación agrupada (cuántas tomas, desde cuándo, la última).
-- **Las cifras del [motor](/motor/)**: peso real, gasto real con su confianza, objetivos de kcal y macros, y el aviso si lo apuntado no cuadra con el peso. Las usa como un entrenador: no habla del motor ni de cómo se calcula, salvo que se lo preguntes.
+- **Tus suplementos**: los que tomas (dosis, momento, desde cuándo y cuántos días los has marcado de los últimos 14) y los que dejaste hace poco.
+- **Las cifras del [motor](/motor/)**: peso real, gasto real con su confianza, objetivos de kcal y macros, el aviso si lo apuntado no cuadra con el peso y el de la creatina (empezada o dejada hace menos de 4 semanas: el peso es agua). Las usa como un entrenador: no habla del motor ni de cómo se calcula, salvo que se lo preguntes.
 - La fecha y la hora, para saber si el día está a medias.
 
 ## Sus herramientas

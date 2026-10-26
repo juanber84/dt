@@ -16,6 +16,12 @@ Un pico de agua de +1 kg mueve la tendencia solo 0,1 kg; si el cambio se mantien
 
 **3. Arranque.** En la **mediana de los primeros 5 pesajes**. Si arrancara en el primero, un primer pesaje raro sesgaría la tendencia durante semanas.
 
+## Creatina
+
+La creatina mete agua en el músculo: al empezar, el peso sube **1-2 kg en 3-4 semanas** (sin fase de carga), y al dejarla baja lo mismo. No es grasa.
+
+El motor **no lo corrige**: la tendencia lo recoge como cualquier cambio que se mantiene, y el gasto se sigue calculando igual. Lo que hace es **avisar** durante 4 semanas desde que la empiezas o la dejas (las fechas de Ajustes → Cuenta → Suplementos): en Hoy, en el informe de la mañana y al coach, para que nadie lea esa subida como grasa ni recorte comida por ella. Dejarla después de tomarla menos de una semana no avisa (no llegó a cargar agua).
+
 ## Ejemplo
 
 Con la tendencia en 81,70 kg el domingo:

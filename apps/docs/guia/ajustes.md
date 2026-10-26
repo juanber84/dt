@@ -4,6 +4,7 @@
 
 - **Tus datos**: sexo, fecha de nacimiento, altura y peso objetivo (lo no escrito sale de la báscula).
 - **Para el motor**: ritmo de peso por semana y "apunto todo lo que como desde".
+- **Suplementos**: los que tomas a diario (creatina, magnesio, vitamina D, omega-3 u otro), con su dosis, cuándo los tomas y desde cuándo. Salen en [Hoy](/guia/hoy#suplementos) para marcarlos. Cuando dejas uno, **Lo dejo** guarda la fecha y pasa a "Los que has dejado"; **Volver a tomarlo** lo empieza de nuevo. Lo que tiene calorías (proteína en polvo, barritas, geles) no es un suplemento: va como comida.
 - **Apariencia**: oscuro (por defecto), claro o el del sistema.
 - **Face ID** y **Notificaciones**: ver [La app en el móvil](/guia/movil).
 - **Correo**: a qué dirección te llegan los correos (la de tu cuenta), un botón para mandarte uno de prueba y los últimos enviados. Aquí también el [informe de la mañana](/guia/informes): si lo quieres, a qué hora, y un botón para que te mande ya el de ayer. Salen de `informe@twinme.app`; si no lo ves, mira en spam y márcalo como "no es spam".

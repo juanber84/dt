@@ -25,19 +25,21 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 | `PUT`                 | `/push/settings`                  | Tipos apagados, horas de silencio, máximo diario                                                  |
 | `POST`                | `/push/test`                      | Aviso de prueba                                                                                   |
 | `GET` `POST` `DELETE` | `/tokens`                         | Tokens personales para el MCP                                                                     |
+| `GET` `POST`          | `/supplements`                    | Tus suplementos habituales (nombre, tipo, dosis, momento, desde y hasta)                          |
+| `PATCH` `DELETE`      | `/supplements/:id`                | Cambiar uno (`stoppedOn` = lo dejas) o quitarlo de la lista (sus tomas se quedan)                 |
 
 ## Datos 🔒
 
-|          |                          |                                                                                              |
-| -------- | ------------------------ | -------------------------------------------------------------------------------------------- |
-| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                                                            |
-| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`                                            |
-| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`, `details` (`false`: solo el resumen, para rangos largos) |
-| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                                                  |
-| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos e historial                                 |
-| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota o medicación                                     |
-| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                                                      |
-| `DELETE` | `/entries/:id`           | Borrar un registro                                                                           |
+|          |                          |                                                                                                                    |
+| -------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                                                                                  |
+| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`                                                                  |
+| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`, `details` (`false`: solo el resumen, para rangos largos)                       |
+| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                                                                        |
+| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos, historial y el aviso de la creatina (`creatine`)                 |
+| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota, medicación o toma de un suplemento (`supplement`, con `supplementId`) |
+| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                                                                            |
+| `DELETE` | `/entries/:id`           | Borrar un registro                                                                                                 |
 
 ## Clínica 🔒
 

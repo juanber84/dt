@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { buildContext } from '../src/context.js';
 import { systemPrompt } from '../src/prompt.js';
 
@@ -84,5 +84,69 @@ describe('contexto del coach', () => {
     });
     expect(back).toContain('Volvió hace 1 día');
     expect(back).toContain('es sobre todo agua y sal');
+  });
+});
+
+describe('suplementos en el contexto', () => {
+  afterEach(() => vi.useRealTimers());
+  const engine = {
+    ready: true,
+    weight: { trend: 81.8, last: 82.6, bodyFat: null },
+    expenditure: { kcal: 2300, confidence: 'high', loggedDays: 30, intakeAvg: null },
+    weeklyRatePct: -0.5,
+    targets: { kcal: 2000, proteinG: 150, fatG: 65, carbsG: 220, kgPerWeek: -0.4 },
+  };
+
+  it('los que toma, cuántos días los ha marcado (días locales) y los que dejó', () => {
+    vi.useFakeTimers({ now: new Date('2026-10-26T10:00:00Z') });
+    const take = (start) => ({ kind: 'supplement', start, summary: { supplementId: 'cr' } });
+    const text = buildContext({
+      timeZone: TZ,
+      supplements: [
+        {
+          id: 'cr',
+          name: 'Creatina',
+          dose: '5 g',
+          timing: 'morning',
+          startedOn: '2026-10-20',
+          stoppedOn: null,
+        },
+        { id: 'mg', name: 'Magnesio', startedOn: '2026-10-26', stoppedOn: null },
+        { id: 'd', name: 'Vitamina D', startedOn: '2026-06-01', stoppedOn: '2026-10-01' },
+        { id: 'old', name: 'Omega 3', startedOn: '2026-01-01', stoppedOn: '2026-05-01' },
+      ],
+      // 22:30Z del 24 es el 25 en Madrid, igual que las 08:00Z del 25: un solo día (en UTC, dos)
+      health: [
+        take('2026-10-24T22:30:00Z'),
+        take('2026-10-25T08:00:00Z'),
+        take('2026-10-26T07:00:00Z'),
+      ],
+    });
+    expect(text).toContain(
+      '- Creatina (5 g, por la mañana), desde el 20/10/2026: marcado 2 de los últimos 7 días.',
+    );
+    expect(text).toContain('- Magnesio, desde el 26/10/2026: sin marcar hoy.');
+    expect(text).toContain('- Dejó Vitamina D el 01/10/2026.');
+    expect(text).not.toContain('Omega 3');
+  });
+
+  it('la creatina recién empezada o dejada: el peso es agua', () => {
+    const starting = buildContext({
+      timeZone: TZ,
+      engine: {
+        ...engine,
+        creatine: { phase: 'starting', name: 'Creatina', since: '2026-10-20', daysSince: 6 },
+      },
+    });
+    expect(starting).toContain('Empezó a tomar creatina (Creatina) hace 6 días');
+    expect(starting).toContain('que no recorte comida');
+    const stopping = buildContext({
+      timeZone: TZ,
+      engine: {
+        ...engine,
+        creatine: { phase: 'stopping', name: 'Creatina', since: '2026-10-26', daysSince: 0 },
+      },
+    });
+    expect(stopping).toContain('Dejó la creatina (Creatina) hoy');
   });
 });

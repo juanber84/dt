@@ -11,9 +11,11 @@ const SEX = { male: 'hombre', female: 'mujer' };
  * @param {Array<{ kind: string, start: string, title: string, summary?: object }>} [input.health]
  *   Notas, síntomas y tomas de medicación de los últimos días (episodios del timeline).
  * @param {object} [input.engine]  Estado del motor (@digitaltwin/engine computeState)
+ * @param {Array<{ id, name, dose?, timing?, startedOn, stoppedOn? }>} [input.supplements]
+ *   Los habituales (Ajustes). Sus tomas van en `health` (kind `supplement`).
  * @param {string} input.timeZone
  */
-export function buildContext({ profile = {}, health = [], engine, timeZone }) {
+export function buildContext({ profile = {}, health = [], engine, supplements = [], timeZone }) {
   const lines = [];
 
   const who = [
@@ -42,6 +44,13 @@ export function buildContext({ profile = {}, health = [], engine, timeZone }) {
   const meds = health.filter((e) => e.kind === 'medication');
 
   lines.push(...engineLines(engine));
+  lines.push(
+    ...supplementLines(
+      supplements,
+      health.filter((e) => e.kind === 'supplement'),
+      timeZone,
+    ),
+  );
 
   if (!notes.length && !symptoms.length && !meds.length) {
     lines.push('Salud estos días: nada apuntado (ni síntomas, ni notas, ni medicación).');
@@ -70,6 +79,54 @@ export function buildContext({ profile = {}, health = [], engine, timeZone }) {
   }
   return lines.join('\n');
 }
+
+const TIMING = {
+  morning: 'por la mañana',
+  midday: 'a mediodía',
+  evening: 'por la tarde',
+  night: 'por la noche',
+  training: 'con el entreno',
+};
+const shortDate = (iso) => iso.split('-').reverse().join('/');
+
+/**
+ * Los suplementos que toma (y los que ha dejado hace poco), con cuántos días los ha marcado de los
+ * últimos 14: si marca pocos puede que no los apunte, no que no los tome.
+ */
+function supplementLines(supplements, taken, timeZone) {
+  const localDay = (time) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(time));
+  const today = localDay(Date.now());
+  const daysSince = (date) => Math.round((Date.parse(today) - Date.parse(date)) / DAY_MS);
+  const current = supplements.filter((s) => !s.stoppedOn || s.stoppedOn > today);
+  const stopped = supplements.filter(
+    (s) => s.stoppedOn && s.stoppedOn <= today && daysSince(s.stoppedOn) < 60,
+  );
+  if (!current.length && !stopped.length) return [];
+  const marked = (s) =>
+    new Set(taken.filter((t) => t.summary?.supplementId === s.id).map((t) => localDay(t.start)))
+      .size;
+  const lines = ['Suplementos (su lista de Ajustes; las tomas las marca en Hoy):'];
+  for (const s of current) {
+    const how = [s.dose, TIMING[s.timing]].filter(Boolean).join(', ');
+    // De los últimos 14 días, o de los que lleva si empezó hace menos
+    const out = Math.max(1, Math.min(14, daysSince(s.startedOn) + 1));
+    const count = marked(s);
+    const record =
+      out === 1
+        ? count
+          ? 'marcado hoy'
+          : 'sin marcar hoy'
+        : `marcado ${count} de los últimos ${out} días`;
+    lines.push(
+      `- ${s.name}${how ? ` (${how})` : ''}, desde el ${shortDate(s.startedOn)}: ${record}.`,
+    );
+  }
+  for (const s of stopped) lines.push(`- Dejó ${s.name} el ${shortDate(s.stoppedOn)}.`);
+  return lines;
+}
+
+const DAY_MS = 24 * 3600 * 1000;
+const ago = (days) => (days === 0 ? 'hoy' : `hace ${days} ${days === 1 ? 'día' : 'días'}`);
 
 const CONFIDENCE = {
   none: 'aún sin días suficientes: es una estimación por fórmula',
@@ -104,6 +161,16 @@ function engineLines(engine) {
   } else if (p?.phase === 'settling') {
     lines.push(
       `Volvió hace ${p.daysSince} ${p.daysSince === 1 ? 'día' : 'días'} (${where[p.type] ?? where.other}, ${periodPhrase(p)}): si el peso ha subido es sobre todo agua y sal, se va en 3-5 días; la tendencia ya lo tiene en cuenta. Que no recorte comida para compensar.`,
+    );
+  }
+  const c = engine.creatine;
+  if (c?.phase === 'starting') {
+    lines.push(
+      `Empezó a tomar creatina (${c.name}) ${ago(c.daysSince)}: las primeras 3-4 semanas el peso sube 1-2 kg de agua en el músculo, no grasa (la tendencia lo recoge como subida). Si habla de peso, explícaselo; que no recorte comida por eso.`,
+    );
+  } else if (c?.phase === 'stopping') {
+    lines.push(
+      `Dejó la creatina (${c.name}) ${ago(c.daysSince)}: en unas semanas el peso baja 1-2 kg de agua, que no es grasa perdida. Si habla de peso, que no lo cuente como progreso.`,
     );
   }
   if (e.mismatch) {
