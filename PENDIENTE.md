@@ -5,7 +5,7 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 
 ## Revisión del 23/10 (por orden)
 
-- [ ] **1. Cortafuegos en el VPS.** `ufw` inactivo y abiertos a internet 3306 (MySQL de
+- [ ] **1. Cortafuegos en el VPS** (aparcado por el usuario el 26/10). `ufw` inactivo y abiertos a internet 3306 (MySQL de
       proyecto-x), 3005, 5000 (deepseek-proxy, pide clave), 8060, 8070 y 8083. No son de TwinMe pero
       comparten máquina. Dejar solo el 22 (lo web entra por el túnel de Cloudflare). Antes, ver si
       alguno se usa desde fuera por IP.
@@ -18,7 +18,7 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
       Postgres): meter TimescaleDB como servicio.
 - [ ] **4. Despliegue con red.** `pg_dump` justo antes de migrar (la copia diaria es a las 4:00),
       comprobar `/health` y errores al acabar, y que el workflow falle en rojo si algo va mal.
-- [ ] **5. Rotar claves que han pasado por el chat** (historial local de Claude Code): client secret
+- [ ] **5. Rotar claves que han pasado por el chat** (aparcado por el usuario el 26/10) (historial local de Claude Code): client secret
       de Google, tokens de los bots de Telegram, clave de Resend. Nueva → Infisical con el script por
       teclado → borrar la vieja. Primero la de Google.
 - [ ] **6. Avisos mínimos**: comprobación externa de que twinme.app responde y aviso al móvil si el
