@@ -133,6 +133,50 @@ describe('GoogleHealthSubscribers.ensureSubscriptions', () => {
   });
 });
 
+describe('GoogleHealthSubscribers.ensureSubscriptions con los tipos por su nombre entero', () => {
+  const existing = [
+    {
+      name: 'projects/123/subscribers/digitaltwin/subscriptions/ana',
+      user: 'users/1',
+      dataTypes: ['users/1/dataTypes/sleep', 'users/1/dataTypes/steps'],
+    },
+  ];
+
+  it('"users/1/dataTypes/steps" es "steps": no toca nada', async () => {
+    const request = vi.fn(async ({ method = 'GET' }) => ({
+      data: method === 'GET' ? { subscriptions: existing } : {},
+    }));
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+    expect(
+      await subscribers.ensureSubscriptions('digitaltwin', [
+        { subscriptionId: 'ana', healthUserId: '1', dataTypes: ['steps', 'sleep'] },
+      ]),
+    ).toEqual({ created: 0, updated: 0, deleted: 0, unchanged: 1, denied: [] });
+    expect(request.mock.calls.filter(([r]) => r.method && r.method !== 'GET')).toEqual([]);
+  });
+
+  it('si Google rechaza el PATCH (400), la borra y la crea con los tipos nuevos', async () => {
+    const request = vi.fn(async ({ method = 'GET' }) => {
+      if (method === 'GET') return { data: { subscriptions: existing } };
+      if (method === 'PATCH')
+        throw Object.assign(new Error('bad'), { response: { status: 400, data: {} } });
+      return { data: {} };
+    });
+    const subscribers = new GoogleHealthSubscribers({ projectId: '123', authClient: { request } });
+    expect(
+      await subscribers.ensureSubscriptions('digitaltwin', [
+        { subscriptionId: 'ana', healthUserId: '1', dataTypes: ['steps', 'sleep', 'weight'] },
+      ]),
+    ).toEqual({ created: 0, updated: 1, deleted: 0, unchanged: 0, denied: [] });
+    expect(request.mock.calls.map(([r]) => r.method ?? 'GET')).toEqual([
+      'GET',
+      'PATCH',
+      'DELETE',
+      'POST',
+    ]);
+  });
+});
+
 describe('GoogleHealthSubscribers.ensureSubscriptions con permiso denegado', () => {
   it('apunta al usuario que Google niega y sigue con los demás', async () => {
     const request = vi.fn(async ({ method = 'GET', data }) => {

@@ -227,7 +227,11 @@ export class GoogleHealthSubscribers {
     const idOf = (s) => s.name?.split('/subscriptions/')[1];
     const existing = new Map((await this.listSubscriptions(subscriberId)).map((s) => [idOf(s), s]));
     const result = { created: 0, updated: 0, deleted: 0, unchanged: 0, denied: [] };
-    const same = (a = [], b = []) => [...a].sort().join() === [...b].sort().join();
+    // Google los devuelve con el nombre entero ("users/123/dataTypes/steps") desde el 27-10-2026,
+    // y antes como "steps": se comparan por lo de detrás de "/dataTypes/"
+    const short = (t) => t.split('/dataTypes/').pop();
+    const same = (a = [], b = []) =>
+      [...a].map(short).sort().join() === [...b].map(short).sort().join();
 
     for (const want of wanted) {
       const current = existing.get(want.subscriptionId);
@@ -239,7 +243,15 @@ export class GoogleHealthSubscribers {
         await this.deleteSubscription(subscriberId, want.subscriptionId);
         if (await this.#createOrDeny(subscriberId, want, result)) result.updated++;
       } else if (!same(current.dataTypes, want.dataTypes)) {
-        await this.updateSubscription(subscriberId, want.subscriptionId, want);
+        try {
+          await this.updateSubscription(subscriberId, want.subscriptionId, want);
+        } catch (error) {
+          // Google rechazó el PATCH de los tipos (400) el 27-10-2026: se rehace, como al cambiar
+          // de usuario
+          if (error.code !== GoogleHealthErrorCode.INVALID_REQUEST) throw error;
+          await this.deleteSubscription(subscriberId, want.subscriptionId);
+          if (!(await this.#createOrDeny(subscriberId, want, result))) continue;
+        }
         result.updated++;
       } else {
         result.unchanged++;
