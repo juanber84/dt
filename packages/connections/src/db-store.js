@@ -57,9 +57,15 @@ export function createDbConnectionStore({ db, box, logger }) {
       return row ? fromRow(row) : null;
     },
 
+    /**
+     * Las conectadas de un proveedor (para el cron y los avisos de Google). Sin las de usuarios
+     * desactivados o caducados: no se sincronizan hasta que vuelvan.
+     */
     async listByProvider(provider) {
       const rows = await db`
-        select * from connections where provider = ${provider} and status = 'connected'
+        select c.* from connections c join users u on u.id = c.user_id
+        where c.provider = ${provider} and c.status = 'connected'
+          and u.disabled_at is null and (u.expires_at is null or u.expires_at > now())
       `;
       return rows.map(fromRow);
     },

@@ -174,6 +174,14 @@ export function createInbox({ pipeline, queue, connections, telegramLink, timeZo
       if (provider === GOOGLE) await queue.send(JOBS.GOOGLE_SUBSCRIBER, {});
     },
 
+    /**
+     * Un usuario desactivado, reactivado, con otra caducidad o borrado: el worker rehace las
+     * suscripciones a los avisos de Google (solo las de usuarios que pueden entrar).
+     */
+    async usersChanged() {
+      await queue.send(JOBS.GOOGLE_SUBSCRIBER, {});
+    },
+
     /** Al desconectar: se para la carga inicial que hubiera en marcha (y, en Google, sus avisos). */
     async disconnected(userId, provider) {
       await store.cancelBackfills(userId, provider);

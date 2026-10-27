@@ -182,6 +182,20 @@ describe.skipIf(!url)('stores en la BD', () => {
       expect((await connections.get(other.id, 'xiaomi')).credentials).toBeNull();
     });
 
+    it('listByProvider (cron y avisos de Google) se salta a los desactivados y caducados', async () => {
+      const other = await users.create({ email: 'pausa@example.com', role: 'user', password: 'x' });
+      await connections.save({ ...xiaomi(), userId: other.id });
+      const ids = async () => (await connections.listByProvider('xiaomi')).map((c) => c.userId);
+      expect(await ids()).toEqual(expect.arrayContaining([me.id, other.id]));
+      await users.update(other.id, { disabled: true });
+      expect(await ids()).not.toContain(other.id);
+      await users.update(other.id, { disabled: false, expiresAt: '2020-01-01T00:00:00Z' });
+      expect(await ids()).not.toContain(other.id);
+      await users.update(other.id, { expiresAt: null });
+      expect(await ids()).toContain(other.id);
+      await users.remove(other.id);
+    });
+
     it('remove borra y dice si había algo', async () => {
       expect(await connections.remove(me.id, 'xiaomi')).toBe(true);
       expect(await connections.remove(me.id, 'xiaomi')).toBe(false);

@@ -17,7 +17,7 @@ Conectar, sincronizar y desconectar cada fuente, y vincular el bot de Telegram. 
 
 ## Administración (solo administradores)
 
-- **Usuarios**: dar de alta (con contraseña puesta o generada, que se enseña una sola vez), cambiar nombre, rol y contraseña, desactivar (no puede entrar y su sesión deja de valer, pero sus datos se quedan) y borrar (con todos sus datos). Por usuario se activan las funciones extra, de momento las **conexiones experimentales** (Xiaomi y Motra; los administradores ya las tienen). Una **cuenta demo** es para enseñar el producto, por ejemplo a un servicio con el que integrarnos: no recibe el informe por correo ni avisos push y caduca al mes (la fecha se cambia o se quita). Una cuenta caducada no puede entrar.
+- **Usuarios**: dar de alta (con contraseña puesta o generada, que se enseña una sola vez), cambiar nombre, rol y contraseña, desactivar (no puede entrar, su sesión deja de valer y sus conexiones dejan de sincronizarse, sin desconectarlas: al reactivarlo se trae lo que falte; sus datos se quedan) y borrar (con todos sus datos). Por usuario se activan las funciones extra, de momento las **conexiones experimentales** (Xiaomi y Motra; los administradores ya las tienen). Una **cuenta demo** es para enseñar el producto, por ejemplo a un servicio con el que integrarnos: no recibe el informe por correo ni avisos push y caduca al mes (la fecha se cambia o se quita). Una cuenta caducada no puede entrar.
 - **Fuentes**: qué fuente manda cuando dos dicen lo mismo.
 - **IA**: qué modelo usa cada función, saldo y gasto.
 - **Sistema**: estado de la API, la base de datos, el bot, el worker, las copias de seguridad y la IA; la cola de trabajos, lo último que ha llegado de fuera y los últimos trabajos.

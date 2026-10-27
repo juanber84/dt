@@ -34,6 +34,7 @@ describe.skipIf(!url)('worker: trabajos', () => {
   let fetchMeasurements;
   let jobs;
   let perMinute;
+  let active;
 
   const config = loadConfig({
     DATABASE_URL: 'postgres://x@y/z',
@@ -66,12 +67,14 @@ describe.skipIf(!url)('worker: trabajos', () => {
     const limiter = createRateLimiter({ store: pipeline.store, perMinute });
     listPoints = vi.fn(async () => []);
     fetchMeasurements = vi.fn(async () => []);
+    active = true;
     jobs = createJobs({
       queue,
       pipeline,
       connections,
       config,
       logger,
+      activeUser: async () => active,
       now: () => NOW,
       providers: {
         xiaomi: createXiaomiProvider({
@@ -167,6 +170,24 @@ describe.skipIf(!url)('worker: trabajos', () => {
     // Tras el primero, el resto de trozos ni se intentan
     expect(listPoints).toHaveBeenCalledTimes(1);
     expect(done.filter((j) => j.name === JOBS.FETCH).length).toBeGreaterThan(1);
+  });
+
+  it('usuario desactivado o caducado: ni sync, ni carga inicial, ni descargas', async () => {
+    active = false;
+    await queue.send(JOBS.SYNC, { userId, provider: 'xiaomi' });
+    await queue.send(JOBS.BACKFILL, { userId, provider: 'xiaomi' });
+    await queue.send(JOBS.FETCH, {
+      userId,
+      provider: 'google-health',
+      kind: 'heart-rate',
+      from: '2026-10-15T00:00:00.000Z',
+      to: '2026-10-16T00:00:00.000Z',
+      priority: 10,
+    });
+    expect(await queue.drain()).toHaveLength(3);
+    expect((await pipeline.store.latestBackfills(userId)).xiaomi).toBeUndefined();
+    expect(fetchMeasurements).not.toHaveBeenCalled();
+    expect(listPoints).not.toHaveBeenCalled();
   });
 
   it('límite de peticiones: el trabajo se aplaza en vez de fallar', async () => {

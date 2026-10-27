@@ -58,8 +58,7 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 - [x] **Gestión de usuarios** (27/10): Administración → Usuarios (alta, editar, desactivar,
       borrar), funciones por usuario y cuentas demo (sin informe ni push, caducan al mes).
   - Falta: **datos de las cuentas demo** (por decidir: generados, una copia anonimizada de los
-    tuyos o mezcla) y el **tope de gasto del coach** (punto 7) antes de dar una a nadie. Un
-    usuario desactivado sigue sincronizando sus conexiones en el worker.
+    tuyos o mezcla) y el **tope de gasto del coach** (punto 7) antes de dar una a nadie.
 
 ## Datos
 

@@ -41,9 +41,12 @@ const generatePassword = () =>
 /**
  * /api/v1/admin/users (solo admin): dar de alta, editar, desactivar y borrar usuarios, y activarles
  * funciones extra (FEATURES). Uno no puede quitarse a sí mismo el admin, ni desactivarse ni borrarse.
- * @param {{ users: ReturnType<typeof import('../services/users.js').createUserStore> }} deps
+ * @param {object} deps
+ * @param {ReturnType<typeof import('../services/users.js').createUserStore>} deps.users
+ * @param {() => Promise<void>} [deps.onAccessChanged]  Desactivado, reactivado, otra caducidad
+ *   o borrado: sus conexiones dejan (o vuelven) a sincronizarse.
  */
-export function createUsersAdminRouter({ users }) {
+export function createUsersAdminRouter({ users, onAccessChanged = async () => {} }) {
   const router = Router();
 
   router.get('/', async (_req, res) => {
@@ -75,6 +78,7 @@ export function createUsersAdminRouter({ users }) {
     const user = await users.update(id, patch);
     if (!user) throw HttpError.notFound('No existe ese usuario', { code: 'NOT_FOUND' });
     req.log?.info({ updated: id, fields: Object.keys(patch) }, 'Usuario cambiado');
+    if ('disabled' in patch || 'expiresAt' in patch) await onAccessChanged();
     res.json({ user: adminUser(user) });
   });
 
@@ -87,6 +91,7 @@ export function createUsersAdminRouter({ users }) {
       throw HttpError.notFound('No existe ese usuario', { code: 'NOT_FOUND' });
     }
     req.log?.info({ removed: id }, 'Usuario borrado');
+    await onAccessChanged();
     res.status(204).end();
   });
 

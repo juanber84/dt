@@ -2,7 +2,7 @@
 
 ## 27 de octubre de 2026
 
-- **Usuarios** (Administración): dar de alta, editar, desactivar y borrar usuarios desde la web, sin scripts. Por usuario se activan funciones extra. Las **cuentas demo** sirven para enseñar el producto: no reciben informe ni avisos y caducan al mes. Una cuenta desactivada o caducada no entra, y su sesión y sus tokens del MCP dejan de valer. Ver [Ajustes](/guia/ajustes#administracion-solo-administradores).
+- **Usuarios** (Administración): dar de alta, editar, desactivar y borrar usuarios desde la web, sin scripts. Por usuario se activan funciones extra. Las **cuentas demo** sirven para enseñar el producto: no reciben informe ni avisos y caducan al mes. Una cuenta desactivada o caducada no entra, su sesión y sus tokens del MCP dejan de valer, y sus conexiones se pausan (ni sincronizaciones ni avisos de Google) hasta que se reactive. Ver [Ajustes](/guia/ajustes#administracion-solo-administradores).
 - **Xiaomi y Motra, experimentales**: como entran por su API no oficial, solo los ven los administradores y quien tenga activadas las conexiones experimentales; en Conexiones llevan la etiqueta _Experimental_. Quien ya los tenía conectados los sigue teniendo.
 
 ## 26 de octubre de 2026

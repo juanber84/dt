@@ -46,6 +46,8 @@ export function googleSubscriptionsFor(connections) {
  * @param {ReturnType<typeof import('./backup.js').createBackup>} [deps.backup]
  * @param {(error: Error) => Promise<unknown>} [deps.onBackupFailed]  En el último intento.
  * @param {ReturnType<typeof import('./config/env.js').loadConfig>} deps.config
+ * @param {(userId: string) => Promise<boolean>} [deps.activeUser]
+ *   ¿Puede entrar? Si está desactivado o caducado, sus conexiones no se sincronizan.
  * @param {() => number} [deps.now]
  * @param {import('pino').Logger} deps.logger
  */
@@ -63,6 +65,7 @@ export function createJobs({
   backup,
   onBackupFailed,
   config,
+  activeUser = async () => true,
   now = Date.now,
   logger,
 }) {
@@ -103,6 +106,7 @@ export function createJobs({
     /** Trae lo nuevo de una conexión. */
     async [JOBS.SYNC]({ data }) {
       const { userId } = data;
+      if (!(await activeUser(userId))) return { skipped: 'inactive-user' };
       if (data.provider === XIAOMI)
         return providers.xiaomi.sync(userId, { priority: PRIORITY.LIVE });
       if (data.provider === INTERVALS)
@@ -129,6 +133,7 @@ export function createJobs({
     async [JOBS.BACKFILL]({ data }) {
       const { userId } = data;
       if (!provider(data.provider)) return { skipped: 'unsupported' };
+      if (!(await activeUser(userId))) return { skipped: 'inactive-user' };
       const backfillId = await store.startBackfill(userId, data.provider);
 
       // Xiaomi, intervals.icu y Motra: el histórico entero cabe en un trabajo
@@ -170,6 +175,11 @@ export function createJobs({
         return { skipped: 'cancelled' };
       const target = provider(data.provider);
       if (!target?.fetch) return { skipped: 'unsupported' };
+      // Desactivado a medias de una carga inicial: ese trozo se da por fallido y la carga acaba
+      if (!(await activeUser(data.userId))) {
+        if (backfillId) await store.backfillProgress(backfillId, { failed: true });
+        return { skipped: 'inactive-user' };
+      }
       try {
         const result = await target.fetch(data, { priority: data.priority });
         if (backfillId) await store.backfillProgress(backfillId);

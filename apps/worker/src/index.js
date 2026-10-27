@@ -239,6 +239,13 @@ if (!reports) logger.warn('Sin PUBLIC_URL: no se hacen los informes de la mañan
 
 const jobs = createJobs({
   queue,
+  activeUser: async (userId) =>
+    (
+      await db`
+        select 1 from users
+        where id = ${userId} and disabled_at is null and (expires_at is null or expires_at > now())
+      `
+    ).length > 0,
   pipeline,
   connections,
   providers,

@@ -162,7 +162,7 @@ export function createApiRouter({
     '/admin/users',
     requireUser,
     requireRole(Role.ADMIN),
-    createUsersAdminRouter({ users }),
+    createUsersAdminRouter({ users, onAccessChanged: inbox && (() => inbox.usersChanged()) }),
   );
   router.use(
     '/admin/ai',
