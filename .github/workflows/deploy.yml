@@ -97,7 +97,10 @@ jobs:
             sudo -E docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
             sudo -E docker compose -f docker-compose.prod.yml ps
 
-            # Limpieza: imágenes viejas y caché de build de más de una semana
+            # Limpieza: imágenes viejas, caché de build de más de un día (con varios despliegues al
+            # día, una semana eran ~14 GB) y logs del sistema hasta 300 MB
             sudo docker image prune -f
-            sudo docker builder prune -f --filter until=168h
+            sudo docker builder prune -f --filter until=24h
+            sudo journalctl --vacuum-size=300M
+            df -h /
           DEPLOY_SCRIPT

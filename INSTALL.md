@@ -122,7 +122,7 @@ Un único job:
    - exporta `INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, el acceso (token o machine identity) y
      `DIGITALTWIN_DB_PASSWORD`;
    - `sudo -E docker compose -f docker-compose.prod.yml up -d --build --remove-orphans`;
-   - `docker image prune -f` y limpia la caché de build de más de una semana.
+   - Limpia: `docker image prune -f`, la caché de build de más de un día (`builder prune --filter until=24h`; con una semana se juntaban ~14 GB) y los logs del sistema hasta 300 MB (`journalctl --vacuum-size=300M`), y enseña el disco libre.
 
 **No se guarda nada fuera del VPS:** ni imágenes en GHCR/Docker Hub ni artefactos en GitHub. Las
 imágenes se construyen en el propio VPS.
