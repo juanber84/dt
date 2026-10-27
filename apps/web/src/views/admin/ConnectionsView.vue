@@ -253,7 +253,10 @@ function onIntervalsConnected(connection) {
 function onMotraConnected(connection) {
   motraOpen.value = false;
   reload.value++;
-  toast.show(`Motra conectado (${connection.account}): trayendo el histórico`, 'good');
+  toast.show(
+    `Fuerza (experimental) conectado (${connection.account}): trayendo el histórico`,
+    'good',
+  );
 }
 
 function onXiaomiConnected(connection) {

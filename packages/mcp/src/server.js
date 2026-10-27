@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createTools, ToolError } from './tools.js';
 
 const INSTRUCTIONS = `Datos de salud de una persona (su "gemelo digital"): báscula, comida, entrenos, sueño,
-actividad y constantes, de varias fuentes (Google Health, Xiaomi, intervals.icu, Motra, el bot de comidas).
+actividad y constantes, de varias fuentes (Google Health, Xiaomi, intervals.icu, una app de fuerza, el bot de comidas).
 Empieza por list_metrics para ver qué hay. Para la fuerza (ejercicios, series, reps y pesos) usa
 get_strength_sets. Las fechas son días locales (YYYY-MM-DD) en su zona horaria.
 Los datos del día en curso pueden estar incompletos. No saques tendencias de un solo valor.`;

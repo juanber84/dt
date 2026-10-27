@@ -13,7 +13,7 @@ export const Role = Object.freeze({ ADMIN: 'admin', USER: 'user' });
 export const FEATURES = Object.freeze({
   'experimental-connections': {
     label: 'Conexiones experimentales',
-    description: 'Xiaomi y Motra, que entran por su API no oficial',
+    description: 'Xiaomi y la de fuerza, que entran por su API no oficial',
   },
 });
 

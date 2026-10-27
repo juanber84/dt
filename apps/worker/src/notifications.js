@@ -6,7 +6,7 @@ const PROVIDER_NAMES = {
   'google-health': 'Google Health',
   xiaomi: 'Xiaomi',
   'intervals-icu': 'intervals.icu',
-  motra: 'Motra',
+  motra: 'Fuerza (experimental)',
 };
 
 /** "2026-10-07" → "7/10" */

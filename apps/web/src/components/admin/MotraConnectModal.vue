@@ -33,7 +33,7 @@ async function submit() {
   } catch (err) {
     error.value =
       err.code === 'INVALID_CREDENTIALS'
-        ? 'Motra no acepta ese email o contraseña: revísalos.'
+        ? 'No acepta ese email o contraseña: revísalos.'
         : err.message;
   } finally {
     busy.value = false;
@@ -42,11 +42,11 @@ async function submit() {
 </script>
 
 <template>
-  <Modal :open="open" title="Conectar Motra" @close="emit('close')">
+  <Modal :open="open" title="Conectar Fuerza (experimental)" @close="emit('close')">
     <form id="motra-form" class="form" @submit.prevent="submit">
       <p class="secondary intro">
-        Con el mismo email y contraseña con los que entras en la app de Motra. Se comprueban
-        haciendo login antes de guardarlos y se guardan cifrados.
+        Con el email y la contraseña de tu app de fuerza. Se comprueban haciendo login antes de
+        guardarlos y se guardan cifrados.
       </p>
       <label class="field">
         <span>Email</span>

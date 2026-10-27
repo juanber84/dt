@@ -1,36 +1,36 @@
 # Fuentes y conexiones
 
-| Fuente              | Cómo se conecta                                               | Qué trae                                                                                                                                                                                                                                                                       | Cada cuánto                                                   |
-| ------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| **Google Health**   | Botón "Conectar" (tu cuenta de Google)                        | Lo del **Apple Watch y el iPhone** vía Apple Health → Google: sueño por fases, FC, VFC, FC en reposo, SpO2, frecuencia respiratoria, temperatura, VO2 máx., pasos, distancia, kcal, entrenos, hidratación… También lo que llega a Apple Health de otras apps (Garmin, báscula) | Al momento (Google avisa por webhook) y cada hora de respaldo |
-| **Xiaomi**          | Tu usuario y contraseña de Xiaomi (y el código si te lo pide) | Báscula: peso, grasa, músculo, agua, grasa visceral, metabolismo basal… y tu perfil de la báscula                                                                                                                                                                              | Cada 30 min                                                   |
-| **intervals.icu**   | Tu clave de API de intervals.icu                              | Entrenos con potencia y TSS, fitness/fatiga/forma, wellness                                                                                                                                                                                                                    | Cada hora                                                     |
-| **Motra**           | Tu email y contraseña de Motra                                | Entrenos de fuerza con el detalle que Google no trae: ejercicios, series, repeticiones, peso, descanso y grupos musculares                                                                                                                                                     | Cada hora                                                     |
-| **Bot de Telegram** | Vincular desde Conexiones                                     | Comidas con macros, agua, medicación                                                                                                                                                                                                                                           | Al guardar                                                    |
-| **La app**          | —                                                             | Lo que apuntas en Registrar e informes médicos                                                                                                                                                                                                                                 | Al guardar                                                    |
+| Fuente                    | Cómo se conecta                                               | Qué trae                                                                                                                                                                                                                                                                       | Cada cuánto                                                   |
+| ------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Google Health**         | Botón "Conectar" (tu cuenta de Google)                        | Lo del **Apple Watch y el iPhone** vía Apple Health → Google: sueño por fases, FC, VFC, FC en reposo, SpO2, frecuencia respiratoria, temperatura, VO2 máx., pasos, distancia, kcal, entrenos, hidratación… También lo que llega a Apple Health de otras apps (Garmin, báscula) | Al momento (Google avisa por webhook) y cada hora de respaldo |
+| **Xiaomi**                | Tu usuario y contraseña de Xiaomi (y el código si te lo pide) | Báscula: peso, grasa, músculo, agua, grasa visceral, metabolismo basal… y tu perfil de la báscula                                                                                                                                                                              | Cada 30 min                                                   |
+| **intervals.icu**         | Tu clave de API de intervals.icu                              | Entrenos con potencia y TSS, fitness/fatiga/forma, wellness                                                                                                                                                                                                                    | Cada hora                                                     |
+| **Fuerza (experimental)** | Tu email y contraseña de la app de fuerza                     | Entrenos de fuerza con el detalle que Google no trae: ejercicios, series, repeticiones, peso, descanso y grupos musculares                                                                                                                                                     | Cada hora                                                     |
+| **Bot de Telegram**       | Vincular desde Conexiones                                     | Comidas con macros, agua, medicación                                                                                                                                                                                                                                           | Al guardar                                                    |
+| **La app**                | —                                                             | Lo que apuntas en Registrar e informes médicos                                                                                                                                                                                                                                 | Al guardar                                                    |
 
 ## El catálogo
 
 En Ajustes → Conexiones salen también las plataformas que **no** se conectan directamente, para que se vea cómo llegan sus datos. Cada una tiene un estado:
 
-| Estado               | Qué quiere decir                           | Plataformas                                   |
-| -------------------- | ------------------------------------------ | --------------------------------------------- |
-| **Conexión directa** | Se conecta aquí, con su API oficial        | Google Health, intervals.icu                  |
-| **A través de otra** | Sus datos llegan por una que sí se conecta | Garmin, Magene e iGPSport (por intervals.icu) |
-| **Experimental**     | Se conecta aquí, por su API no oficial     | Xiaomi, Motra                                 |
-| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Oura, FatSecret                |
-| **De TwinMe**        | Parte de la app                            | Bot de Telegram, informes médicos, Registrar  |
+| Estado               | Qué quiere decir                           | Plataformas                                                             |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
+| **Conexión directa** | Se conecta aquí, con su API oficial        | Google Health, intervals.icu                                            |
+| **A través de otra** | Sus datos llegan por una que sí se conecta | Apple Salud (por Google), Garmin, Magene e iGPSport (por intervals.icu) |
+| **Experimental**     | Se conecta aquí, por su API no oficial     | Xiaomi, Fuerza (experimental)                                           |
+| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Oura, FatSecret, Motra                                   |
+| **De TwinMe**        | Parte de la app                            | Bot de Telegram, informes médicos, Registrar                            |
 
 El catálogo vive en `apps/web/src/data/platforms.js`: categoría, estado, `via` (a través de cuál), qué datos da, enlaces (`ios`, `android`, `web` y `referral`, el de invitación, que va primero si lo hay) y logo. Los logos salen de [simple-icons](https://simpleicons.org) (CC0) donde los hay; el resto lleva monograma hasta que la plataforma mande su kit de marca (su SVG va en `logo`, en `apps/web/public/platforms/`).
 
-La primera vez que conectas una fuente se trae tu histórico (Google: hasta dos años; Motra: hasta cinco años, un detalle por entreno; todo por trozos y sin pasarse de los límites de cada API). El progreso se ve en Conexiones.
+La primera vez que conectas una fuente se trae tu histórico (Google: hasta dos años; fuerza: hasta cinco años, un detalle por entreno; todo por trozos y sin pasarse de los límites de cada API). El progreso se ve en Conexiones.
 
-::: warning Xiaomi y Motra son experimentales
+::: warning Xiaomi y Fuerza son experimentales
 Entran por su API no oficial (la que usan sus apps), así que pueden dejar de funcionar si el servicio cambia algo. Solo salen en Conexiones a los administradores y a quien tenga activadas las **conexiones experimentales** (Administración → Usuarios).
 :::
 
 ::: info El mismo entreno por dos fuentes
-Un entreno de fuerza puede llegar por **Motra** (con series y repeticiones) y también, como simple resumen, por **Google** (vía Apple Health). Cuando se solapan en el tiempo gana el de Motra, que es la fuente directa y trae el detalle.
+Un entreno de fuerza puede llegar por **Fuerza (experimental)** (con series y repeticiones) y también, como simple resumen, por **Google** (vía Apple Health). Cuando se solapan en el tiempo gana el de fuerza, que es la fuente directa y trae el detalle.
 :::
 
 ::: info Retraso de Apple Health

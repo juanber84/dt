@@ -38,9 +38,10 @@ export const SOURCES = {
     description: 'Carga de entrenamiento (TSS), forma y fatiga, wellness y entrenos planificados.',
     provides: ['workouts', 'training-load', 'wellness'],
   },
+  // La API no oficial de una app de fuerza: no lleva su marca (la buena será por su MCP)
   motra: {
-    name: 'Motra',
-    monogram: 'Mo',
+    name: 'Fuerza (experimental)',
+    monogram: 'Fx',
     auth: 'login',
     description: 'Entrenos de fuerza con ejercicios, series, repeticiones, peso y descanso.',
     provides: ['workouts', 'strength'],

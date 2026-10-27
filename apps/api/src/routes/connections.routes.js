@@ -177,7 +177,7 @@ export function createConnectionsRouter({
   /** Conecta Motra con email y contraseña (se hace login para comprobarlas antes de guardarlas). */
   router.post(`/${MOTRA_PROVIDER}/connect`, validate({ body: motraBody }), async (req, res) => {
     if (!motraConnect) {
-      throw new HttpError(503, 'Sin BD no hay worker que sincronice Motra', {
+      throw new HttpError(503, 'Sin BD no hay worker que sincronice la conexión de fuerza', {
         code: 'NOT_CONFIGURED',
       });
     }

@@ -1,4 +1,4 @@
-import { siGarmin, siGoogle, siStrava, siTelegram, siXiaomi } from 'simple-icons';
+import { siApple, siGarmin, siGoogle, siStrava, siTelegram, siXiaomi } from 'simple-icons';
 
 /**
  * Catálogo de Conexiones: cada plataforma con lo que da, cómo llega a TwinMe y dónde conseguirla.
@@ -53,6 +53,20 @@ export const PLATFORMS = [
       ios: 'https://apps.apple.com/es/app/google-health-fitbit/id462638897',
       android: 'https://play.google.com/store/apps/details?id=com.fitbit.FitbitMobile',
     },
+  },
+  {
+    id: 'apple-health',
+    name: 'Apple Salud',
+    category: 'health',
+    state: 'via',
+    via: ['google-health'],
+    icon: icon(siApple),
+    tagline: 'Apple Watch e iPhone.',
+    description:
+      'Apple no deja leer Salud desde un servidor: la app de Google Health del iPhone lo sube a Google y de ahí llega aquí.',
+    how: 'Instala Google Health en el iPhone, dale permiso para leer Salud y conecta Google Health aquí. Los datos suben cuando abres esa app.',
+    provides: ['sleep', 'heart-rate', 'hrv', 'steps', 'spo2', 'vo2max', 'workouts'],
+    links: {},
   },
   {
     id: 'whoop',
@@ -136,15 +150,28 @@ export const PLATFORMS = [
     },
   },
   {
-    id: 'motra',
+    // La conexión de prueba (API no oficial): sin la marca de la app
+    id: 'strength-lab',
     source: 'motra',
-    name: 'Motra',
+    name: 'Fuerza (experimental)',
     category: 'training',
     state: 'experimental',
-    monogram: 'Mo',
-    tagline: 'Fuerza con todo el detalle.',
+    monogram: 'Fx',
+    tagline: 'Fuerza con todo el detalle, de prueba.',
     description:
-      'Ejercicios, series, repeticiones, peso y descanso: lo que Google no trae de un entreno de fuerza.',
+      'Ejercicios, series, repeticiones, peso y descanso: lo que Google no trae de un entreno de fuerza. Entra por una API no oficial, solo para probar.',
+    provides: ['workouts', 'strength'],
+    links: {},
+  },
+  {
+    id: 'motra',
+    name: 'Motra',
+    category: 'training',
+    state: 'soon',
+    monogram: 'Mo',
+    tagline: 'Entrenos de fuerza con todo el detalle.',
+    description:
+      'Ejercicios, series, repeticiones, peso y descanso. La conexión oficial irá por su MCP.',
     provides: ['workouts', 'strength'],
     links: {
       ios: 'https://apps.apple.com/es/app/motra-ai-entrenador-fitness/id1548577496',

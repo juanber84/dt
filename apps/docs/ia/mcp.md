@@ -44,7 +44,7 @@ El endpoint es `POST /api/mcp` (HTTP "streamable", sin estado, respuestas JSON).
 | `get_series`        | Series por día o por hora de varias métricas                                                                                                         |
 | `get_day_summary`   | Resumen de un día                                                                                                                                    |
 | `get_episodes`      | Comidas, entrenos, sueño, pesajes, agua y café, síntomas, notas, medicación, suplementos y pruebas médicas (hasta 31 días; detalle completo hasta 3) |
-| `get_strength_sets` | Entrenos de fuerza de Motra con todas sus series ("8x70" = 8 reps con 70 kg), hasta 92 días, filtrable por ejercicio                                 |
+| `get_strength_sets` | Entrenos de fuerza con todas sus series ("8x70" = 8 reps con 70 kg), hasta 92 días, filtrable por ejercicio                                          |
 | `get_observations`  | Datos crudos de una métrica (hasta 2 días, 500 puntos) para hacer zoom                                                                               |
 
 El usuario sale del token, nunca de los argumentos: una IA no puede pedir datos de otra persona. Las salidas son pequeñas a propósito (agregados y límites), para no gastar tokens.

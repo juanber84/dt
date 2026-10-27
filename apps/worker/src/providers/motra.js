@@ -109,7 +109,8 @@ export function createMotraProvider({
           await connections.save({
             ...latest,
             status: 'expired',
-            error: 'La sesión de Motra ha caducado (¿cambiaste la contraseña?): vuelve a conectar',
+            error:
+              'La sesión de la app de fuerza ha caducado (¿cambiaste la contraseña?): vuelve a conectar',
           });
           logger?.warn({ userId }, 'Motra: sesión caducada');
           return { skipped: 'expired' };

@@ -222,7 +222,7 @@ export function createTools({
       name: 'get_strength_sets',
       title: 'Entrenos de fuerza serie a serie',
       description:
-        'Cada entreno de fuerza (de Motra) entre dos días (hasta 92) con todas sus series: ' +
+        'Cada entreno de fuerza entre dos días (hasta 92) con todas sus series: ' +
         '"8x70" = 8 reps con 70 kg, "12" = 12 reps sin peso, "45s" = 45 segundos (plancha...). ' +
         'Para ver la progresión de un ejercicio (pesos, reps, volumen) o analizar entrenos. Los ' +
         'nombres de los ejercicios están en inglés (Barbell Bench Press, Back Squat...): con ' +

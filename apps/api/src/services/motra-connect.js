@@ -31,11 +31,11 @@ export function createMotraConnect({
         session = await signIn({ email, password });
       } catch (err) {
         if (err instanceof MotraError && err.code === MotraErrorCode.INVALID_CREDENTIALS) {
-          throw HttpError.badRequest('Motra no acepta ese email o contraseña', {
+          throw HttpError.badRequest('No acepta ese email o contraseña', {
             code: 'INVALID_CREDENTIALS',
           });
         }
-        throw new HttpError(502, `No se pudo hablar con Motra: ${err.message}`, {
+        throw new HttpError(502, `No se pudo hablar con la app de fuerza: ${err.message}`, {
           code: 'PROVIDER_ERROR',
         });
       }
