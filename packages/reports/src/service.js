@@ -20,6 +20,9 @@ const localClock = (now, timeZone) =>
  * @param {ReturnType<typeof import('@digitaltwin/engine').createEngine>} deps.engine
  * @param {ReturnType<typeof import('@digitaltwin/engine').createProfiles>} [deps.profiles]
  * @param {ReturnType<typeof import('@digitaltwin/coach').createChatClient>} [deps.chat]
+ * @param {(userId: string) => Promise<{ chat: object, own?: boolean } | null>} [deps.chatFor]
+ *   El LLM de cada usuario (su clave, o la de la app si no ha pasado su límite; null: sin
+ *   comentario). Sin él, `chat` para todos.
  * @param {ReturnType<typeof import('@digitaltwin/email').createEmail>} [deps.email]
  * @param {string} deps.appUrl  PUBLIC_URL (enlaces del correo)
  * @param {string} deps.timeZone
@@ -33,6 +36,7 @@ export function createReports({
   engine,
   profiles,
   chat,
+  chatFor = async () => (chat ? { chat } : null),
   email,
   appUrl,
   timeZone,
@@ -52,9 +56,13 @@ export function createReports({
       timeZone,
     });
     let comment = null;
-    if (chat) {
+    const llm = await chatFor(userId).catch((err) => {
+      logger?.warn({ err: err.message, userId }, 'informe: sin LLM para el comentario');
+      return null;
+    });
+    if (llm) {
       comment = await writeDailyComment({
-        chat,
+        chat: llm.chat,
         day,
         userId,
         userName,
@@ -63,7 +71,7 @@ export function createReports({
         engine,
         now: at,
         timeZone,
-        onUsage,
+        onUsage: onUsage && ((entry) => onUsage({ ...entry, own: Boolean(llm.own) })),
       }).catch((err) => {
         logger?.warn({ err: err.message, userId }, 'informe: sin comentario del coach');
         return null;

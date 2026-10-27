@@ -25,7 +25,12 @@ const createBody = z.object({
   expiresAt: fields.expiresAt.default(null),
 });
 const updateBody = z
-  .object({ ...fields, disabled: z.boolean() })
+  .object({
+    ...fields,
+    disabled: z.boolean(),
+    /** USD al día con la clave de la app; null = el de por defecto. */
+    aiDailyLimitUsd: z.number().min(0).max(100).nullable(),
+  })
   .omit({ email: true })
   .partial();
 const idParams = z.object({ id: z.string().min(1).max(64) });
@@ -45,14 +50,20 @@ const generatePassword = () =>
  * @param {ReturnType<typeof import('../services/users.js').createUserStore>} deps.users
  * @param {() => Promise<void>} [deps.onAccessChanged]  Desactivado, reactivado, otra caducidad
  *   o borrado: sus conexiones dejan (o vuelven) a sincronizarse.
+ * @param {number} [deps.defaultAiLimitUsd]  El límite de IA de quien no tiene uno propio.
  */
-export function createUsersAdminRouter({ users, onAccessChanged = async () => {} }) {
+export function createUsersAdminRouter({
+  users,
+  defaultAiLimitUsd,
+  onAccessChanged = async () => {},
+}) {
   const router = Router();
 
   router.get('/', async (_req, res) => {
     res.json({
       items: (await users.list()).map(adminUser),
       features: Object.entries(FEATURES).map(([id, f]) => ({ id, ...f })),
+      aiDailyLimitUsd: defaultAiLimitUsd,
     });
   });
 

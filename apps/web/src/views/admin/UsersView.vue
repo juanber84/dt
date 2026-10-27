@@ -33,6 +33,8 @@ const { data, error, loading } = useAsync(reload, listUsers);
 const users = computed(() => data.value?.items ?? []);
 const features = computed(() => data.value?.features ?? []);
 const featureLabel = (id) => features.value.find((f) => f.id === id)?.label ?? id;
+// Límite de IA al día de quien no tiene uno propio (AI_DAILY_LIMIT_USD)
+const defaultAiLimit = computed(() => data.value?.aiDailyLimitUsd ?? null);
 
 function status(u) {
   if (u.disabledAt) return { tone: 'neutral', label: 'Desactivado' };
@@ -48,6 +50,7 @@ const detail = (u) =>
     u.role === 'admin' ? 'Admin' : null,
     u.demo ? 'Demo' : null,
     ...u.features.map(featureLabel),
+    u.role !== 'admin' && u.aiDailyLimitUsd != null ? `IA ${u.aiDailyLimitUsd} $/día` : null,
     u.connections.length ? u.connections.map(sourceName).join(', ') : 'sin conexiones',
     u.lastLoginAt ? `entró ${fmtRelativeTime(u.lastLoginAt)}` : 'no ha entrado',
   ]
@@ -65,6 +68,7 @@ const form = reactive({
   demo: false,
   expiresOn: '',
   features: [],
+  aiLimit: '', // vacío: el de por defecto
 });
 const created = ref(null); // { email, password }: la contraseña generada se enseña una vez
 
@@ -78,6 +82,7 @@ function edit(u = null) {
     demo: u?.demo ?? false,
     expiresOn: u?.expiresAt ? toISODate(new Date(u.expiresAt)) : '',
     features: [...(u?.features ?? [])],
+    aiLimit: u?.aiDailyLimitUsd ?? '',
   });
   open.value = true;
 }
@@ -122,7 +127,10 @@ async function save() {
     features: form.features,
     ...(form.password && { password: form.password }),
   };
-  if (editing.value) return call(() => updateUser(editing.value.id, input), 'Guardado');
+  if (editing.value) {
+    const aiDailyLimitUsd = form.aiLimit === '' ? null : Number(form.aiLimit);
+    return call(() => updateUser(editing.value.id, { ...input, aiDailyLimitUsd }), 'Guardado');
+  }
   const result = await call(() => createUser({ ...input, email: form.email.trim() }));
   if (result) {
     created.value = { email: result.user.email, password: result.generatedPassword ?? null };
@@ -273,6 +281,23 @@ async function copy(text) {
             </label>
           </li>
         </ul>
+
+        <label v-if="editing && form.role !== 'admin'" class="field">
+          <span>Gasto de IA al día, en $ (vacío: el de por defecto)</span>
+          <input
+            v-model="form.aiLimit"
+            class="input"
+            type="number"
+            min="0"
+            max="100"
+            step="0.05"
+            inputmode="decimal"
+            :placeholder="defaultAiLimit == null ? '' : `${defaultAiLimit}`"
+          />
+        </label>
+        <p v-if="editing && form.role !== 'admin'" class="muted hint">
+          Con la IA de la app. Si pone su propia clave en Cuenta → IA, no tiene límite.
+        </p>
 
         <label class="field">
           <span>Puede entrar hasta (vacío: sin fecha)</span>

@@ -159,7 +159,8 @@ describe('POST /api/v1/nutrition/refine', () => {
     await post(appWith(analyzer), 'refine')
       .send({ messages: analysis.messages, correction: 'eran 60 g' })
       .expect(200);
-    expect(analyzer.refine).toHaveBeenCalledWith({ messages: analysis.messages }, 'eran 60 g');
+    // Lo llama el bot sin decir de quién: con la IA de la app y sin usuario en la cuenta del gasto
+    expect(analyzer.refine).toHaveBeenCalledWith({ messages: analysis.messages }, 'eran 60 g', {});
   });
 
   it('valida la conversación', async () => {

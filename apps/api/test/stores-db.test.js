@@ -13,6 +13,7 @@ import { createDbReportStore } from '@digitaltwin/reports';
 import { createProfiles } from '@digitaltwin/engine';
 import { createPipeline } from '@digitaltwin/timeline';
 import { createMemoryQueue } from '@digitaltwin/queue';
+import { createAiAccess, createDbAiStore } from '@digitaltwin/llm-usage';
 
 // Necesita una BD de verdad (make test-db). Cada ejecución usa un schema propio que se borra al final.
 const url = process.env.TEST_DATABASE_URL;
@@ -546,6 +547,67 @@ describe.skipIf(!url)('stores en la BD', () => {
       const own = await profiles.save(me.id, { heightCm: 184.5 });
       expect(own).toMatchObject({ heightCm: 184.5, sources: { heightCm: 'manual', sex: 'scale' } });
       expect((await profiles.save(me.id, { heightCm: null })).heightCm).toBe(185);
+    });
+  });
+
+  describe('IA por usuario', () => {
+    it('límite del día con la clave de la app; con su clave (cifrada) no cuenta', async () => {
+      const user = await users.create({
+        email: 'ia@example.com',
+        role: 'user',
+        password: 'patata-larga',
+      });
+      const rows = createDbLlmUsageRows({ db });
+      const access = createAiAccess({
+        store: createDbAiStore({ db }),
+        box: createSecretBox(key),
+        defaultLimitUsd: 0.25,
+        timeZone: 'Europe/Madrid',
+      });
+      const row = (costUsd, ownKey = false) => ({
+        at: new Date(),
+        userId: user.id,
+        feature: 'coach',
+        model: 'deepseek-flash',
+        inputTokens: 1,
+        cachedTokens: 0,
+        outputTokens: 1,
+        costUsd,
+        durationMs: 1,
+        error: null,
+        conversationId: null,
+        ownKey,
+      });
+
+      await rows.insert(row(0.2));
+      await rows.insert(row(5, true));
+      await expect(access.resolve(user.id)).resolves.toEqual({ own: false });
+      expect(await access.status(user.id)).toMatchObject({ limitUsd: 0.25, spentTodayUsd: 0.2 });
+
+      await rows.insert(row(0.1));
+      await expect(access.resolve(user.id)).rejects.toMatchObject({ code: 'AI_LIMIT' });
+      // Con un límite propio, sigue
+      expect((await users.update(user.id, { aiDailyLimitUsd: 1 })).aiDailyLimitUsd).toBe(1);
+      await expect(access.resolve(user.id)).resolves.toEqual({ own: false });
+
+      await access.saveProvider(user.id, { provider: 'groq', model: 'llama', apiKey: 'gsk-1234' });
+      const [stored] = await db`select api_key from user_llm_providers where user_id = ${user.id}`;
+      expect(Buffer.from(stored.api_key).toString('utf8')).not.toContain('gsk-1234');
+      await expect(access.resolve(user.id)).resolves.toEqual({
+        own: true,
+        provider: {
+          apiKey: 'gsk-1234',
+          baseUrl: 'https://api.groq.com/openai/v1',
+          model: 'llama',
+          extraBody: {},
+        },
+      });
+      expect((await access.status(user.id)).own).toMatchObject({
+        provider: 'groq',
+        keyHint: '…1234',
+      });
+      await access.removeProvider(user.id);
+      expect((await access.status(user.id)).own).toBeNull();
     });
   });
 });

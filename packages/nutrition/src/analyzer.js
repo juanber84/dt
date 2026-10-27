@@ -67,9 +67,11 @@ export class NutritionAnalyzer {
    * @param {Date} [input.now] Momento del mensaje (hora por defecto de los alimentos).
    * @param {{ eatenAt: string, name: string, mealType?: string }[]} [input.earlier] Lo ya
    *   apuntado ese día: para saber qué comida es cada plato (después de cenar, picoteo).
+   * @param {{ userId?: string, own?: boolean }} [input.context]  Va a onUsage (la cuenta del gasto
+   *   por usuario).
    * @returns {Promise<Analysis>}
    */
-  async analyze({ text = '', image, now = new Date(), earlier = [] }) {
+  async analyze({ text = '', image, now = new Date(), earlier = [], context = {} }) {
     const weekday = new Intl.DateTimeFormat('es-ES', {
       weekday: 'long',
       timeZone: this.timeZone,
@@ -97,27 +99,29 @@ export class NutritionAnalyzer {
         ]
       : body;
 
-    return this.#run([{ role: 'user', content }], 'nutrition.analyze');
+    return this.#run([{ role: 'user', content }], 'nutrition.analyze', context);
   }
 
   /**
    * Rehace un análisis con una corrección del usuario ("eran 250 ml", "quita el azúcar"...).
    * @param {Analysis} previous
    * @param {string} correction
+   * @param {{ userId?: string, own?: boolean }} [context]  Va a onUsage.
    * @returns {Promise<Analysis>}
    */
-  async refine(previous, correction) {
+  async refine(previous, correction, context = {}) {
     return this.#run(
       [...previous.messages, { role: 'user', content: `Corrección: ${correction}` }],
       'nutrition.refine',
+      context,
     );
   }
 
-  async #run(messages, feature) {
+  async #run(messages, feature, context) {
     let lastError;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const raw = await this.#complete(messages, feature);
+        const raw = await this.#complete(messages, feature, context);
         const output = parseOutput(raw);
         return {
           dishes: output.dishes.map((dish) => this.#toDish(dish)),
@@ -145,11 +149,18 @@ export class NutritionAnalyzer {
     throw lastError;
   }
 
-  async #complete(messages, feature) {
+  async #complete(messages, feature, context) {
     const started = Date.now();
     const report = (usage, error, model = this.model) => {
       try {
-        this.onUsage?.({ feature, model, usage, durationMs: Date.now() - started, error });
+        this.onUsage?.({
+          feature,
+          model,
+          usage,
+          durationMs: Date.now() - started,
+          error,
+          ...context,
+        });
       } catch {
         // Llevar la cuenta nunca debe romper el análisis
       }

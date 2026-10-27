@@ -1,40 +1,41 @@
 import { NutritionError, sumDishes } from '@digitaltwin/nutrition';
 import { HttpError } from '../utils/http-error.js';
+import { TELEGRAM } from '../services/telegram-link.js';
 
 /**
  * @param {object} deps
- * @param {Pick<import('@digitaltwin/nutrition').NutritionAnalyzer, 'analyze' | 'refine'>} [deps.analyzer]
+ * @param {ReturnType<typeof import('../services/ai.js').createAi>} deps.ai
+ * @param {{ findByExternalUser: Function }} [deps.connections]
  * @param {ReturnType<typeof import('../services/meals-today.js').createMealsToday>} [deps.mealsToday]
  */
-export function createNutritionController({ analyzer, mealsToday }) {
-  function requireAnalyzer() {
-    if (!analyzer) {
-      throw new HttpError(503, 'No hay LLM configurado (LLM_API_KEY)', {
-        code: 'LLM_NOT_CONFIGURED',
-      });
-    }
-    return analyzer;
+export function createNutritionController({ ai, connections, mealsToday }) {
+  /** De quién es: la sesión o, si llama el bot, su cuenta de Telegram vinculada. */
+  async function userOf(req, telegramUserId) {
+    if (req.user) return req.user.id;
+    if (!req.apiClient || telegramUserId === undefined || !connections) return undefined;
+    return (await connections.findByExternalUser(TELEGRAM, telegramUserId))?.userId;
+  }
+
+  /** El estimador (el suyo o el de la app) y lo que va a la cuenta del gasto. */
+  async function analyzerFor(userId) {
+    const { analyzer, own } = await ai.analyzer(userId);
+    return { analyzer, context: userId ? { userId, own } : {} };
   }
 
   /** Estima alimentos, horas y macros de un texto y/o foto. */
   async function analyze(req, res) {
     const { text, image, now, telegramUserId } = req.validated.body;
     const at = now ? new Date(now) : new Date();
-    const llm = requireAnalyzer();
-    // El bot solo puede hablar por usuarios de Telegram; la web, por quien tiene la sesión
-    const earlier = mealsToday
-      ? await mealsToday({
-          userId: req.user?.id,
-          telegramUserId: req.apiClient ? telegramUserId : undefined,
-          now: at,
-        })
-      : [];
+    const userId = await userOf(req, telegramUserId);
+    const { analyzer, context } = await analyzerFor(userId);
+    const earlier = mealsToday && userId ? await mealsToday({ userId, now: at }) : [];
     const result = await callLlm(() =>
-      llm.analyze({
+      analyzer.analyze({
         text,
         image: image && { data: Buffer.from(image.base64, 'base64'), mimeType: image.mimeType },
         now: at,
         earlier,
+        context,
       }),
     );
     res.json(result);
@@ -42,8 +43,9 @@ export function createNutritionController({ analyzer, mealsToday }) {
 
   /** Rehace un análisis con la corrección del usuario. */
   async function refine(req, res) {
-    const { messages, correction } = req.validated.body;
-    const result = await callLlm(() => requireAnalyzer().refine({ messages }, correction));
+    const { messages, correction, telegramUserId } = req.validated.body;
+    const { analyzer, context } = await analyzerFor(await userOf(req, telegramUserId));
+    const result = await callLlm(() => analyzer.refine({ messages }, correction, context));
     res.json(result);
   }
 

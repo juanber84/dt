@@ -162,7 +162,7 @@ export function createBot({
     let analysis;
     try {
       if (previous) {
-        analysis = await api.refine(previous.analysis, text);
+        analysis = await api.refine(previous.analysis, text, { telegramUserId: ctx.from?.id });
       } else {
         const image = photoId ? await downloadPhoto(photoId) : undefined;
         analysis = await api.analyze({
@@ -173,6 +173,11 @@ export function createBot({
         });
       }
     } catch (error) {
+      // Ya ha gastado su IA de hoy: no es un fallo, se le dice tal cual
+      if (error.code === 'AI_LIMIT') {
+        await ctx.reply(`⏳ ${escapeHtml(error.apiMessage)}`, { parse_mode: 'HTML' });
+        return;
+      }
       logger.error({ err: error }, 'error analizando la comida');
       const reason = error.message;
       await ctx.reply(`⚠️ No he podido calcularlo (${escapeHtml(reason)}). Prueba otra vez.`, {

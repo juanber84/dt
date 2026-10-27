@@ -216,6 +216,7 @@ describe('bot', () => {
     expect(api.refine).toHaveBeenCalledWith(
       { ...analysis(), water: [], medications: [] },
       'eran 60 g',
+      { telegramUserId: expect.any(Number) },
     );
     const proposal = sent('sendMessage').at(-1);
     expect(proposal.text).toContain('Total: 225 kcal');
@@ -287,6 +288,16 @@ describe('bot', () => {
     expect(sent('sendMessage')[0].text).toContain('402: Insufficient Balance');
   });
 
+  it('si ya ha gastado su IA de hoy, se lo dice sin tratarlo como un fallo', async () => {
+    const limit = Object.assign(new Error('API 429 AI_LIMIT: Has llegado al límite'), {
+      code: 'AI_LIMIT',
+      apiMessage: 'Has llegado al límite de IA de hoy.',
+    });
+    const { bot } = setup({ api: { analyze: vi.fn().mockRejectedValue(limit) } });
+    await message(bot, { text: 'avena' });
+    expect(sent('sendMessage')[0].text).toBe('⏳ Has llegado al límite de IA de hoy.');
+  });
+
   describe('agua', () => {
     const water = (ml, extra = {}) => ({
       dishes: [],
@@ -324,7 +335,7 @@ describe('bot', () => {
       expect(sent('sendMessage')[0].reply_markup).toBeUndefined();
 
       await message(bot, { text: 'un vaso' });
-      expect(api.refine).toHaveBeenCalledWith(expect.anything(), 'un vaso');
+      expect(api.refine).toHaveBeenCalledWith(expect.anything(), 'un vaso', expect.anything());
       expect(sent('sendMessage')[1].text).toContain('· Agua</b> · 250 ml');
       expect(buttons(sent('sendMessage')[1])[0]).toMatch(/^save:/);
     });

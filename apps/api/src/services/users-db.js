@@ -16,6 +16,7 @@ const fromRow = (row) => ({
   expiresAt: iso(row.expires_at),
   disabledAt: iso(row.disabled_at),
   lastLoginAt: iso(row.last_login_at),
+  aiDailyLimitUsd: row.ai_daily_limit_usd == null ? null : Number(row.ai_daily_limit_usd),
   createdAt: iso(row.created_at),
   ...(row.connections && { connections: row.connections }),
 });
@@ -75,6 +76,7 @@ export function createDbUserStore({ db }) {
         ...('features' in patch && { features: patch.features }),
         ...('demo' in patch && { demo: patch.demo }),
         ...('expiresAt' in patch && { expires_at: patch.expiresAt }),
+        ...('aiDailyLimitUsd' in patch && { ai_daily_limit_usd: patch.aiDailyLimitUsd }),
         ...(password && { password_hash: await hashPassword(password) }),
         updated_at: new Date(),
       };

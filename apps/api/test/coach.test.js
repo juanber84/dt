@@ -94,7 +94,11 @@ describe('/api/v1/coach', () => {
       { content: 'Tienes **peso** desde el 1 de octubre.' },
       { content: 'Sigue igual.' },
     );
-    app = buildApp({}, { users: await testUsers(), pipeline, coachLlm: llm, llmBalance: balance });
+    // Cada llamada de mentira cuesta 0,32 $: con el límite de por defecto no pasaría de la primera
+    app = buildApp(
+      { AI_DAILY_LIMIT_USD: '100' },
+      { users: await testUsers(), pipeline, coachLlm: llm, llmBalance: balance },
+    );
     ana = await loginCookie(app, 'ana@example.com');
     admin = await loginCookie(app, 'admin@example.com');
   });
@@ -292,10 +296,15 @@ describe('/api/v1/coach', () => {
       .expect(404);
   });
 
-  it('sin LLM del coach no se monta', async () => {
+  it('sin LLM de la app ni clave propia: 503 al preguntar (antes de abrir el stream)', async () => {
     const bare = buildApp({}, { users: await testUsers(), pipeline });
     const cookie = await loginCookie(bare, 'ana@example.com');
-    await request(bare).get('/api/v1/coach/conversations').set('Cookie', cookie).expect(404);
+    const res = await request(bare)
+      .post('/api/v1/coach/messages')
+      .set('Cookie', cookie)
+      .send({ text: 'hola' })
+      .expect(503);
+    expect(res.body.error.code).toBe('LLM_NOT_CONFIGURED');
   });
 });
 

@@ -62,7 +62,8 @@ export function costOf(prices, model, { inputTokens, cachedTokens, outputTokens 
 export function createUsageRecorder({ rows, prices, logger, now = () => new Date() }) {
   /**
    * @param {{ feature: string, model: string, usage: object | null, durationMs?: number,
-   *   error?: string, userId?: string, conversationId?: string }} entry
+   *   error?: string, userId?: string, conversationId?: string, own?: boolean }} entry
+   *   `own`: con la clave del usuario (no cuenta para su límite).
    */
   return async function record({
     feature,
@@ -72,6 +73,7 @@ export function createUsageRecorder({ rows, prices, logger, now = () => new Date
     error,
     userId,
     conversationId,
+    own = false,
   }) {
     const tokens = normalizeUsage(usage);
     try {
@@ -85,6 +87,7 @@ export function createUsageRecorder({ rows, prices, logger, now = () => new Date
         error: error ?? null,
         userId: userId ?? null,
         conversationId: conversationId ?? null,
+        ownKey: own,
       });
     } catch (err) {
       logger?.error({ err, feature }, 'No se ha podido apuntar el consumo del LLM');
@@ -98,10 +101,10 @@ export function createDbLlmUsageRows({ db }) {
     async insert(row) {
       await db`
         insert into llm_usage (at, user_id, feature, model, input_tokens, cached_tokens,
-          output_tokens, cost_usd, duration_ms, error, conversation_id)
+          output_tokens, cost_usd, duration_ms, error, conversation_id, own_key)
         values (${row.at}, ${row.userId}, ${row.feature}, ${row.model}, ${row.inputTokens},
           ${row.cachedTokens}, ${row.outputTokens}, ${row.costUsd}, ${row.durationMs},
-          ${row.error}, ${row.conversationId})
+          ${row.error}, ${row.conversationId}, ${row.ownKey ?? false})
       `;
     },
 
@@ -119,6 +122,7 @@ export function createDbLlmUsageRows({ db }) {
         error: r.error,
         userId: r.user_id,
         conversationId: r.conversation_id,
+        ownKey: r.own_key,
       }));
     },
   };
@@ -136,3 +140,15 @@ export function createMemoryLlmUsageRows() {
     },
   };
 }
+
+export {
+  AI_PROVIDERS,
+  AiLimitError,
+  createAiAccess,
+  createDbAiStore,
+  createMemoryAiStore,
+  extraBodyFor,
+  keyHint,
+  startOfDay,
+  testProvider,
+} from './access.js';

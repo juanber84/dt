@@ -75,6 +75,7 @@ export default defineConfig({
         text: 'IA',
         items: [
           { text: 'El coach', link: '/ia/coach' },
+          { text: 'Límite y clave propia', link: '/ia/limites' },
           { text: 'MCP: tu IA con tus datos', link: '/ia/mcp' },
           { text: 'Lectura de informes', link: '/ia/informes' },
         ],

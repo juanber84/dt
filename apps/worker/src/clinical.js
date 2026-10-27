@@ -13,8 +13,9 @@ const PERMANENT = new Set([
  * el motivo, para que se vea en la app y se pueda reintentar.
  * @param {object} deps
  * @param {ReturnType<typeof import('@digitaltwin/clinical').createDbClinicalStore>} deps.store
- * @param {Pick<import('@digitaltwin/clinical').ClinicalExtractor, 'extract'> | undefined} deps.extractor
- *   Sin él (no hay LLM_API_KEY) los documentos quedan en error explicándolo.
+ * @param {(userId: string) => Promise<{ extractor: Pick<import('@digitaltwin/clinical').ClinicalExtractor, 'extract'>, own?: boolean } | undefined>} deps.extractorFor
+ *   El del usuario (su clave o la de la app). Sin él (no hay LLM_API_KEY ni clave propia) el
+ *   documento queda en error explicándolo; si lanza (límite de IA del día), también.
  * @param {typeof processPdf} [deps.process]
  * @param {(doc: object, extraction: object) => (void|Promise<void>)} [deps.onReady]  Ya leído: para
  *   avisar de que está para revisar.
@@ -22,7 +23,7 @@ const PERMANENT = new Set([
  */
 export function createClinicalProcessor({
   store,
-  extractor,
+  extractorFor,
   process = processPdf,
   onReady,
   logger,
@@ -32,18 +33,25 @@ export function createClinicalProcessor({
     async run({ documentId }, { last = true } = {}) {
       const doc = await store.claim(documentId);
       if (!doc) return { skipped: 'missing' };
-      if (!extractor) {
+      let ai;
+      try {
+        ai = await extractorFor(doc.userId);
+      } catch (err) {
+        await store.fail(documentId, String(err.message).slice(0, 500));
+        return { failed: err.code ?? 'no-llm' };
+      }
+      if (!ai) {
         await store.fail(documentId, 'No hay LLM configurado (LLM_API_KEY en el worker)');
         return { failed: 'no-llm' };
       }
       try {
         const result = await process({
           data: doc.data,
-          extractor,
+          extractor: ai.extractor,
           names: await store.userNames(doc.userId),
           aliases: await store.aliases(doc.userId),
           fallbackDate: doc.requestedDate ?? null,
-          context: { userId: doc.userId },
+          context: { userId: doc.userId, own: Boolean(ai.own) },
         });
         await store.saveExtraction(documentId, result);
         logger?.info(

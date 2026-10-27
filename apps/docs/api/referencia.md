@@ -25,6 +25,8 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 | `PUT`                 | `/push/settings`                  | Tipos apagados, horas de silencio, máximo diario                                                  |
 | `POST`                | `/push/test`                      | Aviso de prueba                                                                                   |
 | `GET` `POST` `DELETE` | `/tokens`                         | Tokens personales para el MCP                                                                     |
+| `GET`                 | `/ai`                             | Tu límite de IA del día, lo gastado hoy, tu clave propia (solo los 4 últimos) y los proveedores   |
+| `PUT` `DELETE`        | `/ai/provider`                    | Guardar tu clave (`provider`, `model`, `apiKey`; se prueba antes) o quitarla                      |
 | `GET` `POST`          | `/supplements`                    | Tus suplementos habituales (nombre, tipo, dosis, momento, desde y hasta)                          |
 | `PATCH` `DELETE`      | `/supplements/:id`                | Cambiar uno (`stoppedOn` = lo dejas) o quitarlo de la lista (sus tomas se quedan)                 |
 
@@ -81,12 +83,12 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 
 ## Administración 👑
 
-|                  |                          |                                                                                                                                                                                 |
-| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET` `POST`     | `/admin/users`           | Usuarios (con sus conexiones) y funciones activables; alta (sin `password`, se genera y se devuelve una vez en `generatedPassword`)                                             |
-| `PATCH` `DELETE` | `/admin/users/:id`       | Cambiar nombre, rol, contraseña, funciones (`features`), `demo`, `expiresAt` o `disabled`; borrar con todos sus datos. Uno no puede quitarse el admin, desactivarse ni borrarse |
-| `GET`            | `/admin/ai`              | Modelos, saldo y gasto de la IA                                                                                                                                                 |
-| `GET`            | `/admin/system/activity` | Entradas de fuera, últimos trabajos, copias de seguridad                                                                                                                        |
+|                  |                          |                                                                                                                                                                                                    |
+| ---------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` `POST`     | `/admin/users`           | Usuarios (con sus conexiones) y funciones activables; alta (sin `password`, se genera y se devuelve una vez en `generatedPassword`)                                                                |
+| `PATCH` `DELETE` | `/admin/users/:id`       | Cambiar nombre, rol, contraseña, funciones (`features`), `demo`, `expiresAt`, `aiDailyLimitUsd` o `disabled`; borrar con todos sus datos. Uno no puede quitarse el admin, desactivarse ni borrarse |
+| `GET`            | `/admin/ai`              | Modelos, saldo y gasto de la IA                                                                                                                                                                    |
+| `GET`            | `/admin/system/activity` | Entradas de fuera, últimos trabajos, copias de seguridad                                                                                                                                           |
 
 ## Salud del servicio
 

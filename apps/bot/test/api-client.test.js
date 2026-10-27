@@ -33,13 +33,16 @@ describe('createApiClient', () => {
     });
   });
 
-  it('refine manda la conversación anterior y la corrección', async () => {
+  it('refine manda la conversación anterior, la corrección y de quién es', async () => {
     const { client, request } = build();
-    await client.refine({ items: [], messages: [{ role: 'user', content: 'x' }] }, 'eran 60 g');
+    await client.refine({ items: [], messages: [{ role: 'user', content: 'x' }] }, 'eran 60 g', {
+      telegramUserId: 42,
+    });
     expect(request().url).toBe('http://api.test/api/v1/nutrition/refine');
     expect(request().body).toEqual({
       messages: [{ role: 'user', content: 'x' }],
       correction: 'eran 60 g',
+      telegramUserId: 42,
     });
   });
 

@@ -2,6 +2,8 @@
 
 ## 27 de octubre de 2026
 
+- **Límite de IA por usuario**: cada persona puede gastar hasta 0,25 $ al día de la IA de la app (coach, comidas, informes médicos y el comentario del informe de la mañana); se reinicia a medianoche y en Usuarios se cambia por persona. Al llegar, el coach y las comidas lo dicen, un informe médico no se sube y el de la mañana sale sin comentario. En Cuenta → IA se ve lo gastado hoy. Ver [Límite y clave propia](/ia/limites).
+- **Tu propia clave de IA**: en Cuenta → IA puedes poner una clave de DeepSeek, OpenAI, OpenRouter, Groq, Mistral o Gemini con el modelo que quieras. Se prueba antes de guardarla, va cifrada y con ella no hay límite (lo pagas tú). Si tu clave falla, se te dice; no se usa la de la app por detrás.
 - **Usuarios** (Administración): dar de alta, editar, desactivar y borrar usuarios desde la web, sin scripts. Por usuario se activan funciones extra. Las **cuentas demo** sirven para enseñar el producto: no reciben informe ni avisos y caducan al mes. Una cuenta desactivada o caducada no entra, su sesión y sus tokens del MCP dejan de valer, y sus conexiones se pausan (ni sincronizaciones ni avisos de Google) hasta que se reactive. Ver [Ajustes](/guia/ajustes#administracion-solo-administradores).
 - **Xiaomi y Motra, experimentales**: como entran por su API no oficial, solo los ven los administradores y quien tenga activadas las conexiones experimentales; en Conexiones llevan la etiqueta _Experimental_. Quien ya los tenía conectados los sigue teniendo.
 

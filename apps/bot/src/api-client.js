@@ -43,8 +43,11 @@ export function createApiClient({
     const json = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) {
       const { code, message } = json?.error ?? {};
-      throw new Error(
-        `API ${response.status}${code ? ` ${code}` : ''}: ${message ?? response.statusText}`,
+      throw Object.assign(
+        new Error(
+          `API ${response.status}${code ? ` ${code}` : ''}: ${message ?? response.statusText}`,
+        ),
+        { status: response.status, code, apiMessage: message },
       );
     }
     return json;
@@ -62,8 +65,13 @@ export function createApiClient({
         }),
       });
     },
-    refine(previous, correction) {
-      return post('nutrition/refine', { messages: previous.messages, correction });
+    /** @param {{ telegramUserId?: number }} [who]  De quién es (su límite de IA o su clave). */
+    refine(previous, correction, { telegramUserId } = {}) {
+      return post('nutrition/refine', {
+        messages: previous.messages,
+        correction,
+        ...(telegramUserId && { telegramUserId }),
+      });
     },
     /** @param {{ telegramUserId?: number }} [who] */
     saveEntry(entry, { telegramUserId } = {}) {

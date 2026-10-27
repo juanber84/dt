@@ -25,8 +25,12 @@ const confirmBody = z.object({ extraction: z.record(z.string(), z.unknown()).opt
  *   DELETE /documents/:id          lo borra (y lo que generó en el timeline)
  *   GET    /parameters             evolución de cada parámetro
  *   GET    /metrics                métricas que se pueden asignar al revisar
+ *
+ * @param {object} deps
+ * @param {(userId: string) => Promise<unknown>} [deps.checkAi]  Lanza (429) si ya ha gastado su IA
+ *   de hoy: subir y reintentar acaban en una llamada al LLM.
  */
-export function createClinicalRouter({ clinical, uploadLimit }) {
+export function createClinicalRouter({ clinical, uploadLimit, checkAi = async () => {} }) {
   const router = Router();
   const raw = express.raw({
     type: ['application/pdf', 'application/octet-stream'],
@@ -39,6 +43,7 @@ export function createClinicalRouter({ clinical, uploadLimit }) {
 
   router.post('/documents', raw, validate({ query: uploadQuery }), async (req, res) => {
     const data = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    await checkAi(req.user.id);
     const { document, created } = await clinical.upload(req.user.id, {
       fileName: req.validated.query.name,
       requestedDate: req.validated.query.date ?? null,
@@ -70,6 +75,7 @@ export function createClinicalRouter({ clinical, uploadLimit }) {
   );
 
   router.post('/documents/:id/retry', validate({ params: idParams }), async (req, res) => {
+    await checkAi(req.user.id);
     res.status(202).json(await clinical.retry(req.user.id, req.validated.params.id));
   });
 

@@ -25,7 +25,12 @@ import {
   withExpiryAlerts,
 } from './notifications.js';
 import { ClinicalExtractor, createDbClinicalStore } from '@digitaltwin/clinical';
-import { createDbLlmUsageRows, createUsageRecorder } from '@digitaltwin/llm-usage';
+import {
+  createAiAccess,
+  createDbAiStore,
+  createDbLlmUsageRows,
+  createUsageRecorder,
+} from '@digitaltwin/llm-usage';
 import { createClinicalProcessor } from './clinical.js';
 import { createBackup } from './backup.js';
 import pkg from '../package.json' with { type: 'json' };
@@ -143,18 +148,34 @@ const recordUsage = createUsageRecorder({
   prices: config.LLM_PRICES,
   logger,
 });
+// Con qué LLM va cada usuario: su clave (Cuenta → IA) o la de la app hasta su límite del día
+const aiAccess = createAiAccess({
+  store: createDbAiStore({ db }),
+  box: createSecretBox(config.TOKEN_ENCRYPTION_KEY),
+  defaultLimitUsd: config.AI_DAILY_LIMIT_USD,
+  timeZone: config.TIMEZONE,
+});
+const appExtractor = config.LLM_API_KEY
+  ? new ClinicalExtractor({
+      apiKey: config.LLM_API_KEY,
+      baseUrl: config.LLM_BASE_URL,
+      model: config.LLM_MODEL,
+      onUsage: recordUsage,
+      // El campo `thinking` es propio de DeepSeek; otros proveedores lo rechazarían
+      ...(config.LLM_BASE_URL.includes('deepseek.com') ? {} : { extraBody: {} }),
+    })
+  : undefined;
 const clinical = createClinicalProcessor({
   store: createDbClinicalStore({ db }),
-  extractor: config.LLM_API_KEY
-    ? new ClinicalExtractor({
-        apiKey: config.LLM_API_KEY,
-        baseUrl: config.LLM_BASE_URL,
-        model: config.LLM_MODEL,
-        onUsage: recordUsage,
-        // El campo `thinking` es propio de DeepSeek; otros proveedores lo rechazarían
-        ...(config.LLM_BASE_URL.includes('deepseek.com') ? {} : { extraBody: {} }),
-      })
-    : undefined,
+  // Lanza AiLimitError si ya ha gastado lo de hoy (el documento queda en error con el motivo)
+  extractorFor: async (userId) => {
+    const ai = await aiAccess.resolve(userId);
+    if (!ai.own) return appExtractor && { extractor: appExtractor, own: false };
+    return {
+      extractor: new ClinicalExtractor({ ...ai.provider, onUsage: recordUsage }),
+      own: true,
+    };
+  },
   onReady: (doc, extraction) => notify(doc.userId, messages.clinicalReady(doc, extraction)),
   logger: logger.child({ module: 'clinical' }),
 });
@@ -206,6 +227,16 @@ async function onBackupFailed(err) {
 // Informes de la mañana: las cifras salen de la BD y del motor; el comentario, del LLM del coach
 // (si no hay, el informe sale sin él). Necesita la URL pública para los enlaces del correo.
 const coachLlm = config.COACH_LLM_API_KEY ?? config.LLM_API_KEY;
+const appChat = coachLlm
+  ? createChatClient({
+      apiKey: coachLlm,
+      baseUrl: config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL,
+      model: config.COACH_LLM_MODEL ?? config.LLM_MODEL,
+      extraBody: (config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL).includes('deepseek.com')
+        ? { thinking: { type: 'disabled' } }
+        : {},
+    })
+  : undefined;
 const profiles = createProfiles({ db, timeZone: config.TIMEZONE });
 const reports = config.PUBLIC_URL
   ? createReports({
@@ -218,16 +249,12 @@ const reports = config.PUBLIC_URL
         timeZone: config.TIMEZONE,
       }),
       profiles,
-      chat: coachLlm
-        ? createChatClient({
-            apiKey: coachLlm,
-            baseUrl: config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL,
-            model: config.COACH_LLM_MODEL ?? config.LLM_MODEL,
-            extraBody: (config.COACH_LLM_BASE_URL ?? config.LLM_BASE_URL).includes('deepseek.com')
-              ? { thinking: { type: 'disabled' } }
-              : {},
-          })
-        : undefined,
+      // Su clave o la de la app; si ya ha gastado lo de hoy, el informe sale sin comentario
+      chatFor: async (userId) => {
+        const ai = await aiAccess.resolve(userId);
+        if (ai.own) return { chat: createChatClient(ai.provider), own: true };
+        return appChat ? { chat: appChat, own: false } : null;
+      },
       email,
       appUrl: config.PUBLIC_URL,
       timeZone: config.TIMEZONE,

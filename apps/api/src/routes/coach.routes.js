@@ -37,14 +37,16 @@ const PING_MS = 15_000;
  *     done { message } | error { message }
  *
  * @param {object} deps
- * @param {ReturnType<typeof import('@digitaltwin/coach').createCoach>} deps.coach
+ * @param {(llm: object) => ReturnType<typeof import('@digitaltwin/coach').createCoach>} deps.newCoach
+ * @param {ReturnType<typeof import('../services/ai.js').createAi>} deps.ai  El LLM de cada usuario.
  * @param {ReturnType<typeof import('../services/coach-store.js').createMemoryCoachStore>} deps.store
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
  * @param {string} deps.timeZone
  * @param {ReturnType<typeof import('../services/llm-usage.js').createLlmUsage>} [deps.usage]
  */
 export function createCoachRouter({
-  coach,
+  newCoach,
+  ai,
   store,
   queries,
   profiles,
@@ -78,6 +80,9 @@ export function createCoachRouter({
     // Lo que puede fallar con un error normal va antes de abrir el stream
     let conversation = conversationId && (await store.get(userId, conversationId));
     if (conversationId && !conversation) throw HttpError.notFound('No existe esa conversación');
+    // Su clave o la de la app (429 si ya ha gastado lo de hoy)
+    const { llm, own } = await ai.chat(userId);
+    const coach = newCoach(llm);
     conversation ||= await store.create({ userId, title: titleFrom(text) });
     const question = await store.addMessage(conversation.id, {
       role: 'user',
@@ -135,7 +140,13 @@ export function createCoachRouter({
           if (saved.role === 'assistant') send('message', saved);
         },
         onUsage: (entry) =>
-          usage?.record({ ...entry, feature: 'coach', userId, conversationId: conversation.id }),
+          usage?.record({
+            ...entry,
+            feature: 'coach',
+            userId,
+            conversationId: conversation.id,
+            own,
+          }),
       });
       send('done', { message: final });
     } catch (error) {

@@ -320,7 +320,14 @@ describe('fechas', () => {
 });
 
 describe('createReports.runDaily', () => {
-  const setup = ({ clock = '2026-10-23T06:00:00Z', settings, exists = false, comment } = {}) => {
+  const setup = ({
+    clock = '2026-10-23T06:00:00Z',
+    settings,
+    exists = false,
+    comment,
+    chatFor,
+    onUsage,
+  } = {}) => {
     const saved = [];
     const store = {
       recipients: async () => [
@@ -352,6 +359,8 @@ describe('createReports.runDaily', () => {
       queries: emptyQueries,
       engine: { state: async () => ({ ready: false }) },
       chat,
+      ...(chatFor && { chatFor }),
+      onUsage,
       email,
       appUrl: 'https://twinme.app',
       timeZone: TZ,
@@ -395,6 +404,29 @@ describe('createReports.runDaily', () => {
     const { reports, saved } = setup({
       comment: async () => {
         throw new Error('DeepSeek 503');
+      },
+    });
+    expect((await reports.runDaily()).done[0]).toMatchObject({ email: 'sent' });
+    expect(saved[0].blocks.some((b) => b.type === 'text')).toBe(false);
+  });
+
+  it('con la clave del usuario, el gasto se apunta como suyo', async () => {
+    const own = {
+      complete: vi.fn(async () => ({ message: { content: 'Con tu IA.' }, usage: {}, model: 'x' })),
+    };
+    const onUsage = vi.fn();
+    const { reports, saved } = setup({ chatFor: async () => ({ chat: own, own: true }), onUsage });
+    await reports.runDaily();
+    expect(saved[0].blocks[0]).toEqual({ type: 'text', text: 'Con tu IA.' });
+    expect(onUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ feature: 'report.daily', userId: 'u1', own: true }),
+    );
+  });
+
+  it('si ya ha gastado su IA de hoy, el informe sale sin comentario', async () => {
+    const { reports, saved } = setup({
+      chatFor: async () => {
+        throw new Error('Has llegado al límite de IA de hoy');
       },
     });
     expect((await reports.runDaily()).done[0]).toMatchObject({ email: 'sent' });

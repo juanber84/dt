@@ -9,6 +9,7 @@ import EmailSettings from '../../components/admin/EmailSettings.vue';
 import ProfileSettings from '../../components/admin/ProfileSettings.vue';
 import SupplementSettings from '../../components/admin/SupplementSettings.vue';
 import McpTokens from '../../components/admin/McpTokens.vue';
+import AiSettings from '../../components/admin/AiSettings.vue';
 import { useAuth, signOut } from '../../composables/useAuth.js';
 import { useTheme } from '../../composables/useTheme.js';
 import { useConfirm } from '../../composables/useConfirm.js';
@@ -142,6 +143,8 @@ async function exit() {
     <NotificationSettings />
 
     <EmailSettings />
+
+    <AiSettings />
 
     <McpTokens />
 

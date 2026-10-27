@@ -76,6 +76,8 @@ export const adminUser = (user) => ({
   lastLoginAt: user.lastLoginAt ?? null,
   createdAt: user.createdAt ?? null,
   connections: user.connections ?? [],
+  // Límite de IA al día propio; null = el de por defecto (AI_DAILY_LIMIT_USD)
+  aiDailyLimitUsd: user.aiDailyLimitUsd ?? null,
 });
 
 /**

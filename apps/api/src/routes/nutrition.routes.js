@@ -31,16 +31,19 @@ const refineBody = z.object({
     )
     .min(2),
   correction: z.string().trim().min(1).max(4000),
+  /** Si llama el bot: de quién es (para su límite de IA o su clave). */
+  telegramUserId: z.number().int().positive().optional(),
 });
 
 /**
  * @param {object} deps
- * @param {Pick<import('@digitaltwin/nutrition').NutritionAnalyzer, 'analyze' | 'refine'>} [deps.analyzer]
+ * @param {ReturnType<typeof import('../services/ai.js').createAi>} deps.ai
+ * @param {{ findByExternalUser: Function }} deps.connections
  * @param {ReturnType<typeof import('../services/meals-today.js').createMealsToday>} [deps.mealsToday]
  */
-export function createNutritionRouter({ analyzer, mealsToday }) {
+export function createNutritionRouter({ ai, connections, mealsToday }) {
   const router = Router();
-  const controller = createNutritionController({ analyzer, mealsToday });
+  const controller = createNutritionController({ ai, connections, mealsToday });
 
   router.post('/analyze', validate({ body: analyzeBody }), controller.analyze);
   router.post('/refine', validate({ body: refineBody }), controller.refine);

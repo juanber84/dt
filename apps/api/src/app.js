@@ -52,6 +52,8 @@ import {
   createMemoryLlmUsageRows,
 } from './services/llm-usage.js';
 import { createDeepseekBalance, hasBalanceEndpoint } from './services/llm-balance.js';
+import { createAiAccess, createDbAiStore, createMemoryAiStore } from '@digitaltwin/llm-usage';
+import { createAi } from './services/ai.js';
 import { createDbClinicalStore, createMemoryClinicalStore } from '@digitaltwin/clinical';
 import { createClinical } from './services/clinical.js';
 
@@ -87,6 +89,8 @@ import { createClinical } from './services/clinical.js';
  *   con COACH_LLM_* si hay clave.
  * @param {ReturnType<typeof createMemoryCoachStore>} [deps.coachStore]  Conversaciones del coach.
  * @param {ReturnType<typeof createLlmUsage>} [deps.llmUsage]  Cuenta del gasto en LLM.
+ * @param {ReturnType<typeof createAiAccess>} [deps.aiAccess]  Límite de IA por usuario y claves
+ *   propias. Por defecto, en la BD si la hay; si no, en memoria.
  * @param {ReturnType<typeof createDeepseekBalance> | null} [deps.llmBalance]  Saldo del proveedor
  *   (null = no se consulta). Por defecto, el de DeepSeek si es DeepSeek.
  * @param {ReturnType<typeof createMemoryClinicalStore>} [deps.clinicalStore]  Informes médicos.
@@ -124,6 +128,7 @@ export function createApp({
   coachLlm,
   coachStore,
   llmUsage,
+  aiAccess,
   llmBalance,
   clinicalStore,
   passkeys,
@@ -139,24 +144,39 @@ export function createApp({
   if (!db && config.NODE_ENV !== 'test') log.warn('Sin BD no hay usuarios: nadie puede entrar');
   connections ??= createConnectionStore({ db, config, log });
   personalTokens ??= db ? createDbPersonalTokens({ db }) : createMemoryPersonalTokens();
+  const usageRows = db ? createDbLlmUsageRows({ db }) : createMemoryLlmUsageRows();
   llmUsage ??= createLlmUsage({
-    rows: db ? createDbLlmUsageRows({ db }) : createMemoryLlmUsageRows(),
+    rows: usageRows,
     prices: config.LLM_PRICES,
     timeZone: config.TIMEZONE,
     logger: log.child({ module: 'llm-usage' }),
   });
   nutritionAnalyzer ??= createNutritionAnalyzer(config, llmUsage);
   coachLlm ??= createCoachLlm(config);
-  // El coach lee el timeline: sin pipeline (BD) no hay datos que consultar
-  const coach =
-    coachLlm && pipeline
-      ? createCoach({
-          llm: coachLlm,
+  aiAccess ??= createAiAccess({
+    store: db ? createDbAiStore({ db }) : createMemoryAiStore({ users, usage: usageRows }),
+    box: config.TOKEN_ENCRYPTION_KEY ? createSecretBox(config.TOKEN_ENCRYPTION_KEY) : undefined,
+    defaultLimitUsd: config.AI_DAILY_LIMIT_USD,
+    timeZone: config.TIMEZONE,
+  });
+  const ai = createAi({
+    access: aiAccess,
+    coachLlm,
+    nutritionAnalyzer,
+    timeZone: config.TIMEZONE,
+    onUsage: (entry) => llmUsage.record(entry),
+  });
+  // El coach lee el timeline: sin pipeline (BD) no hay datos que consultar. El LLM sale de cada
+  // usuario (su clave o la de la app), así que se monta aunque la app no tenga clave.
+  const newCoach = pipeline
+    ? (llm) =>
+        createCoach({
+          llm,
           timeZone: config.TIMEZONE,
           maxSteps: config.COACH_MAX_STEPS,
           logger: log.child({ module: 'coach' }),
         })
-      : undefined;
+    : undefined;
   coachStore ??= db ? createDbCoachStore({ db }) : createMemoryCoachStore();
   if (llmBalance === undefined) {
     llmBalance =
@@ -187,7 +207,7 @@ export function createApp({
       feature: 'coach',
       model: config.COACH_LLM_MODEL,
       baseUrl: config.COACH_LLM_BASE_URL,
-      configured: Boolean(coach),
+      configured: Boolean(newCoach && coachLlm),
     },
     // Lo usa el worker con las mismas LLM_* (se lee de Infisical igual que la API)
     {
@@ -278,7 +298,7 @@ export function createApp({
           queries: pipeline.queries,
           engine,
           profiles,
-          chat: coachLlm,
+          chatFor: (userId) => ai.chat(userId).then(({ llm, own }) => ({ chat: llm, own })),
           email,
           appUrl: config.PUBLIC_URL,
           timeZone: config.TIMEZONE,
@@ -473,8 +493,9 @@ export function createApp({
       pipeline,
       telegramLink,
       personalTokens,
-      coach,
+      newCoach,
       coachStore,
+      ai,
       llmUsage,
       llmBalance,
       llmModels,

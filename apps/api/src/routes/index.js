@@ -21,6 +21,7 @@ import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
 import { createSupplementsRouter } from './supplements.routes.js';
 import { createUsersAdminRouter } from './users-admin.routes.js';
+import { createAiRouter } from './ai.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -32,7 +33,6 @@ import { Role } from '../services/users.js';
 /** Rutas versionadas: /api/v1/... */
 export function createApiRouter({
   config,
-  nutritionAnalyzer,
   db,
   heartbeats,
   connections,
@@ -49,8 +49,9 @@ export function createApiRouter({
   pipeline,
   telegramLink,
   personalTokens,
-  coach,
+  newCoach,
   coachStore,
+  ai,
   llmUsage,
   llmBalance,
   llmModels,
@@ -138,16 +139,23 @@ export function createApiRouter({
     router.use(
       '/clinical',
       requireUser,
-      createClinicalRouter({ clinical, uploadLimit: config.CLINICAL_UPLOAD_LIMIT }),
+      createClinicalRouter({
+        clinical,
+        uploadLimit: config.CLINICAL_UPLOAD_LIMIT,
+        // El PDF lo lee el worker con el LLM: si ya ha gastado lo de hoy, ni se sube
+        checkAi: (userId) => ai.check(userId),
+      }),
     );
   }
   router.use('/tokens', requireUser, createTokensRouter({ tokens: personalTokens }));
-  if (coach) {
+  router.use('/ai', requireUser, createAiRouter({ access: ai.access }));
+  if (newCoach) {
     router.use(
       '/coach',
       requireUser,
       createCoachRouter({
-        coach,
+        newCoach,
+        ai,
         store: coachStore,
         queries: pipeline.queries,
         profiles,
@@ -162,7 +170,11 @@ export function createApiRouter({
     '/admin/users',
     requireUser,
     requireRole(Role.ADMIN),
-    createUsersAdminRouter({ users, onAccessChanged: inbox && (() => inbox.usersChanged()) }),
+    createUsersAdminRouter({
+      users,
+      defaultAiLimitUsd: config.AI_DAILY_LIMIT_USD,
+      onAccessChanged: inbox && (() => inbox.usersChanged()),
+    }),
   );
   router.use(
     '/admin/ai',
@@ -184,9 +196,9 @@ export function createApiRouter({
     );
   }
   const mealsToday = pipeline
-    ? createMealsToday({ queries: pipeline.queries, connections, timeZone: config.TIMEZONE })
+    ? createMealsToday({ queries: pipeline.queries, timeZone: config.TIMEZONE })
     : undefined;
-  router.use('/nutrition', createNutritionRouter({ analyzer: nutritionAnalyzer, mealsToday }));
+  router.use('/nutrition', createNutritionRouter({ ai, connections, mealsToday }));
 
   return router;
 }

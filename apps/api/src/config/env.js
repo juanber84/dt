@@ -124,6 +124,9 @@ const schema = z
       .transform(parsePrices),
     // Por debajo de este saldo (USD) la página de IA y Sistema avisan
     LLM_BALANCE_WARN_USD: z.coerce.number().min(0).default(2),
+    // Lo que cada usuario puede gastar al día (USD) con la clave de la app; en Usuarios se cambia
+    // por persona. Los administradores y quien pone su propia clave no tienen límite.
+    AI_DAILY_LIMIT_USD: z.coerce.number().min(0).default(0.25),
     TIMEZONE: z.string().default('Europe/Madrid'),
     // PostgreSQL + TimescaleDB. Sin ella la API arranca sin BD (las rutas que la usen no se montan).
     // En Docker la construye el compose con DIGITALTWIN_DB_PASSWORD.

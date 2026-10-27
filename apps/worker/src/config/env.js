@@ -114,6 +114,8 @@ const schema = z.object({
       }
     }, 'formato "modelo:entrada/caché/salida", separados por coma')
     .transform(parsePrices),
+  // Lo que cada usuario puede gastar al día con la clave de la app (el mismo que la API)
+  AI_DAILY_LIMIT_USD: z.coerce.number().min(0).default(0.25),
 });
 
 /**

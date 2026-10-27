@@ -11,6 +11,7 @@ export const FEATURE_LABELS = {
   'nutrition.refine': 'Comidas: corrección',
   clinical: 'Informes médicos',
   'clinical.extract': 'Informes médicos: lectura',
+  'report.daily': 'Informe de la mañana',
 };
 
 export const featureLabel = (feature) => FEATURE_LABELS[feature] ?? feature;
@@ -63,3 +64,10 @@ export function fmtRunway(days) {
   if (days < 1) return 'no llega a un día';
   return `da para unos ${Math.floor(days)} días`;
 }
+
+/** Cuenta → IA: límite del día, lo gastado hoy y su clave propia (sin la clave). */
+export const fetchMyAi = () => apiFetch('/api/v1/ai');
+/** La prueba y la guarda. Sin `apiKey`, se queda la de antes (cambiar solo el modelo). */
+export const saveAiProvider = (input) =>
+  apiFetch('/api/v1/ai/provider', { method: 'PUT', body: JSON.stringify(input) });
+export const removeAiProvider = () => apiFetch('/api/v1/ai/provider', { method: 'DELETE' });
