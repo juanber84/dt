@@ -20,7 +20,6 @@ import {
   FileHeart,
   FileText,
   Users,
-  Smartphone,
 } from '@lucide/vue';
 import Toast from './components/ui/Toast.vue';
 import TopProgress from './components/ui/TopProgress.vue';
@@ -188,49 +187,9 @@ const admin = [
   <TopProgress />
   <Toast />
   <ConfirmDialog />
-  <!-- iOS no hace caso al "orientation" del manifest: en la app instalada, de lado se tapa -->
-  <div class="rotate" role="alert">
-    <Smartphone class="rotate-icon" />
-    <p>Gira el móvil: TwinMe va en vertical.</p>
-  </div>
 </template>
 
 <style scoped>
-.rotate {
-  display: none;
-}
-
-/* Solo en la app instalada y en un móvil (un iPad de lado no llega a 500 px de alto) */
-@media (display-mode: standalone) and (orientation: landscape) and (max-height: 500px) {
-  .rotate {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: grid;
-    place-content: center;
-    justify-items: center;
-    gap: 14px;
-    background: var(--page);
-    color: var(--text-2);
-    font-size: 15px;
-  }
-}
-
-.rotate-icon {
-  width: 36px;
-  height: 36px;
-  animation: turn 1.6s ease-in-out infinite alternate;
-}
-
-@keyframes turn {
-  from {
-    transform: rotate(-90deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
 .shell {
   display: grid;
   grid-template-columns: 232px 1fr;

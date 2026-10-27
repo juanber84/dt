@@ -6,7 +6,7 @@ TwinMe se instala como una app (PWA): icono en la pantalla de inicio, pantalla c
 
 En **Safari**: **Compartir → Añadir a pantalla de inicio**. Ábrela siempre desde el icono.
 
-Va siempre **en vertical**. En Android lo bloquea el sistema; el iPhone no lo deja bloquear, así que si lo giras, la app se tapa con un "Gira el móvil" hasta que lo pongas derecho. En el navegador (sin instalar) y en el iPad se puede usar de lado.
+En Android la app va siempre en vertical. En el iPhone gira con el móvil: iOS no deja que una web instalada bloquee el giro.
 
 ## Entrar con Face ID
 
