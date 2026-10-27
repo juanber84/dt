@@ -42,7 +42,8 @@ export const router = createRouter({
       component: () => import('./views/admin/AccountView.vue'),
     },
     {
-      path: '/admin/connections',
+      // Con plataforma, su ficha (/admin/connections/garmin)
+      path: '/admin/connections/:platform?',
       name: 'connections',
       component: () => import('./views/admin/ConnectionsView.vue'),
     },

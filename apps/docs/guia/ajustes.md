@@ -14,7 +14,7 @@
 
 ## Conexiones
 
-Conectar, sincronizar y desconectar cada fuente, y vincular el bot de Telegram. Ver [Fuentes y conexiones](/datos/fuentes).
+Un catálogo de plataformas por categoría (reloj y salud, entreno, ciclismo, báscula, comida y lo de TwinMe), con buscador. Arriba, **tus conexiones** y si alguna necesita atención. Cada plataforma tiene su **ficha** (`/admin/connections/<plataforma>`): qué datos da, cómo llega a TwinMe (directa, a través de otra, experimental o próximamente), tu conexión con sus botones (conectar, sincronizar, desconectar; en el bot, vincular) y dónde conseguirla (App Store, Google Play, web o su enlace de invitación). Ver [Fuentes y conexiones](/datos/fuentes).
 
 ## Administración (solo administradores)
 

@@ -23,8 +23,8 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
       teclado → borrar la vieja. Primero la de Google.
 - [ ] **6. Avisos mínimos**: comprobación externa de que twinme.app responde y aviso al móvil si el
       worker registra errores (lo de Grafana, en Producción, puede esperar).
-- [ ] **7. Tope de gasto de IA** por usuario (ya está abajo, en IA): hoy solo se apunta y hay aviso
-      de saldo bajo.
+- [x] **7. Tope de gasto de IA** por usuario (27/10, 0d02097): 0,25 $/día, cambiable por usuario, y
+      clave propia de proveedor. Ver apps/docs/ia/limites.md.
 - [ ] **8. Navegación antes de Plan.** La barra del móvil está llena (Informes quedó fuera) y viene
       Plan: p. ej. Hoy · Plan · Tendencias · Coach · Más (Entrenos, Clínica, Informes dentro).
 - [x] **9. Un solo sitio para cada cálculo** (hecho el 23/10, ea967fd): tipos de comida, líquidos,
@@ -48,7 +48,8 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 - [ ] **Test de sudoración.** Cuánto líquido pierdes por hora entrenando: (peso antes − peso
       después + lo bebido) ÷ horas, con la báscula, el entreno de intervals.icu y el agua. Cómo
       hacerlo (test guiado o detectado solo, bici/carrera, sodio), por decidir.
-- [ ] **Plataformas y conexiones.** Conexiones pasa a ser un catálogo: buscador, tarjetas por
+- [x] **Plataformas y conexiones** (27/10: catálogo, fichas y logos; faltan los datos buenos de
+      Magene e iGPSport, los enlaces de invitación y los kits de marca). Conexiones pasa a ser un catálogo: buscador, tarjetas por
       categoría y una ficha por plataforma (qué datos da, estado, enlaces a iOS, Android y web,
       referral). Estados: oficial (Google, intervals.icu; Whoop, Oura y FatSecret tienen API
       pública), a través de otra (Magene, iGPSport → intervals.icu/Strava), solo enlace y
@@ -58,7 +59,7 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 - [x] **Gestión de usuarios** (27/10): Administración → Usuarios (alta, editar, desactivar,
       borrar), funciones por usuario y cuentas demo (sin informe ni push, caducan al mes).
   - Falta: **datos de las cuentas demo** (por decidir: generados, una copia anonimizada de los
-    tuyos o mezcla) y el **tope de gasto del coach** (punto 7) antes de dar una a nadie.
+    tuyos o mezcla) (el tope de gasto de IA ya está).
 
 ## Datos
 
@@ -124,8 +125,7 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
       fiándolo solo al prompt.
 - [ ] **Inyección de instrucciones.** Marcar en los prompts que lo que viene de PDFs, comidas o
       notas son datos, no órdenes (el coach solo lee, así que el daño posible es poco).
-- [ ] **Tope de gasto de LLM por usuario** (diario o mensual). Ahora se apunta en llm_usage pero
-      no se corta.
+- [x] **Tope de gasto de LLM por usuario** (27/10): diario; uno mensual, si hace falta.
 - [ ] **Privacidad con DeepSeek.** Lo que se habla con el coach y los datos de salud van tal cual
       (los PDFs sin datos personales). Con más usuarios: avisar y pedir consentimiento.
 

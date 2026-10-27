@@ -1,17 +1,27 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { RefreshCw, Unplug, Link2, Info, Send } from '@lucide/vue';
+import { Unplug, Info, Search, Send } from '@lucide/vue';
 import AdminHeader from '../../components/admin/AdminHeader.vue';
+import ConnectionPanel from '../../components/connections/ConnectionPanel.vue';
+import PlatformCard from '../../components/connections/PlatformCard.vue';
+import PlatformDetail from '../../components/connections/PlatformDetail.vue';
+import PlatformLogo from '../../components/connections/PlatformLogo.vue';
 import XiaomiConnectModal from '../../components/admin/XiaomiConnectModal.vue';
 import IntervalsConnectModal from '../../components/admin/IntervalsConnectModal.vue';
 import MotraConnectModal from '../../components/admin/MotraConnectModal.vue';
-import SourceBadge from '../../components/ui/SourceBadge.vue';
 import StatusPill from '../../components/ui/StatusPill.vue';
 import { useAsync } from '../../composables/useAsync.js';
 import { useConfirm } from '../../composables/useConfirm.js';
 import { useToast } from '../../composables/useToast.js';
 import { SOURCES, DATA_TYPES } from '../../data/sources.js';
+import {
+  CATEGORIES,
+  CONNECTION_STATUS,
+  PLATFORMS,
+  matchesPlatform,
+  platformById,
+} from '../../data/platforms.js';
 import {
   fetchConnections,
   connectProvider,
@@ -20,10 +30,7 @@ import {
   linkTelegram,
   unlinkTelegram,
 } from '../../services/twin.js';
-import { fmtInt, fmtDec, fmtRelativeTime } from '../../lib/format.js';
-
-const monthYear = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
-const fmtMonthYear = (iso) => monthYear.format(new Date(iso));
+import { fmtInt, fmtRelativeTime } from '../../lib/format.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -38,25 +45,30 @@ const intervalsOpen = ref(false);
 const motraOpen = ref(false);
 const syncing = ref(null);
 
-const STATUS = {
-  connected: { tone: 'good', label: 'Conectado' },
-  expired: { tone: 'warning', label: 'Hay que reconectar' },
-  error: { tone: 'critical', label: 'Error' },
-  disconnected: { tone: 'neutral', label: 'Sin conectar' },
-};
+/** La conexión de una plataforma que se conecta aquí, con lo que esperan el panel y las acciones. */
+function rowOf(platform) {
+  if (!platform?.source) return null;
+  const connection = connections.value?.find((c) => c.id === platform.source);
+  return {
+    id: platform.source,
+    name: platform.name,
+    auth: SOURCES[platform.source]?.auth,
+    connection: connection ?? { status: 'disconnected' },
+  };
+}
 
-// Solo las que da la API: las experimentales (Xiaomi, Motra) no salen si no las tienes activadas
-const rows = computed(() =>
-  Object.entries(SOURCES)
-    .filter(([, s]) => s.auth !== 'internal')
-    .filter(([id]) => !connections.value || connections.value.some((c) => c.id === id))
-    .map(([id, source]) => ({
-      id,
-      ...source,
-      connection: connections.value?.find((c) => c.id === id) ?? { status: 'disconnected' },
-    })),
+// Las experimentales (Xiaomi, Motra) solo si la API las da: no salen si no las tienes activadas
+const platforms = computed(() =>
+  PLATFORMS.filter(
+    (p) => p.state !== 'experimental' || connections.value?.some((c) => c.id === p.source),
+  ),
 );
-const internal = computed(() => Object.entries(SOURCES).filter(([, s]) => s.auth === 'internal'));
+// Las que se pueden conectar ya (o lo están): las de "Próximamente" no cuentan
+const rows = computed(() =>
+  platforms.value
+    .map(rowOf)
+    .filter((r) => r && (r.connection.available || r.connection.status !== 'disconnected')),
+);
 const connectedCount = computed(
   () => rows.value.filter((r) => r.connection.status === 'connected').length,
 );
@@ -64,17 +76,56 @@ const attention = computed(
   () => rows.value.filter((r) => ['expired', 'error'].includes(r.connection.status)).length,
 );
 
-/** "usuario · Báscula · conectado hace 2 minutos" */
-function details({ connection }) {
-  const devices = connection.details?.devices ?? [];
-  return [
-    connection.account,
-    devices.length ? devices.map((d) => d.name).join(', ') : null,
-    connection.connectedAt ? `conectado ${fmtRelativeTime(connection.connectedAt)}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+/** La pastilla de una plataforma con conexión (o Telegram vinculado); null si no hay. */
+function pillOf(platform) {
+  if (platform.id === 'telegram') {
+    return telegram.value.status === 'connected' ? { tone: 'good', label: 'Vinculado' } : null;
+  }
+  const status = rowOf(platform)?.connection.status;
+  return status && status !== 'disconnected' ? CONNECTION_STATUS[status] : null;
 }
+const mine = computed(() => platforms.value.filter(pillOf));
+const lastSyncOf = (p) => {
+  const at = rowOf(p)?.connection.lastSync;
+  return at ? `sincronizado ${fmtRelativeTime(at)}` : '';
+};
+
+// Catálogo: buscador y categoría
+const query = ref('');
+const category = ref('all');
+const categoryOptions = [
+  ['all', 'Todas'],
+  ...Object.entries(CATEGORIES).map(([id, c]) => [id, c.label]),
+];
+const groups = computed(() =>
+  Object.entries(CATEGORIES)
+    .filter(([id]) => category.value === 'all' || category.value === id)
+    .map(([id, c]) => ({
+      id,
+      ...c,
+      items: platforms.value.filter(
+        (p) => p.category === id && matchesPlatform(p, query.value, DATA_TYPES),
+      ),
+    }))
+    .filter((g) => g.items.length),
+);
+const viaName = (p) => (p.via ?? []).map((id) => platformById(id)?.name).join(' o ');
+
+// Ficha: /admin/connections/:platform
+const platform = computed(() => {
+  const id = route.params.platform;
+  return id ? platforms.value.find((p) => p.id === id) : null;
+});
+const platformRow = computed(() => rowOf(platform.value));
+watch(
+  () => [route.params.platform, connections.value],
+  ([id]) => {
+    // Una que no existe (o experimental sin permiso, ya cargadas) vuelve al catálogo
+    if (id && !platformById(id)) router.replace('/admin/connections');
+    else if (id && connections.value && !platform.value) router.replace('/admin/connections');
+  },
+  { immediate: true },
+);
 
 async function run(action, label) {
   try {
@@ -105,15 +156,6 @@ async function sync(row) {
   }, `Sincronizar ${row.name}`);
   syncing.value = null;
   reload.value++;
-}
-
-/** "Importando histórico… 12 de 48" mientras dura la carga inicial. */
-function backfill({ connection }) {
-  const b = connection.backfill;
-  if (!b || b.status !== 'running') return null;
-  return b.total
-    ? `Importando histórico… ${fmtInt(b.done + b.failed)} de ${fmtInt(b.total)}`
-    : 'Importando histórico…';
 }
 
 // Telegram: se vincula tu cuenta (no es un proveedor que conectar)
@@ -164,17 +206,6 @@ watch(linking, (value) => {
   }
 });
 onUnmounted(() => clearTimeout(poll));
-
-/** "Último pesaje 76,8 kg · 14,5 % grasa · hace 2 días" */
-function lastRecord({ connection }) {
-  const r = connection.lastRecord;
-  if (!r) return null;
-  const parts = [
-    r.weight != null && `${fmtDec(r.weight)} kg`,
-    r.bodyFat != null && `${fmtDec(r.bodyFat)} % grasa`,
-  ];
-  return `Último pesaje ${parts.filter(Boolean).join(' · ')} · ${fmtRelativeTime(r.at)}`;
-}
 
 // Vuelta del OAuth: ?provider=google-health&result=connected|error&reason=...
 const OAUTH_ERRORS = {
@@ -239,136 +270,35 @@ function onXiaomiConnected(connection) {
 
 <template>
   <div class="admin">
-    <AdminHeader
-      title="Conexiones"
-      description="Da permiso a TwinMe para leer tus datos de cada servicio. Los tokens se quedan en la API, nunca en el navegador."
-    />
-
-    <p v-if="result?.persistent === false" class="notice">
-      <Info class="icon icon-sm" />
-      La API no tiene clave de cifrado (TOKEN_ENCRYPTION_KEY): las conexiones se guardan en memoria
-      y hay que volver a conectar cada vez que se reinicia.
-    </p>
-
-    <div v-if="error" class="load-error card">
-      <span>No se han podido cargar las conexiones: {{ error.message }}</span>
-      <button class="btn btn-sm" @click="reload++">Reintentar</button>
-    </div>
-
-    <div class="summary">
-      <span v-if="loading && !connections" class="muted">Cargando…</span>
-      <span v-else
-        ><strong>{{ connectedCount }}</strong> de {{ rows.length }} conectadas</span
-      >
-      <StatusPill v-if="attention" tone="warning" :label="`${attention} necesita atención`" />
-    </div>
-
-    <ul class="list card">
-      <li v-for="row in rows" :key="row.id" class="row">
-        <SourceBadge :source="row.id" :size="40" />
-        <div class="info">
-          <div class="name">
-            <strong>{{ row.name }}</strong>
-            <span
-              v-if="row.connection.experimental"
-              class="tag"
-              title="Entra por su API no oficial: puede dejar de funcionar si el servicio cambia algo"
-              >Experimental</span
-            >
-            <StatusPill
-              :tone="STATUS[row.connection.status].tone"
-              :label="STATUS[row.connection.status].label"
-            />
-          </div>
-          <p class="secondary">{{ row.description }}</p>
-          <div class="types">
-            <span v-for="t in row.provides" :key="t" class="chip">{{ DATA_TYPES[t] }}</span>
-          </div>
-          <p v-if="row.connection.error" class="error">{{ row.connection.error }}</p>
-          <p v-if="row.connection.status === 'connected'" class="meta muted">
-            {{ details(row) }}
-          </p>
-          <p v-if="row.connection.lastSync" class="meta muted">
-            Última sincronización {{ fmtRelativeTime(row.connection.lastSync) }}
-            <span v-if="row.connection.records != null">
-              · {{ fmtInt(row.connection.records) }}
-              {{ row.connection.records === 1 ? 'registro' : 'registros' }}</span
-            >
-            <span v-if="row.connection.firstRecordAt">
-              desde {{ fmtMonthYear(row.connection.firstRecordAt) }}</span
-            >
-          </p>
-          <p v-if="backfill(row)" class="meta hint">{{ backfill(row) }}</p>
-          <p v-if="lastRecord(row)" class="meta muted">{{ lastRecord(row) }}</p>
-          <p
-            v-else-if="
-              row.connection.status === 'connected' &&
-              !row.connection.lastSync &&
-              !row.connection.backfill
-            "
-            class="meta hint"
-          >
-            Pulsa Sincronizar para traer todo el histórico.
-          </p>
-        </div>
-        <div class="actions">
-          <template v-if="row.connection.status === 'connected'">
-            <button class="btn btn-sm" :disabled="syncing === row.id" @click="sync(row)">
-              <RefreshCw class="icon icon-sm" :class="{ spin: syncing === row.id }" />
-              {{ syncing === row.id ? 'Sincronizando…' : 'Sincronizar' }}
-            </button>
-            <button class="btn btn-sm btn-ghost" @click="disconnect(row)">
-              <Unplug class="icon icon-sm" />
-              Desconectar
-            </button>
-          </template>
-          <button
-            v-else-if="row.connection.available"
-            class="btn btn-sm btn-primary"
-            @click="connect(row)"
-          >
-            <Link2 class="icon icon-sm" />
-            {{ row.connection.status === 'expired' ? 'Reconectar' : 'Conectar' }}
-          </button>
-          <button v-else class="btn btn-sm" disabled title="La API aún no conecta este servicio">
-            Próximamente
-          </button>
-        </div>
-      </li>
-    </ul>
-
-    <h2 class="sub">Fuentes internas</h2>
-    <p class="secondary sub-desc">No hace falta conectarlas: escriben directamente en la API.</p>
-    <ul class="list card">
-      <li v-for="[id, source] in internal" :key="id" class="row compact">
-        <SourceBadge :source="id" :size="32" />
-        <div class="info">
-          <div class="name">
-            <strong>{{ source.name }}</strong>
-            <StatusPill
-              v-if="id === 'telegram'"
-              :tone="telegram.status === 'connected' ? 'good' : 'warning'"
-              :label="telegram.status === 'connected' ? 'Vinculado' : 'Sin vincular'"
-            />
-          </div>
-          <p class="secondary">{{ source.description }}</p>
-          <template v-if="id === 'telegram'">
-            <p v-if="telegram.status === 'connected'" class="meta muted">
-              {{ telegram.account }} · vinculado {{ fmtRelativeTime(telegram.connectedAt) }}
-            </p>
-            <p v-else-if="linking" class="meta hint">
-              <template v-if="linking.url"
-                >Se ha abierto el bot: pulsa <b>Iniciar</b>. Si no se abre,
-                <a :href="linking.url" target="_blank" rel="noopener">ábrelo aquí</a> o </template
-              >escríbele <code>{{ linking.command }}</code
-              >. Esperando confirmación…
-            </p>
-            <p v-else class="meta hint">
-              Vincula tu cuenta de Telegram para que lo que le mandes al bot se guarde a tu nombre.
-            </p>
-          </template>
-        </div>
-        <template v-if="id === 'telegram'">
+    <PlatformDetail
+      v-if="platform"
+      :platform="platform"
+      :connectable="Boolean(platformRow) || platform.id === 'telegram'"
+      :pill-for="pillOf"
+    >
+      <ConnectionPanel
+        v-if="platformRow"
+        :row="platformRow"
+        :syncing="syncing === platformRow.id"
+        @sync="sync(platformRow)"
+        @connect="connect(platformRow)"
+        @disconnect="disconnect(platformRow)"
+      />
+      <div v-else-if="platform.id === 'telegram'" class="telegram">
+        <p v-if="telegram.status === 'connected'" class="secondary">
+          {{ telegram.account }} · vinculado {{ fmtRelativeTime(telegram.connectedAt) }}
+        </p>
+        <p v-else-if="linking" class="secondary">
+          <template v-if="linking.url"
+            >Se ha abierto el bot: pulsa <b>Iniciar</b>. Si no se abre,
+            <a :href="linking.url" target="_blank" rel="noopener">ábrelo aquí</a> o </template
+          >escríbele <code>{{ linking.command }}</code
+          >. Esperando confirmación…
+        </p>
+        <p v-else class="secondary">
+          Vincula tu cuenta de Telegram para que lo que le mandes al bot se guarde a tu nombre.
+        </p>
+        <div>
           <button
             v-if="telegram.status === 'connected'"
             class="btn btn-sm btn-ghost"
@@ -394,10 +324,87 @@ function onXiaomiConnected(connection) {
           >
             No disponible
           </button>
-        </template>
-        <StatusPill v-else tone="good" label="Activa" />
-      </li>
-    </ul>
+        </div>
+      </div>
+    </PlatformDetail>
+
+    <template v-else>
+      <AdminHeader
+        title="Conexiones"
+        description="Las plataformas de las que TwinMe lee tus datos: unas se conectan aquí y otras llegan a través de ellas. Los tokens se quedan en la API, nunca en el navegador."
+      />
+
+      <p v-if="result?.persistent === false" class="notice">
+        <Info class="icon icon-sm" />
+        La API no tiene clave de cifrado (TOKEN_ENCRYPTION_KEY): las conexiones se guardan en
+        memoria y hay que volver a conectar cada vez que se reinicia.
+      </p>
+
+      <div v-if="error" class="load-error card">
+        <span>No se han podido cargar las conexiones: {{ error.message }}</span>
+        <button class="btn btn-sm" @click="reload++">Reintentar</button>
+      </div>
+
+      <section v-if="mine.length" class="group">
+        <div class="summary">
+          <h2 class="sub">Tus conexiones</h2>
+          <span class="muted"
+            ><strong>{{ connectedCount }}</strong> de {{ rows.length }} conectadas</span
+          >
+          <StatusPill v-if="attention" tone="warning" :label="`${attention} necesita atención`" />
+        </div>
+        <ul class="mine card">
+          <li v-for="p in mine" :key="p.id">
+            <RouterLink :to="`/admin/connections/${p.id}`" class="mine-row">
+              <PlatformLogo :platform="p" :size="32" />
+              <strong>{{ p.name }}</strong>
+              <span class="muted when">{{ lastSyncOf(p) }}</span>
+              <StatusPill :tone="pillOf(p).tone" :label="pillOf(p).label" />
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+      <p v-else-if="loading && !connections" class="muted">Cargando…</p>
+
+      <div class="filters">
+        <label class="search">
+          <Search class="icon icon-sm muted" />
+          <input
+            v-model="query"
+            class="input"
+            type="search"
+            placeholder="Buscar: Garmin, sueño, báscula…"
+            aria-label="Buscar plataformas"
+          />
+        </label>
+        <div class="cats" role="radiogroup" aria-label="Categoría">
+          <button
+            v-for="[id, label] in categoryOptions"
+            :key="id"
+            role="radio"
+            :aria-checked="category === id"
+            :class="{ active: category === id }"
+            @click="category = id"
+          >
+            {{ label }}
+          </button>
+        </div>
+      </div>
+
+      <section v-for="g in groups" :key="g.id" class="group">
+        <h2 class="sub">{{ g.label }}</h2>
+        <div class="grid">
+          <PlatformCard
+            v-for="p in g.items"
+            :key="p.id"
+            :platform="p"
+            :pill="pillOf(p)"
+            :via-name="viaName(p)"
+          />
+        </div>
+      </section>
+      <p v-if="!groups.length" class="muted empty">Nada con «{{ query }}».</p>
+    </template>
 
     <XiaomiConnectModal
       :open="xiaomiOpen"
@@ -414,19 +421,9 @@ function onXiaomiConnected(connection) {
 </template>
 
 <style scoped>
-.hint {
-  font-size: 12px;
-  color: var(--text-2);
-}
-
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.admin {
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .notice {
@@ -452,120 +449,128 @@ function onXiaomiConnected(connection) {
   font-size: 13px;
 }
 
-.admin {
-  max-width: 920px;
-  margin: 0 auto;
+.group {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.sub {
+  margin: 0;
+  font-size: 15px;
 }
 
 .summary {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 12px;
-  color: var(--text-2);
+  font-size: 13px;
 }
 
-.list {
-  margin: 0 0 32px;
+.mine {
+  margin: 0;
   padding: 0;
   list-style: none;
   overflow: hidden;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
-  align-items: start;
-  padding: 18px 20px;
-}
-
-.row + .row {
+.mine li + li {
   border-top: 1px solid var(--border);
 }
 
-.row.compact {
-  align-items: center;
-  padding: 14px 20px;
-}
-
-.info {
+.mine-row {
   display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.info p {
-  font-size: 13px;
-}
-
-.name {
-  display: flex;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mine-row:hover {
+  background: var(--surface-hover);
+}
+
+.when {
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filters {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.search {
+  position: relative;
+  display: block;
+}
+
+.search .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.search .input {
+  width: 100%;
+  padding-left: 34px;
+}
+
+.cats {
+  display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cats button {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cats button.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--inverse);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 10px;
 }
 
-.types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.chip {
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 11px;
-}
-
-.meta {
-  font-size: 12px !important;
-}
-
-.error {
-  color: var(--warning-text);
-}
-
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
-.sub {
-  margin-bottom: 2px;
-}
-
-.sub-desc {
+.telegram {
+  display: grid;
+  gap: 10px;
   font-size: 13px;
-  margin-bottom: 12px;
 }
 
-@media (max-width: 700px) {
-  .row {
-    grid-template-columns: auto 1fr;
-  }
-
-  .actions,
-  .row > :nth-child(n + 3) {
-    grid-column: 2;
-    justify-self: start;
-  }
-
-  .row,
-  .row.compact {
-    gap: 12px 14px;
-    align-items: start;
-    padding: 16px;
-  }
+.empty {
+  font-size: 13px;
 }
 
-.tag {
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text-2);
-  font-size: 11px;
+@media (max-width: 600px) {
+  .mine-row {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .when {
+    display: none;
+  }
 }
 </style>
