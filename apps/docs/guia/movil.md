@@ -6,6 +6,8 @@ TwinMe se instala como una app (PWA): icono en la pantalla de inicio, pantalla c
 
 En **Safari**: **Compartir → Añadir a pantalla de inicio**. Ábrela siempre desde el icono.
 
+Va siempre **en vertical**. En Android lo bloquea el sistema; el iPhone no lo deja bloquear, así que si lo giras, la app se tapa con un "Gira el móvil" hasta que lo pongas derecho. En el navegador (sin instalar) y en el iPad se puede usar de lado.
+
 ## Entrar con Face ID
 
 En **Ajustes → Cuenta → Face ID → Activar Face ID en este dispositivo**. El iPhone guarda una _llave de acceso_ (passkey) en tu llavero (elige "Contraseñas"). Desde entonces el login ofrece **Entrar con Face ID** primero. Si usas el llavero de iCloud, vale también en tu Mac y tu iPad.
