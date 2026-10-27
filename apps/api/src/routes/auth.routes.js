@@ -3,7 +3,7 @@ import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { validate } from '../middlewares/validate.js';
 import { HttpError } from '../utils/http-error.js';
-import { publicUser } from '../services/users.js';
+import { isActive, publicUser } from '../services/users.js';
 import { attempt } from './passkeys.routes.js';
 
 const loginBody = z.object({
@@ -50,7 +50,9 @@ export function createAuthRouter({ users, sessions, passkeys, limitAttempts = tr
         code: 'INVALID_CREDENTIALS',
       });
     }
+    assertActive(user);
     await sessions.start(res, user, { remember });
+    await users.touchLogin?.(user.id);
     req.log?.info({ user: user.id }, 'Sesión iniciada');
     res.json({ user: publicUser(user) });
   });
@@ -75,7 +77,9 @@ export function createAuthRouter({ users, sessions, passkeys, limitAttempts = tr
           { code: 'INVALID_PASSKEY' },
         );
       }
+      assertActive(user);
       await sessions.start(res, user, { remember: true });
+      await users.touchLogin?.(user.id);
       req.log?.info({ user: user.id }, 'Sesión iniciada con passkey');
       res.json({ user: publicUser(user) });
     });
@@ -89,9 +93,19 @@ export function createAuthRouter({ users, sessions, passkeys, limitAttempts = tr
   router.get('/session', async (req, res) => {
     const userId = await sessions.read(req);
     const user = userId && (await users.findById(userId));
-    if (!user) throw HttpError.unauthorized('No hay sesión', { code: 'NO_SESSION' });
+    if (!user || !isActive(user))
+      throw HttpError.unauthorized('No hay sesión', { code: 'NO_SESSION' });
     res.json({ user: publicUser(user) });
   });
 
   return router;
+}
+
+/** La contraseña está bien, pero la cuenta está desactivada o ha caducado. */
+function assertActive(user) {
+  if (isActive(user)) return;
+  throw HttpError.forbidden(
+    user.disabledAt ? 'Esta cuenta está desactivada' : 'Esta cuenta ha caducado',
+    { code: 'ACCOUNT_INACTIVE' },
+  );
 }

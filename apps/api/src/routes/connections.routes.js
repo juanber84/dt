@@ -13,6 +13,13 @@ import { readCookie } from '../utils/cookies.js';
 import { TELEGRAM } from '../services/telegram-link.js';
 import { INTERVALS_PROVIDER } from '../services/intervals-connect.js';
 import { MOTRA_PROVIDER } from '../services/motra-connect.js';
+import { requireFeature } from '../middlewares/authenticate.js';
+import { hasFeature } from '../services/users.js';
+
+/** Entran por su API no oficial: solo con la función 'experimental-connections' (o admin). */
+export const EXPERIMENTAL_PROVIDERS = Object.freeze(['xiaomi', MOTRA_PROVIDER]);
+const EXPERIMENTAL = 'experimental-connections';
+const experimental = requireFeature(EXPERIMENTAL);
 
 const loginBody = z.object({
   username: z.string().trim().min(1).max(200),
@@ -77,12 +84,18 @@ export function createConnectionsRouter({
   router.get('/', async (req, res) => {
     const saved = new Map((await store.list(req.user.id)).map((c) => [c.provider, c]));
     const progress = backfills ? await backfills(req.user.id) : {};
+    // Las experimentales no se enseñan a quien no las tiene, salvo que ya estén conectadas
+    const allowed = hasFeature(req.user, EXPERIMENTAL);
+    const visible = PROVIDERS.filter(
+      (id) => allowed || !EXPERIMENTAL_PROVIDERS.includes(id) || saved.has(id),
+    );
     res.json({
       // false: en memoria (sin TOKEN_ENCRYPTION_KEY), se pierden al reiniciar la API
       persistent: store.persistent !== false,
-      items: PROVIDERS.map((id) => ({
+      items: visible.map((id) => ({
         id,
-        available: available[id] ?? false,
+        available: (available[id] ?? false) && (allowed || !EXPERIMENTAL_PROVIDERS.includes(id)),
+        ...(EXPERIMENTAL_PROVIDERS.includes(id) && { experimental: true }),
         ...(saved.has(id) ? publicConnection(saved.get(id)) : { status: 'disconnected' }),
         ...(saved.has(id) && progress[id] && { backfill: progress[id] }),
       })),
@@ -122,6 +135,8 @@ export function createConnectionsRouter({
     }
     res.status(204).end();
   });
+
+  router.use(['/xiaomi/login', `/${MOTRA_PROVIDER}/connect`], experimental);
 
   router.post('/xiaomi/login', validate({ body: loginBody }), async (req, res) => {
     res.json(await xiaomiLogin.start({ userId: req.user.id, ...req.validated.body }));

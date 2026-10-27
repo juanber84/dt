@@ -76,8 +76,13 @@ export function createDbPushStore({ db }) {
       }
     },
     /** Usuarios con algún dispositivo suscrito (las reglas del worker los recorren). */
+    /** Quien tiene el push activado, sin las cuentas demo, desactivadas o caducadas. */
     async subscribedUsers() {
-      const rows = await db`select distinct user_id from push_subscriptions`;
+      const rows = await db`
+        select distinct p.user_id from push_subscriptions p join users u on u.id = p.user_id
+        where not u.demo and u.disabled_at is null
+          and (u.expires_at is null or u.expires_at > now())
+      `;
       return rows.map((r) => r.user_id);
     },
 

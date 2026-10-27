@@ -29,11 +29,13 @@ function fakeAuth() {
   };
 }
 
-async function setup(auth = fakeAuth(), deps = {}) {
+async function setup(auth = fakeAuth(), deps = {}, { anaFeatures = [] } = {}) {
+  const users = await testUsers();
+  await users.update('ana', { features: anaFeatures });
   const app = buildApp(
     {},
     {
-      users: await testUsers(),
+      users,
       xiaomiAuth: auth,
       xiaomiDescribeAccount: async () => ({
         devices: [{ name: 'Báscula', model: 'yunmai.scales.ms104' }],
@@ -69,8 +71,32 @@ describe('/api/v1/connections', () => {
     expect(res.body.items.find((c) => c.id === 'xiaomi')).toEqual({
       id: 'xiaomi',
       available: true,
+      experimental: true,
       status: 'disconnected',
     });
+  });
+
+  it('las experimentales (Xiaomi, Motra) solo con la función activada', async () => {
+    const { ana } = await setup();
+    const res = await ana.get('/api/v1/connections');
+    expect(res.body.items.map((c) => c.id)).toEqual([
+      'google-health',
+      'strava',
+      'intervals-icu',
+      'fatsecret',
+    ]);
+    const xiaomi = await ana.post('/api/v1/connections/xiaomi/login', login);
+    expect(xiaomi.status).toBe(403);
+    expect(xiaomi.body.error.code).toBe('FEATURE_REQUIRED');
+    const motra = await ana.post('/api/v1/connections/motra/connect', {
+      email: 'a@b.c',
+      password: 'x',
+    });
+    expect(motra.status).toBe(403);
+
+    const allowed = await setup(undefined, {}, { anaFeatures: ['experimental-connections'] });
+    const list = await allowed.ana.get('/api/v1/connections');
+    expect(list.body.items.map((c) => c.id)).toContain('xiaomi');
   });
 
   it('exige sesión', async () => {
@@ -79,7 +105,13 @@ describe('/api/v1/connections', () => {
   });
 
   it('login de Xiaomi completo: captcha, código erróneo, código bueno y desconectar', async () => {
-    const { api, ana, auth } = await setup();
+    const { api, ana, auth } = await setup(
+      undefined,
+      {},
+      {
+        anaFeatures: ['experimental-connections'],
+      },
+    );
 
     const start = await api.post('/api/v1/connections/xiaomi/login', login);
     expect(start.status).toBe(200);

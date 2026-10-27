@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpServer } from '@digitaltwin/mcp';
+import { isActive } from '../services/users.js';
 
 /**
  * /api/mcp: servidor MCP (Streamable HTTP, sin estado) sobre el timeline del usuario del token.
@@ -12,13 +13,19 @@ import { createMcpServer } from '@digitaltwin/mcp';
  * @param {ReturnType<typeof import('../services/personal-tokens.js').createDbPersonalTokens>} deps.tokens
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
  * @param {string} deps.timeZone
+ * @param {ReturnType<typeof import('../services/users.js').createUserStore>} [deps.users]
+ *   Con ellos, el token de un usuario desactivado o caducado deja de valer.
  */
-export function createMcpRouter({ tokens, queries, profiles, engine, timeZone }) {
+export function createMcpRouter({ tokens, queries, profiles, engine, timeZone, users }) {
   const router = Router();
 
   router.use(async (req, res, next) => {
     const match = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
-    const found = match && (await tokens.verify(match[1]));
+    let found = match && (await tokens.verify(match[1]));
+    if (found && users) {
+      const user = await users.findById(found.userId);
+      if (!user || !isActive(user)) found = null;
+    }
     if (!found) {
       res.setHeader('WWW-Authenticate', 'Bearer realm="digitaltwin"');
       return res.status(401).json(rpcError(-32001, 'Token personal no válido'));

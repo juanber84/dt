@@ -7,6 +7,7 @@ const model = defineModel({ type: String, default: '' });
 defineProps({
   name: { type: String, default: 'password' },
   autocomplete: { type: String, default: 'current-password' },
+  required: { type: Boolean, default: true },
 });
 
 const visible = ref(false);
@@ -24,7 +25,7 @@ const onKey = (event) => (capsLock.value = event.getModifierState?.('CapsLock') 
       :autocomplete="autocomplete"
       autocapitalize="off"
       spellcheck="false"
-      required
+      :required="required"
       @keydown="onKey"
       @keyup="onKey"
     />

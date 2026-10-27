@@ -274,6 +274,9 @@ front y reenvía `/api` (y con él los webhooks de Google Health) a la API. Ese 
    sudo docker exec -it digitaltwin-api node scripts/create-user.js --email yo@x.com --name Yo --role admin
    ```
 
+   Los demás usuarios (también las cuentas demo) se dan de alta desde la web: **Administración →
+   Usuarios**.
+
 5. Vincula tu Telegram con tu usuario, para que las comidas del bot queden a tu nombre: en la web,
    **Conexiones → Bot de Telegram → Vincular**. Se abre el bot con un código de un solo uso; pulsa
    _Iniciar_ y listo (o escríbele `/vincular <código>`). Atajo de administrador sin web:

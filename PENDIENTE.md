@@ -43,6 +43,24 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
   (PLAN.md), kcal activas del Watch infladas, Google borra el nombre de las fuentes de Apple Salud
   (HealthSave aparcado).
 
+## Ideas del 27/10
+
+- [ ] **Test de sudoración.** Cuánto líquido pierdes por hora entrenando: (peso antes − peso
+      después + lo bebido) ÷ horas, con la báscula, el entreno de intervals.icu y el agua. Cómo
+      hacerlo (test guiado o detectado solo, bici/carrera, sodio), por decidir.
+- [ ] **Plataformas y conexiones.** Conexiones pasa a ser un catálogo: buscador, tarjetas por
+      categoría y una ficha por plataforma (qué datos da, estado, enlaces a iOS, Android y web,
+      referral). Estados: oficial (Google, intervals.icu; Whoop, Oura y FatSecret tienen API
+      pública), a través de otra (Magene, iGPSport → intervals.icu/Strava), solo enlace y
+      experimental (Xiaomi, Motra: ya detrás de la función `experimental-connections`).
+  - Motra: pedirles cuenta Pro y partnership, y probar su MCP (`mcp.motra.com`, OAuth) como
+    integración oficial: ¿series/reps/kg con IDs estables, todo el histórico, límites, escritura?
+- [x] **Gestión de usuarios** (27/10): Administración → Usuarios (alta, editar, desactivar,
+      borrar), funciones por usuario y cuentas demo (sin informe ni push, caducan al mes).
+  - Falta: **datos de las cuentas demo** (por decidir: generados, una copia anonimizada de los
+    tuyos o mezcla) y el **tope de gasto del coach** (punto 7) antes de dar una a nadie. Un
+    usuario desactivado sigue sincronizando sus conexiones en el worker.
+
 ## Datos
 
 - [ ] **Periodos, lo que falta** (hecho el 23/10: Registrar → Periodo, motor, Hoy, coach,

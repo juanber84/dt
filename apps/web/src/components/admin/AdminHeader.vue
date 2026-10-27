@@ -18,6 +18,7 @@ defineProps({
       <RouterLink to="/settings" active-class="active">Cuenta</RouterLink>
       <RouterLink to="/admin/connections" active-class="active">Conexiones</RouterLink>
       <template v-if="isAdmin">
+        <RouterLink to="/admin/users" active-class="active">Usuarios</RouterLink>
         <RouterLink to="/admin/sources" active-class="active">Fuentes</RouterLink>
         <RouterLink to="/admin/ai" active-class="active">IA</RouterLink>
         <RouterLink to="/admin/system" active-class="active">Sistema</RouterLink>

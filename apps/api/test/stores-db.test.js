@@ -74,6 +74,44 @@ describe.skipIf(!url)('stores en la BD', () => {
         password: 'patata',
       });
     });
+
+    it('administración: alta, cambios, desactivar, caducar, lista con conexiones y borrar', async () => {
+      const demo = await users.create({
+        email: 'demo@partner.com',
+        role: 'user',
+        password: 'demo-demo',
+        features: ['experimental-connections'],
+        demo: true,
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      });
+      expect(demo).toMatchObject({
+        demo: true,
+        features: ['experimental-connections'],
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        disabledAt: null,
+      });
+      expect(
+        await users.create({ email: 'DEMO@partner.com', role: 'user', password: 'x' }),
+      ).toBeNull();
+
+      const off = await users.update(demo.id, { name: 'Partner', disabled: true, features: [] });
+      expect(off).toMatchObject({ name: 'Partner', features: [], disabledAt: expect.any(String) });
+      // Solo la contraseña: lo demás se queda como estaba
+      const same = await users.update(demo.id, { password: 'otra-otra' });
+      expect(same).toMatchObject({ name: 'Partner', disabledAt: off.disabledAt });
+      expect(await users.verify('demo@partner.com', 'otra-otra')).not.toBeNull();
+      expect((await users.update(demo.id, { disabled: false })).disabledAt).toBeNull();
+      expect((await users.update(demo.id, { expiresAt: null })).expiresAt).toBeNull();
+      expect(await users.update('juanber', { name: 'x' })).toBeNull();
+
+      await users.touchLogin(demo.id);
+      const listed = (await users.list()).find((u) => u.id === demo.id);
+      expect(listed).toMatchObject({ lastLoginAt: expect.any(String), connections: [] });
+
+      expect(await users.remove(demo.id)).toBe(true);
+      expect(await users.findById(demo.id)).toBeNull();
+      expect(await users.remove(demo.id)).toBe(false);
+    });
   });
 
   describe('conexiones', () => {
@@ -440,6 +478,11 @@ describe.skipIf(!url)('stores en la BD', () => {
         dailyEnabled: true,
         dailyTime: '09:00',
       });
+      // Las cuentas demo y las desactivadas no reciben el informe
+      await users.update(other.id, { demo: true });
+      expect((await store.recipients()).some((r) => r.userId === other.id)).toBe(false);
+      await users.update(other.id, { demo: false, disabled: true });
+      expect((await store.recipients()).some((r) => r.userId === other.id)).toBe(false);
     });
   });
 

@@ -76,13 +76,18 @@ export function createDbReportStore({ db }) {
           updated_at = now()
       `;
     },
-    /** Todos los usuarios con su correo y sus preferencias (las de por defecto si no tienen). */
+    /**
+     * Los usuarios con su correo y sus preferencias (las de por defecto si no tienen). Sin las
+     * cuentas demo, desactivadas o caducadas.
+     */
     async recipients() {
       const rows = await db`
         select u.id, u.email, u.name,
           coalesce(s.daily_enabled, ${DEFAULT_SETTINGS.dailyEnabled}) as daily_enabled,
           coalesce(s.daily_time, ${DEFAULT_SETTINGS.dailyTime}::time) as daily_time
         from users u left join report_settings s on s.user_id = u.id
+        where not u.demo and u.disabled_at is null
+          and (u.expires_at is null or u.expires_at > now())
       `;
       return rows.map((r) => ({
         userId: r.id,

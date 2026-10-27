@@ -1,6 +1,6 @@
 import { HttpError } from '../utils/http-error.js';
 import { apiKeyAuth } from './api-key-auth.js';
-import { publicUser } from '../services/users.js';
+import { hasFeature, isActive, publicUser } from '../services/users.js';
 
 /**
  * Quién llama: un cliente con API key (`Authorization: Bearer`, p. ej. el bot) o una persona con
@@ -20,7 +20,9 @@ export function authenticate({ apiKeys, sessions, users }) {
     }
     const userId = await sessions.read(req);
     const user = userId && (await users.findById(userId));
-    if (!user) return next(HttpError.unauthorized('Inicia sesión', { code: 'NO_SESSION' }));
+    // Desactivado o caducado: la sesión que tuviera deja de valer en la siguiente petición
+    if (!user || !isActive(user))
+      return next(HttpError.unauthorized('Inicia sesión', { code: 'NO_SESSION' }));
     req.user = publicUser(user);
     req.log = req.log?.child({ user: user.id }) ?? req.log;
     next();
@@ -44,5 +46,13 @@ export function requireRole(role) {
   return (req, _res, next) => {
     if (req.user?.role === role) return next();
     next(HttpError.forbidden('No tienes permiso para esto', { code: 'ROLE_REQUIRED' }));
+  };
+}
+
+/** @param {string} feature p. ej. 'experimental-connections' (los admin las tienen todas) */
+export function requireFeature(feature) {
+  return (req, _res, next) => {
+    if (req.user && hasFeature(req.user, feature)) return next();
+    next(HttpError.forbidden('Esto no está activado en tu cuenta', { code: 'FEATURE_REQUIRED' }));
   };
 }

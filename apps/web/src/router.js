@@ -53,6 +53,12 @@ export const router = createRouter({
       meta: { role: 'admin' },
     },
     {
+      path: '/admin/users',
+      name: 'users',
+      component: () => import('./views/admin/UsersView.vue'),
+      meta: { role: 'admin' },
+    },
+    {
       path: '/admin/ai',
       name: 'ai',
       component: () => import('./views/admin/AiView.vue'),

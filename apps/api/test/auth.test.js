@@ -21,7 +21,14 @@ describe('/api/v1/auth', () => {
       .send({ username: 'Admin@Example.com ', password: PASSWORD });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      user: { id: 'admin', email: 'admin@example.com', name: 'Admin', role: 'admin' },
+      user: {
+        id: 'admin',
+        email: 'admin@example.com',
+        name: 'Admin',
+        role: 'admin',
+        features: ['experimental-connections'],
+        demo: false,
+      },
     });
     const [cookie] = res.headers['set-cookie'];
     expect(cookie).toMatch(/^dt_session=ey[\w-]+\.[\w-]+\.[\w-]+;/);

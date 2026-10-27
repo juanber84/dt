@@ -45,9 +45,11 @@ const STATUS = {
   disconnected: { tone: 'neutral', label: 'Sin conectar' },
 };
 
+// Solo las que da la API: las experimentales (Xiaomi, Motra) no salen si no las tienes activadas
 const rows = computed(() =>
   Object.entries(SOURCES)
     .filter(([, s]) => s.auth !== 'internal')
+    .filter(([id]) => !connections.value || connections.value.some((c) => c.id === id))
     .map(([id, source]) => ({
       id,
       ...source,
@@ -267,6 +269,12 @@ function onXiaomiConnected(connection) {
         <div class="info">
           <div class="name">
             <strong>{{ row.name }}</strong>
+            <span
+              v-if="row.connection.experimental"
+              class="tag"
+              title="Entra por su API no oficial: puede dejar de funcionar si el servicio cambia algo"
+              >Experimental</span
+            >
             <StatusPill
               :tone="STATUS[row.connection.status].tone"
               :label="STATUS[row.connection.status].label"
@@ -551,5 +559,13 @@ function onXiaomiConnected(connection) {
     align-items: start;
     padding: 16px;
   }
+}
+
+.tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 11px;
 }
 </style>

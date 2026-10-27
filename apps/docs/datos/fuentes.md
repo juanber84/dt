@@ -11,6 +11,10 @@
 
 La primera vez que conectas una fuente se trae tu histórico (Google: hasta dos años; Motra: hasta cinco años, un detalle por entreno; todo por trozos y sin pasarse de los límites de cada API). El progreso se ve en Conexiones.
 
+::: warning Xiaomi y Motra son experimentales
+Entran por su API no oficial (la que usan sus apps), así que pueden dejar de funcionar si el servicio cambia algo. Solo salen en Conexiones a los administradores y a quien tenga activadas las **conexiones experimentales** (Administración → Usuarios).
+:::
+
 ::: info El mismo entreno por dos fuentes
 Un entreno de fuerza puede llegar por **Motra** (con series y repeticiones) y también, como simple resumen, por **Google** (vía Apple Health). Cuando se solapan en el tiempo gana el de Motra, que es la fuente directa y trae el detalle.
 :::

@@ -81,10 +81,12 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 
 ## Administración 👑
 
-|       |                          |                                                          |
-| ----- | ------------------------ | -------------------------------------------------------- |
-| `GET` | `/admin/ai`              | Modelos, saldo y gasto de la IA                          |
-| `GET` | `/admin/system/activity` | Entradas de fuera, últimos trabajos, copias de seguridad |
+|                  |                          |                                                                                                                                                                                 |
+| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` `POST`     | `/admin/users`           | Usuarios (con sus conexiones) y funciones activables; alta (sin `password`, se genera y se devuelve una vez en `generatedPassword`)                                             |
+| `PATCH` `DELETE` | `/admin/users/:id`       | Cambiar nombre, rol, contraseña, funciones (`features`), `demo`, `expiresAt` o `disabled`; borrar con todos sus datos. Uno no puede quitarse el admin, desactivarse ni borrarse |
+| `GET`            | `/admin/ai`              | Modelos, saldo y gasto de la IA                                                                                                                                                 |
+| `GET`            | `/admin/system/activity` | Entradas de fuera, últimos trabajos, copias de seguridad                                                                                                                        |
 
 ## Salud del servicio
 

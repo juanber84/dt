@@ -20,6 +20,7 @@ import { createEntriesRouter } from './entries.routes.js';
 import { createEntries } from '../services/entries.js';
 import { createProfileRouter } from './profile.routes.js';
 import { createSupplementsRouter } from './supplements.routes.js';
+import { createUsersAdminRouter } from './users-admin.routes.js';
 import {
   authenticate,
   requireApiClient,
@@ -157,6 +158,12 @@ export function createApiRouter({
       }),
     );
   }
+  router.use(
+    '/admin/users',
+    requireUser,
+    requireRole(Role.ADMIN),
+    createUsersAdminRouter({ users }),
+  );
   router.use(
     '/admin/ai',
     requireUser,

@@ -443,6 +443,7 @@ export function createApp({
       '/api/mcp',
       createMcpRouter({
         tokens: personalTokens,
+        users,
         queries: pipeline.queries,
         profiles,
         engine,

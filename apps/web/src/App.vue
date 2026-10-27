@@ -19,6 +19,7 @@ import {
   BrainCircuit,
   FileHeart,
   FileText,
+  Users,
 } from '@lucide/vue';
 import Toast from './components/ui/Toast.vue';
 import TopProgress from './components/ui/TopProgress.vue';
@@ -59,8 +60,9 @@ const settings = [
   { to: '/settings', label: 'Cuenta', icon: UserRound },
   { to: '/admin/connections', label: 'Conexiones', icon: Plug },
 ];
-// Solo admin: qué fuentes entran y en qué orden, y el estado del sistema
+// Solo admin: usuarios, qué fuentes entran y en qué orden, y el estado del sistema
 const admin = [
+  { to: '/admin/users', label: 'Usuarios', icon: Users },
   { to: '/admin/sources', label: 'Fuentes', icon: Layers },
   { to: '/admin/ai', label: 'IA', icon: BrainCircuit },
   { to: '/admin/system', label: 'Sistema', icon: Server },
