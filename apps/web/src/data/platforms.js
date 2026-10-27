@@ -1,4 +1,4 @@
-import { siApple, siGarmin, siGoogle, siStrava, siTelegram, siXiaomi } from 'simple-icons';
+import { siGarmin, siGoogle, siStrava, siTelegram, siXiaomi } from 'simple-icons';
 
 /**
  * Catálogo de Conexiones: cada plataforma con lo que da, cómo llega a TwinMe y dónde conseguirla.
@@ -53,20 +53,6 @@ export const PLATFORMS = [
       ios: 'https://apps.apple.com/es/app/google-health-fitbit/id462638897',
       android: 'https://play.google.com/store/apps/details?id=com.fitbit.FitbitMobile',
     },
-  },
-  {
-    id: 'apple-health',
-    name: 'Apple Salud',
-    category: 'health',
-    state: 'via',
-    via: ['google-health'],
-    icon: icon(siApple),
-    tagline: 'Apple Watch e iPhone.',
-    description:
-      'Apple no deja leer Salud desde un servidor: la app de Google Health del iPhone lo sube a Google y de ahí llega aquí.',
-    how: 'Instala Google Health en el iPhone, dale permiso para leer Salud y conecta Google Health aquí. Los datos suben cuando abres esa app.',
-    provides: ['sleep', 'heart-rate', 'hrv', 'steps', 'spo2', 'vo2max', 'workouts'],
-    links: {},
   },
   {
     id: 'whoop',

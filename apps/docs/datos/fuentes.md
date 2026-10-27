@@ -13,13 +13,13 @@
 
 En Ajustes → Conexiones salen también las plataformas que **no** se conectan directamente, para que se vea cómo llegan sus datos. Cada una tiene un estado:
 
-| Estado               | Qué quiere decir                           | Plataformas                                                             |
-| -------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
-| **Conexión directa** | Se conecta aquí, con su API oficial        | Google Health, intervals.icu                                            |
-| **A través de otra** | Sus datos llegan por una que sí se conecta | Apple Salud (por Google), Garmin, Magene e iGPSport (por intervals.icu) |
-| **Experimental**     | Se conecta aquí, por su API no oficial     | Xiaomi, Motra                                                           |
-| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Oura, FatSecret                                          |
-| **De TwinMe**        | Parte de la app                            | Bot de Telegram, informes médicos, Registrar                            |
+| Estado               | Qué quiere decir                           | Plataformas                                   |
+| -------------------- | ------------------------------------------ | --------------------------------------------- |
+| **Conexión directa** | Se conecta aquí, con su API oficial        | Google Health, intervals.icu                  |
+| **A través de otra** | Sus datos llegan por una que sí se conecta | Garmin, Magene e iGPSport (por intervals.icu) |
+| **Experimental**     | Se conecta aquí, por su API no oficial     | Xiaomi, Motra                                 |
+| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Oura, FatSecret                |
+| **De TwinMe**        | Parte de la app                            | Bot de Telegram, informes médicos, Registrar  |
 
 El catálogo vive en `apps/web/src/data/platforms.js`: categoría, estado, `via` (a través de cuál), qué datos da, enlaces (`ios`, `android`, `web` y `referral`, el de invitación, que va primero si lo hay) y logo. Los logos salen de [simple-icons](https://simpleicons.org) (CC0) donde los hay; el resto lleva monograma hasta que la plataforma mande su kit de marca (su SVG va en `logo`, en `apps/web/public/platforms/`).
 
