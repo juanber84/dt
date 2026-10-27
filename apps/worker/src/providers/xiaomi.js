@@ -58,7 +58,7 @@ export function createXiaomiProvider({
           await connections.save({
             ...latest,
             status: 'expired',
-            error: 'Xiaomi ha cerrado la sesión: vuelve a conectar',
+            error: 'La báscula ha cerrado la sesión: vuelve a conectar',
           });
           logger?.warn({ userId }, 'Xiaomi: sesión caducada, hay que reconectar');
           return { skipped: 'expired' };

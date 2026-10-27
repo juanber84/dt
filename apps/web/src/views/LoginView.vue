@@ -52,7 +52,7 @@ const MESSAGES = {
 const SOURCES = [
   { name: 'Apple Watch', color: '#3987e5' },
   { name: 'Garmin · intervals.icu', color: '#eb6834' },
-  { name: 'Báscula Xiaomi', color: '#c3c2b7' },
+  { name: 'Báscula', color: '#c3c2b7' },
   { name: 'Bot de comidas', color: '#1baf7a' },
 ];
 

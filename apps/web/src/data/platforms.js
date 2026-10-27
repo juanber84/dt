@@ -5,8 +5,8 @@ import { siApple, siGarmin, siGoogle, siStrava, siTelegram, siXiaomi } from 'sim
  * Las que se conectan aquí apuntan a su fuente (`source`, de data/sources.js); las demás llegan a
  * través de otra (`via`), aún no están (`soon`) o son de la propia app.
  *
- * Logos: los de simple-icons (CC0) donde los hay; si no, monograma. Cuando una plataforma mande su
- * kit de marca, su SVG va en `logo` (en public/platforms/).
+ * Logos: el icono de su app (App Store, 160 px) en `logo` (public/platforms/); si no hay app, el de
+ * simple-icons (CC0) y si tampoco, monograma. El color (`icon`/`color`) tiñe el halo de la ficha.
  */
 export const CATEGORIES = {
   health: { label: 'Reloj y salud' },
@@ -40,6 +40,7 @@ const icon = (si, scale) => ({ path: si.path, color: `#${si.hex}`, scale });
 export const PLATFORMS = [
   {
     id: 'google-health',
+    logo: '/platforms/google-health.png',
     source: 'google-health',
     name: 'Google Health',
     category: 'health',
@@ -70,6 +71,7 @@ export const PLATFORMS = [
   },
   {
     id: 'whoop',
+    logo: '/platforms/whoop.png',
     name: 'WHOOP',
     category: 'health',
     state: 'soon',
@@ -86,6 +88,7 @@ export const PLATFORMS = [
   },
   {
     id: 'oura',
+    logo: '/platforms/oura.png',
     name: 'Oura',
     category: 'health',
     state: 'soon',
@@ -115,6 +118,7 @@ export const PLATFORMS = [
   },
   {
     id: 'strava',
+    logo: '/platforms/strava.png',
     source: 'strava',
     name: 'Strava',
     category: 'training',
@@ -132,6 +136,7 @@ export const PLATFORMS = [
   },
   {
     id: 'garmin',
+    logo: '/platforms/garmin.png',
     name: 'Garmin',
     category: 'training',
     state: 'via',
@@ -165,6 +170,7 @@ export const PLATFORMS = [
   },
   {
     id: 'motra',
+    logo: '/platforms/motra.png',
     name: 'Motra',
     category: 'training',
     state: 'soon',
@@ -179,6 +185,7 @@ export const PLATFORMS = [
   },
   {
     id: 'magene',
+    logo: '/platforms/magene.png',
     name: 'Magene',
     category: 'cycling',
     state: 'via',
@@ -196,6 +203,7 @@ export const PLATFORMS = [
   },
   {
     id: 'igpsport',
+    logo: '/platforms/igpsport.png',
     name: 'iGPSport',
     category: 'cycling',
     state: 'via',
@@ -209,14 +217,30 @@ export const PLATFORMS = [
     links: { web: 'https://www.igpsport.com' },
   },
   {
-    id: 'xiaomi',
+    // La conexión de prueba (API no oficial de la nube de la báscula): sin la marca
+    id: 'scale-lab',
     source: 'xiaomi',
-    name: 'Xiaomi',
+    name: 'Báscula (experimental)',
     category: 'scale',
     state: 'experimental',
+    monogram: 'Bx',
+    tagline: 'Báscula de bioimpedancia, de prueba.',
+    description:
+      'Peso, grasa, músculo, agua, grasa visceral y metabolismo basal. Entra por una API no oficial, solo para probar.',
+    provides: ['weight', 'body-composition'],
+    links: {},
+  },
+  {
+    id: 'xiaomi',
+    name: 'Xiaomi',
+    category: 'scale',
+    state: 'via',
+    via: ['google-health'],
     icon: icon(siXiaomi),
     tagline: 'Báscula de bioimpedancia.',
-    description: 'Peso, grasa, músculo, agua, grasa visceral y metabolismo basal.',
+    description:
+      'Su app (Zepp Life) pasa el peso y la grasa a Apple Salud, y de ahí llegan por Google Health.',
+    how: 'En Zepp Life, activa Apple Salud; en el iPhone, Google Health lee Salud; y conecta Google Health aquí.',
     provides: ['weight', 'body-composition'],
     links: {
       ios: 'https://apps.apple.com/es/app/zepp-life/id938688461',
@@ -225,6 +249,7 @@ export const PLATFORMS = [
   },
   {
     id: 'fatsecret',
+    logo: '/platforms/fatsecret.png',
     source: 'fatsecret',
     name: 'FatSecret',
     category: 'food',
@@ -241,6 +266,7 @@ export const PLATFORMS = [
   },
   {
     id: 'telegram',
+    logo: '/platforms/telegram.png',
     name: 'Bot de Telegram',
     category: 'twinme',
     state: 'twinme',

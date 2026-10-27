@@ -150,7 +150,7 @@ function toHttpError(err, logger) {
     });
   }
   logger?.warn({ err }, 'Fallo en el login de Xiaomi');
-  return new HttpError(502, `Xiaomi no ha dejado iniciar sesión: ${err.message}`, {
+  return new HttpError(502, `No se ha podido iniciar sesión: ${err.message}`, {
     code: 'XIAOMI_ERROR',
   });
 }

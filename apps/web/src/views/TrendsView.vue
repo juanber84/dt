@@ -319,7 +319,7 @@ const cards = computed(() => {
 
       <MetricCard
         title="Peso"
-        subtitle="Báscula Xiaomi (los días sin pesaje quedan en blanco)."
+        subtitle="Báscula (los días sin pesaje quedan en blanco)."
         :value="fmtDec(cards.weight.now, 1)"
         unit="kg"
         :delta="cards.weight.delta"

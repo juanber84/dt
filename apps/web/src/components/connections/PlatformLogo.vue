@@ -21,12 +21,12 @@ const style = computed(() => ({
 <template>
   <span
     class="logo"
-    :class="{ branded: Boolean(color) }"
+    :class="{ branded: Boolean(color), 'has-logo': Boolean(platform.logo) }"
     :style="style"
     role="img"
     :aria-label="platform.name"
   >
-    <img v-if="platform.logo" :src="platform.logo" alt="" />
+    <img v-if="platform.logo" :src="platform.logo" alt="" loading="lazy" />
     <svg
       v-else-if="platform.icon"
       viewBox="0 0 24 24"
@@ -60,9 +60,13 @@ svg {
   height: auto;
 }
 
+.has-logo {
+  background: none;
+}
+
 img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 </style>

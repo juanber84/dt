@@ -34,7 +34,7 @@ watch(
 );
 
 const titles = {
-  credentials: 'Conectar Xiaomi',
+  credentials: 'Conectar Báscula (experimental)',
   captcha: 'Comprueba que no eres un robot',
   email: 'Código de verificación',
 };
@@ -109,11 +109,11 @@ async function newCaptcha() {
     <form id="xiaomi-form" class="form" @submit.prevent="submit">
       <template v-if="step === 'credentials'">
         <p class="secondary intro">
-          Xiaomi no tiene OAuth: la API inicia sesión con tu cuenta y se queda solo con el usuario y
-          el token. La contraseña no se guarda.
+          No tiene OAuth: la API inicia sesión con la cuenta de la báscula y se queda solo con el
+          usuario y el token. La contraseña no se guarda.
         </p>
         <label class="field">
-          <span>Correo, teléfono o ID de Xiaomi</span>
+          <span>Correo, teléfono o ID de la cuenta</span>
           <input
             v-model="username"
             v-focus
@@ -143,7 +143,7 @@ async function newCaptcha() {
       <template v-else-if="step === 'captcha'">
         <p class="secondary intro">Escribe los caracteres que ves en la imagen.</p>
         <div class="captcha">
-          <img :src="captcha" alt="Captcha de Xiaomi" />
+          <img :src="captcha" alt="Captcha" />
           <button class="btn btn-ghost btn-sm" type="button" :disabled="busy" @click="newCaptcha">
             <RefreshCw class="icon icon-sm" />
             Otra imagen
@@ -169,8 +169,8 @@ async function newCaptcha() {
         <p class="sent">
           <MailCheck class="icon" />
           <span
-            >Xiaomi ha enviado un código al correo de tu cuenta. Puede tardar un minuto; mira
-            también en spam.</span
+            >Te han enviado un código al correo de tu cuenta. Puede tardar un minuto; mira también
+            en spam.</span
           >
         </p>
         <label class="field">
@@ -192,7 +192,7 @@ async function newCaptcha() {
 
     <p v-if="step === 'credentials'" class="note muted">
       <KeyRound class="icon icon-sm" />
-      Xiaomi suele pedir un captcha y un código por correo: los rellenas aquí mismo.
+      Suele pedir un captcha y un código por correo: los rellenas aquí mismo.
     </p>
 
     <template #footer>

@@ -17,9 +17,10 @@ export const SOURCES = {
     description: 'Reloj y móvil: sueño, frecuencia cardiaca, VFC, pasos, SpO2, VO2 máx.',
     provides: ['sleep', 'heart-rate', 'hrv', 'steps', 'spo2', 'vo2max', 'weight', 'workouts'],
   },
+  // Como la de fuerza: API no oficial, sin la marca
   xiaomi: {
-    name: 'Xiaomi',
-    monogram: 'Mi',
+    name: 'Báscula (experimental)',
+    monogram: 'Bx',
     auth: 'credentials',
     description: 'Báscula de bioimpedancia: peso, grasa, músculo, agua, grasa visceral.',
     provides: ['weight', 'body-composition'],

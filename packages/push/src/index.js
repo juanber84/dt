@@ -12,7 +12,7 @@ export const KINDS = Object.freeze({
   'connection-broken': {
     label: 'Conexiones caídas',
     description:
-      'Si Google, Xiaomi o intervals.icu dejan de sincronizar y hay que reconectar, o si el permiso de Google está a punto de caducar.',
+      'Si Google, intervals.icu o la báscula dejan de sincronizar y hay que reconectar, o si el permiso de Google está a punto de caducar.',
   },
   'backup-failed': {
     label: 'Copias de seguridad',

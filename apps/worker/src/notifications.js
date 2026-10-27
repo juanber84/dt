@@ -4,7 +4,7 @@ import { refreshTokenExpiresAt } from '@digitaltwin/google-health';
 
 const PROVIDER_NAMES = {
   'google-health': 'Google Health',
-  xiaomi: 'Xiaomi',
+  xiaomi: 'Báscula (experimental)',
   'intervals-icu': 'intervals.icu',
   motra: 'Fuerza (experimental)',
 };

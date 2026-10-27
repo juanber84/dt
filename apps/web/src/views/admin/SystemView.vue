@@ -197,7 +197,7 @@ const JOB_FILTERS = [
 const PROVIDERS = {
   'google-health': 'Google',
   digitaltwin: 'Bot',
-  xiaomi: 'Xiaomi',
+  xiaomi: 'Báscula (experimental)',
   'intervals-icu': 'intervals.icu',
   telegram: 'Telegram',
 };
@@ -408,8 +408,8 @@ const pill = (ok) =>
 
       <h2 class="sub">Últimos trabajos</h2>
       <p class="secondary sub-desc">
-        Lo que ha hecho el worker, incluidas las llamadas a Google, Xiaomi e intervals.icu. Se
-        guardan 7 días.
+        Lo que ha hecho el worker, incluidas las llamadas a Google, intervals.icu y las
+        experimentales. Se guardan 7 días.
       </p>
       <div class="filters">
         <Segmented v-model="jobFilter" :options="JOB_FILTERS" label="Trabajos" />

@@ -2,7 +2,7 @@
 
 ## 1. Entra y completa tus datos
 
-En **Ajustes → Cuenta → Tus datos**: sexo, fecha de nacimiento, altura y, si quieres, peso objetivo. Si tienes báscula Xiaomi conectada, salen rellenos con lo de la báscula y puedes cambiarlos.
+En **Ajustes → Cuenta → Tus datos**: sexo, fecha de nacimiento, altura y, si quieres, peso objetivo. Si tienes la báscula conectada, salen rellenos con lo de la báscula y puedes cambiarlos.
 
 En **Para el motor**:
 
@@ -14,7 +14,7 @@ En **Para el motor**:
 En **Ajustes → Conexiones**:
 
 - **Google Health**: trae lo del Apple Watch y el iPhone (sueño, frecuencia cardiaca, VFC, pasos, SpO2, VO2 máx., entrenos…).
-- **Xiaomi**: tu báscula (peso, grasa, músculo, agua…).
+- **Báscula**: tu báscula (peso, grasa, músculo, agua…).
 - **intervals.icu**: carga de entrenamiento, forma y fatiga.
 - **Bot de Telegram**: para apuntar comidas, agua y medicación escribiendo.
 

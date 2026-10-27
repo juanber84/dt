@@ -264,8 +264,8 @@ function onXiaomiConnected(connection) {
   reload.value++;
   toast.show(
     connection.details?.devices?.length === 0
-      ? 'Xiaomi conectado, pero no hay básculas en ese servidor: revisa la región'
-      : 'Xiaomi conectado',
+      ? 'Báscula (experimental) conectada, pero no hay básculas en ese servidor: revisa la región'
+      : 'Báscula (experimental) conectada',
     'good',
   );
 }

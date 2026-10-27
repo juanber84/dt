@@ -34,7 +34,7 @@ export function createXiaomiSync({
   async function run(userId) {
     const connection = await store.get(userId, 'xiaomi');
     if (!connection || connection.status === 'disconnected') {
-      throw HttpError.conflict('Xiaomi no está conectado', { code: 'NOT_CONNECTED' });
+      throw HttpError.conflict('La báscula no está conectada', { code: 'NOT_CONNECTED' });
     }
 
     const from = connection.lastSync
@@ -52,14 +52,14 @@ export function createXiaomiSync({
         await store.save({
           ...connection,
           status: 'expired',
-          error: 'Xiaomi ha cerrado la sesión: vuelve a conectar',
+          error: 'La báscula ha cerrado la sesión: vuelve a conectar',
         });
-        throw HttpError.conflict('Xiaomi ha cerrado la sesión: vuelve a conectar', {
+        throw HttpError.conflict('La báscula ha cerrado la sesión: vuelve a conectar', {
           code: 'RECONNECT_REQUIRED',
         });
       }
       logger?.warn({ err }, 'Fallo sincronizando Xiaomi');
-      throw new HttpError(502, `Xiaomi no ha devuelto los datos: ${err.message}`, {
+      throw new HttpError(502, `La báscula no ha devuelto los datos: ${err.message}`, {
         code: 'XIAOMI_ERROR',
       });
     }
