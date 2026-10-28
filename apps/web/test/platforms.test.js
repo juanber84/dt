@@ -34,7 +34,7 @@ describe('catálogo de plataformas', () => {
     const garmin = platformById('garmin');
     expect(matchesPlatform(garmin, 'GARM')).toBe(true);
     expect(matchesPlatform(platformById('xiaomi'), 'bascula')).toBe(true);
-    expect(matchesPlatform(platformById('oura'), 'sueño', DATA_TYPES)).toBe(true);
+    expect(matchesPlatform(platformById('ultrahuman'), 'sueño', DATA_TYPES)).toBe(true);
     expect(matchesPlatform(garmin, 'tostadora')).toBe(false);
     expect(matchesPlatform(garmin, '  ')).toBe(true);
   });

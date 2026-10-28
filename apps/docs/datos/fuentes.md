@@ -18,7 +18,7 @@ En Ajustes → Conexiones salen también las plataformas que **no** se conectan 
 | **Conexión directa** | Se conecta aquí, con su API oficial        | Google Health, intervals.icu                                                     |
 | **A través de otra** | Sus datos llegan por una que sí se conecta | Apple Salud y Xiaomi (por Google), Garmin, Magene e iGPSport (por intervals.icu) |
 | **Experimental**     | Se conecta aquí, por su API no oficial     | Báscula y Fuerza (experimentales)                                                |
-| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Oura, FatSecret, Motra                                            |
+| **Próximamente**     | Tiene API oficial, falta hacerla           | Strava, WHOOP, Ultrahuman, FatSecret, Motra                                      |
 | **De TwinMe**        | Parte de la app                            | Bot de Telegram, informes médicos, Registrar                                     |
 
 El catálogo vive en `apps/web/src/data/platforms.js`: categoría, estado, `via` (a través de cuál), qué datos da, enlaces (`ios`, `android`, `web` y `referral`, el de invitación, que va primero si lo hay) y logo. Los logos son el icono oficial de su app (del App Store, en `apps/web/public/platforms/`); donde no hay app, el de [simple-icons](https://simpleicons.org) (CC0) o un monograma. Si una plataforma manda su kit de marca, se cambia ese fichero.

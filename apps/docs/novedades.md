@@ -1,5 +1,9 @@
 # Novedades
 
+## 28 de octubre de 2026
+
+- **Ultrahuman en lugar de Oura** en Conexiones (próximamente): es un anillo sin suscripción, así que ni tú ni tus usuarios pagáis cuota por tener los datos. Su API oficial es para partners, hay que pedir acceso.
+
 ## 27 de octubre de 2026
 
 - **Avisos de Google, sin errores**: Google ha empezado a devolver los tipos de cada suscripción con su nombre entero (`users/…/dataTypes/steps`). El worker creía que habían cambiado, intentaba corregirlos y Google lo rechazaba ("invalid argument") en cada revisión. Ahora se comparan por el tipo, y si un cambio de verdad no entra, la suscripción se rehace. Los datos no se han perdido: entraban igual por la sincronización de cada hora.

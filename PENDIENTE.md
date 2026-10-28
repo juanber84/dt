@@ -51,9 +51,12 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 - [x] **Plataformas y conexiones** (27/10: catálogo, fichas y logos; faltan los datos buenos de
       Magene e iGPSport, los enlaces de invitación y los kits de marca). Conexiones pasa a ser un catálogo: buscador, tarjetas por
       categoría y una ficha por plataforma (qué datos da, estado, enlaces a iOS, Android y web,
-      referral). Estados: oficial (Google, intervals.icu; Whoop, Oura y FatSecret tienen API
+      referral). Estados: oficial (Google, intervals.icu; Whoop, Ultrahuman y FatSecret tienen API
       pública), a través de otra (Magene, iGPSport → intervals.icu/Strava), solo enlace y
       experimental (Xiaomi, Motra: ya detrás de la función `experimental-connections`).
+  - Ultrahuman (sustituye a Oura, sin suscripción): pedir acceso a la Partner API
+    (partner.ultrahuman.com, OAuth, solo consulta por día, sin webhooks ni entrenos) y unidad
+    de desarrollo. Antes, montar la integración con la documentación.
   - Motra: pedirles cuenta Pro y partnership, y probar su MCP (`mcp.motra.com`, OAuth) como
     integración oficial: ¿series/reps/kg con IDs estables, todo el histórico, límites, escritura?
 - [x] **Gestión de usuarios** (27/10): Administración → Usuarios (alta, editar, desactivar,
