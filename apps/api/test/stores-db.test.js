@@ -230,6 +230,20 @@ describe.skipIf(!url)('stores en la BD', () => {
         password: 'x',
       });
       expect(await coach.get(other.id, c.id)).toBeNull();
+
+      // Un mensaje suelto (la tarjeta de una plantilla): solo para su dueño, y se actualiza
+      const tool = saved.messages[2];
+      expect(await coach.getMessage(other.id, tool.id)).toBeNull();
+      expect((await coach.getMessage(me.id, tool.id)).toolCallId).toBe('c1');
+      await coach.updateMessage(tool.id, {
+        content: '{"saved":true}',
+        meta: { display: { a: 1 } },
+      });
+      expect(await coach.getMessage(me.id, tool.id)).toMatchObject({
+        content: '{"saved":true}',
+        meta: { display: { a: 1 } },
+      });
+
       expect(await coach.remove(other.id, c.id)).toBe(false);
       expect(await coach.remove(me.id, c.id)).toBe(true);
     });

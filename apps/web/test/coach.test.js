@@ -6,6 +6,7 @@ import {
   chartGroups,
   chartLabels,
   rollingMean,
+  setLabel,
   toChat,
   toolLabel,
 } from '../src/services/coach.js';
@@ -205,5 +206,53 @@ describe('applyEvent', () => {
     const answer = { content: '', tools: [], charts: [] };
     applyEvent(answer, 'error', { message: 'Sin saldo' });
     expect(answer.error).toBe('Sin saldo');
+  });
+});
+
+describe('plantillas de fuerza en el chat', () => {
+  const template = {
+    type: 'strength-template',
+    app: 'motra',
+    appLabel: 'Fuerza (experimental)',
+    session: {
+      name: 'Pierna A',
+      exercises: [{ exerciseId: 'squat', name: 'Back Squat', sets: [{ reps: 5, weightKg: 80 }] }],
+    },
+  };
+
+  it('en vivo: la tarjeta sale donde va el texto y recibe su mensaje para el botón', () => {
+    const answer = { id: null, content: '', tools: [], charts: [] };
+    applyEvent(answer, 'delta', { text: 'Toma.' });
+    applyEvent(answer, 'tool_result', { id: 'p1', ok: true, display: template });
+    expect(answer.charts).toEqual([{ id: 'p1', at: 5, template, messageId: null }]);
+    applyEvent(answer, 'display', { id: '42', toolCallId: 'p1' });
+    expect(answer.charts[0].messageId).toBe('42');
+    expect(answerParts(answer).map((p) => p.type)).toEqual(['text', 'template']);
+    expect(answerParts(answer)[1].entry).toBe(answer.charts[0]);
+  });
+
+  it('al abrir la conversación: la tarjeta con su mensaje (y si ya se guardó)', () => {
+    const saved = { ...template, saved: { id: 'T1', created: true } };
+    const chat = toChat([
+      { id: '1', role: 'user', content: 'Pierna' },
+      {
+        id: '2',
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ id: 'p1', function: { name: 'propose_strength_template', arguments: '{}' } }],
+      },
+      { id: '3', role: 'tool', toolCallId: 'p1', content: '{}', meta: { display: saved } },
+      { id: '4', role: 'assistant', content: 'Ahí la tienes.' },
+    ]);
+    expect(chat[1].charts).toEqual([{ id: 'p1', at: 0, template: saved, messageId: '3' }]);
+    expect(toolLabel('propose_strength_template', { name: 'Pierna A' })).toBe(
+      'Plantilla: Pierna A',
+    );
+  });
+
+  it('setLabel: reps con kilos, sin peso o por tiempo', () => {
+    expect(setLabel({ reps: 5, weightKg: 82.5 })).toBe('5 × 82,5 kg');
+    expect(setLabel({ reps: 12 })).toBe('12');
+    expect(setLabel({ timeS: 60 })).toBe('60 s');
   });
 });

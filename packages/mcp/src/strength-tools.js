@@ -25,10 +25,18 @@ const set = z
  * Con una sola app, `app` sobra; con varias, la IA tiene que decir cuál (y preguntarle al usuario
  * si no lo ha dicho). Los exerciseId son de cada app: se buscan en la misma donde se guarda.
  *
+ * Cómo se escribe depende de quién la usa:
+ * - `direct` (MCP): save_strength_template y delete_strength_template escriben en la app; el
+ *   permiso lo pide el cliente (Claude...), que ve que no son de solo lectura.
+ * - `propose` (el coach de la app): no escribe. propose_strength_template enseña la sesión en una
+ *   tarjeta (`display`) y la guarda el usuario con su botón (POST /coach/messages/:id/apply). Así
+ *   no depende de que el modelo pregunte antes.
+ *
  * @param {object} deps
  * @param {import('@digitaltwin/strength').StrengthApp[]} deps.apps  las que tiene conectadas
+ * @param {'direct'|'propose'} [deps.writes]
  */
-export function createStrengthTools({ apps }) {
+export function createStrengthTools({ apps, writes = 'direct' }) {
   if (!apps?.length) return [];
   const names = apps.map((a) => `${a.id} (${a.label})`).join(', ');
   const appParam = z
@@ -39,6 +47,14 @@ export function createStrengthTools({ apps }) {
         ? `App de fuerza; solo tiene ${names}, así que puede omitirse`
         : `App de fuerza: ${names}. Si el usuario no ha dicho en cuál, pregúntaselo`,
     );
+
+  // Lo común de guardar y proponer una sesión (los ejercicios van aparte: proponer pide su nombre)
+  const sessionInput = {
+    app: appParam,
+    templateId: templateId.optional().describe('Para reescribir una de TwinMe; sin él, nueva'),
+    name: z.string().trim().min(1).max(80).describe('Nombre que verá en la app ("Pierna A")'),
+    notes: z.string().trim().max(200).optional().describe('Descripción corta'),
+  };
 
   const pick = (id) => {
     if (id) return apps.find((a) => a.id === id);
@@ -54,7 +70,7 @@ export function createStrengthTools({ apps }) {
     }
   };
 
-  return [
+  const reads = [
     {
       name: 'list_strength_templates',
       title: 'Plantillas de fuerza',
@@ -141,7 +157,9 @@ export function createStrengthTools({ apps }) {
           };
         }),
     },
+  ];
 
+  const direct = [
     {
       name: 'save_strength_template',
       title: 'Crear o reescribir una plantilla de fuerza',
@@ -154,10 +172,7 @@ export function createStrengthTools({ apps }) {
         'sesión, mejor reescribir la misma plantilla que borrar y crear.',
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       inputSchema: {
-        app: appParam,
-        templateId: templateId.optional().describe('Para reescribir una de TwinMe; sin él, nueva'),
-        name: z.string().trim().min(1).max(80).describe('Nombre que verá en la app ("Pierna A")'),
-        notes: z.string().trim().max(200).optional().describe('Descripción corta'),
+        ...sessionInput,
         exercises: z
           .array(
             z.object({
@@ -195,4 +210,58 @@ export function createStrengthTools({ apps }) {
         }),
     },
   ];
+
+  const propose = [
+    {
+      name: 'propose_strength_template',
+      title: 'Proponer una plantilla de fuerza',
+      display: 'strength-template',
+      description:
+        'Enseña al usuario una sesión de fuerza en una tarjeta con un botón para guardarla en su ' +
+        'app como plantilla (nueva o, con templateId, reescribiendo una de TwinMe; las suyas no ' +
+        'se tocan). No guarda nada: lo hace el usuario con el botón, así que no le preguntes si ' +
+        'la guardas ni digas que está guardada. Los exerciseId tienen que ser de esa app ' +
+        '(search_exercises o get_strength_template) y no proOnly; `name` es el nombre del ' +
+        'ejercicio tal como sale en la app. Los ejercicios van en el orden dado. Para ir ' +
+        'cambiando la sesión, mejor reescribir la misma plantilla que crear otra.',
+      inputSchema: {
+        ...sessionInput,
+        exercises: z
+          .array(
+            z.object({
+              exerciseId: z.string().trim().min(2).max(80),
+              name: z.string().trim().min(1).max(80).describe('Nombre del ejercicio en la app'),
+              sets: z.array(set).min(1).max(10),
+            }),
+          )
+          .min(1)
+          .max(15),
+      },
+      handler: ({ app, templateId: id, name, notes, exercises }) =>
+        run(async () => {
+          const target = pick(app);
+          // Que no se proponga reescribir una del usuario: el botón fallaría después
+          const replaces = id ? await target.getTemplate(id) : null;
+          if (replaces && !replaces.ours) {
+            throw new ToolError(
+              'Esa plantilla es del usuario: TwinMe solo reescribe las suyas. Propón una nueva.',
+            );
+          }
+          return {
+            display: {
+              app: target.id,
+              appLabel: target.label,
+              ...(id && { templateId: id, replaces: replaces.name }),
+              session: { name, ...(notes && { notes }), exercises },
+            },
+            result: {
+              shown: true,
+              pending: 'El usuario la guarda (o no) con el botón de la tarjeta',
+            },
+          };
+        }),
+    },
+  ];
+
+  return [...reads, ...(writes === 'propose' ? propose : direct)];
 }

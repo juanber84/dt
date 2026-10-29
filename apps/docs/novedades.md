@@ -2,6 +2,7 @@
 
 ## 29 de octubre de 2026
 
+- **El coach también ve y prepara tus plantillas de fuerza**: ya no solo lo que has hecho, también lo que tienes planificado en tu app de fuerza. Te puede proponer una sesión en una tarjeta con sus ejercicios, series y kilos, y la guardas en tu app con el botón **Guardar en la app**; él no guarda nada sin ti. Por dentro, el coach y el MCP montan sus herramientas en un solo sitio, así que lo que gane uno lo gana el otro. Ver [Coach](/guia/coach).
 - **Tu IA te prepara la sesión de fuerza**: con Fuerza (experimental) conectada, el MCP tiene cinco herramientas nuevas para ver tus plantillas, buscar ejercicios y crear, reescribir o borrar plantillas en tu app de fuerza, que salen listas para entrenar con el chip **TwinMe**. Las tuyas no las toca. Con el plan gratis caben 2: deja una para TwinMe y que la vaya reescribiendo. Están hechas para varias apps: cada una busca en su propio catálogo (y avisa de lo que es de pago), y si tienes más de una, tu IA te pregunta en cuál. Ver [Plantillas de fuerza](/ia/mcp#plantillas-de-fuerza).
 - **Borrar comidas**: una comida del bot que se apuntó mal (o dos veces) se borra desde su detalle en Hoy, con el mismo botón que el agua o los síntomas. Si el mensaje tenía varios platos, se borra solo el que tocas; con el último, la comida entera. Se quita de tu día y de tus totales. Ver [Hoy](/guia/hoy).
 

@@ -1,13 +1,14 @@
 <script setup>
-import { ChartLine, CircleAlert, Database, LoaderCircle } from '@lucide/vue';
+import { ChartLine, CircleAlert, Database, Dumbbell, LoaderCircle } from '@lucide/vue';
 import CoachChart from './CoachChart.vue';
+import CoachTemplateCard from './CoachTemplateCard.vue';
 import Markdown from './Markdown.vue';
 import { answerParts, toolLabel } from '../../services/coach.js';
 import { formatShortDate } from '../../lib/dates.js';
 
 /**
  * Un mensaje del hilo: la pregunta (con el día por el que se pregunta) o la respuesta, con los
- * datos que ha consultado, su texto y sus gráficas en orden. Mientras llega (`live`) y no hay
+ * datos que ha consultado, su texto, sus gráficas y las plantillas que propone, en orden. Mientras llega (`live`) y no hay
  * texto ni herramienta en marcha, los puntos de "pensando".
  */
 defineProps({ message: { type: Object, required: true } });
@@ -25,12 +26,14 @@ defineProps({ message: { type: Object, required: true } });
       <li v-for="t in message.tools" :key="t.id" :class="{ failed: t.ok === false }">
         <LoaderCircle v-if="t.ok === null" class="icon icon-sm spin" />
         <ChartLine v-else-if="t.name === 'show_chart'" class="icon icon-sm" />
+        <Dumbbell v-else-if="t.name === 'propose_strength_template'" class="icon icon-sm" />
         <Database v-else class="icon icon-sm" />
         {{ toolLabel(t.name, t.args) }}
       </li>
     </ul>
     <template v-for="part in answerParts(message)" :key="part.key">
       <CoachChart v-if="part.type === 'chart'" :chart="part.chart" />
+      <CoachTemplateCard v-else-if="part.type === 'template'" :entry="part.entry" />
       <Markdown v-else :source="part.text" />
     </template>
     <span

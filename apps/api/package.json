@@ -27,6 +27,7 @@
     "@digitaltwin/push": "^0.1.0",
     "@digitaltwin/queue": "^0.1.0",
     "@digitaltwin/reports": "^0.1.0",
+    "@digitaltwin/strength": "^0.1.0",
     "@digitaltwin/telemetry": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@digitaltwin/xiaomi": "^0.1.0",

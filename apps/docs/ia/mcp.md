@@ -63,6 +63,7 @@ Si tienes conectada una app de fuerza (hoy, **Fuerza (experimental)**), tu IA pu
 
 - **Cada app, su catálogo.** La IA busca los ejercicios en la app donde va a guardar la sesión y usa solo los que tu plan permite. Todas las herramientas llevan `app`: si tienes una sola, sobra; si tienes varias, te pregunta en cuál.
 - **Antes de guardar, te la enseña** y espera a que digas que sí. Las dos que escriben van marcadas como no de solo lectura, así que tu cliente (Claude Code, Desktop) también te pide permiso.
+- El [coach](/ia/coach#plantillas-de-fuerza) de la app tiene las mismas, salvo que no guarda: te propone la sesión en una tarjeta y la guardas tú con un botón.
 - **En la de fuerza, con el plan gratis caben 2 plantillas** (`list_strength_templates` dice el límite de cada app). Lo práctico es dejar una para TwinMe e ir reescribiéndola con la sesión que toque. Si las dos son tuyas, tu IA no borra ninguna: te pide que liberes una.
 - En la de fuerza, una plantilla borrada no se recupera con el mismo id; si la vuelves a crear, es otra.
 - La de fuerza es una integración no oficial: si la app cambia algo, estas herramientas pueden fallar sin tocar tus datos de TwinMe.

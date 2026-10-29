@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { buildContext, createChartTool } from '@digitaltwin/coach';
 import { createTools } from '@digitaltwin/mcp';
+import { StrengthError, StrengthErrorCode } from '@digitaltwin/strength';
 import { validate } from '../middlewares/validate.js';
 import { HttpError } from '../utils/http-error.js';
 import { titleFrom, toModelHistory } from '../services/coach-store.js';
 
 const idParams = z.object({ id: z.uuid() });
+const messageParams = z.object({ id: z.string().regex(/^\d+$/) });
 const messageBody = z.object({
   /** Sin él, empieza una conversación nueva. */
   conversationId: z.uuid().optional(),
@@ -33,8 +35,11 @@ const PING_MS = 15_000;
  *   POST   /messages            { conversationId?, text, context? } → stream SSE:
  *     conversation { id, title, created } · user (el mensaje guardado) · tool { id, name, args } ·
  *     tool_result { id, ok, display? } (display: una gráfica de show_chart) · delta { text } ·
+ *     display { id, toolCallId } (el mensaje guardado de una tarjeta, para su botón) ·
  *     message (cada mensaje del asistente guardado) ·
  *     done { message } | error { message }
+ *   POST   /messages/:id/apply  guarda en su app la plantilla de fuerza que propuso el coach en
+ *     ese mensaje (la que está guardada, no lo que mande el navegador) → { display }
  *
  * @param {object} deps
  * @param {(llm: object) => ReturnType<typeof import('@digitaltwin/coach').createCoach>} deps.newCoach
@@ -42,6 +47,10 @@ const PING_MS = 15_000;
  * @param {ReturnType<typeof import('../services/coach-store.js').createMemoryCoachStore>} deps.store
  * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
  * @param {string} deps.timeZone
+ * @param {ReturnType<typeof import('../services/ai-tools.js').createAiTools>} deps.aiTools
+ *   Sus herramientas: las mismas que las del MCP (las de fuerza proponen en vez de escribir).
+ * @param {ReturnType<typeof import('../services/strength-apps.js').createStrengthApps>} [deps.strengthApps]
+ *   Para guardar lo que proponga en sus apps de fuerza.
  * @param {ReturnType<typeof import('../services/llm-usage.js').createLlmUsage>} [deps.usage]
  */
 export function createCoachRouter({
@@ -49,10 +58,11 @@ export function createCoachRouter({
   ai,
   store,
   queries,
-  profiles,
   supplements,
   engine,
   timeZone,
+  aiTools,
+  strengthApps,
   usage,
 }) {
   const router = Router();
@@ -113,10 +123,10 @@ export function createCoachRouter({
     });
     send('user', question);
 
-    // Las de lectura (las mismas del MCP) y show_chart, que solo tiene sentido en la app
-    const getProfile = profiles && (() => profiles.get(userId));
-    const getEngine = engine && (() => engine.state(userId));
-    const tools = createTools({ queries, userId, timeZone, getProfile, getEngine });
+    // Las mismas del MCP (las de fuerza, proponiendo) y show_chart, que solo tiene sentido aquí
+    const deps = await aiTools.depsFor(userId, { surface: 'coach' });
+    const { getProfile } = deps;
+    const tools = createTools(deps);
     const getSeries = tools.find((tool) => tool.name === 'get_series').handler;
     tools.push(createChartTool({ getSeries }));
 
@@ -138,6 +148,10 @@ export function createCoachRouter({
             ...(message.display && { meta: { display: message.display } }),
           });
           if (saved.role === 'assistant') send('message', saved);
+          // Una tarjeta necesita su mensaje guardado para el botón
+          if (saved.role === 'tool' && saved.meta?.display) {
+            send('display', { id: saved.id, toolCallId: saved.toolCallId });
+          }
         },
         onUsage: (entry) =>
           usage?.record({
@@ -165,6 +179,49 @@ export function createCoachRouter({
       clearInterval(ping);
       res.end();
     }
+  });
+
+  router.post('/messages/:id/apply', validate({ params: messageParams }), async (req, res) => {
+    const userId = req.user.id;
+    const message = await store.getMessage(userId, req.validated.params.id);
+    const display = message?.meta?.display;
+    if (display?.type !== 'strength-template') {
+      throw HttpError.notFound('No hay ninguna plantilla propuesta en ese mensaje');
+    }
+    if (display.saved) throw HttpError.conflict('Esa plantilla ya está guardada');
+
+    const app = (await strengthApps?.forUser(userId))?.find((a) => a.id === display.app);
+    if (!app) {
+      throw HttpError.conflict('La app de fuerza ya no está conectada: vuelve a conectarla');
+    }
+    let saved;
+    try {
+      saved = await app.saveTemplate(
+        display.session,
+        display.templateId ? { templateId: display.templateId } : {},
+      );
+    } catch (err) {
+      if (!(err instanceof StrengthError)) throw err;
+      const status = err.code === StrengthErrorCode.NOT_FOUND ? 404 : 409;
+      throw new HttpError(status, err.message, { code: err.code });
+    }
+
+    const updated = {
+      ...display,
+      saved: { id: saved.id, created: saved.created, at: new Date().toISOString() },
+    };
+    // El coach lo sabe en la siguiente pregunta: el resultado de la herramienta lo cuenta
+    await store.updateMessage(message.id, {
+      content: JSON.stringify({
+        saved: true,
+        app: display.app,
+        templateId: saved.id,
+        created: saved.created,
+      }),
+      meta: { ...message.meta, display: updated },
+    });
+    req.log.info({ app: display.app, created: saved.created }, 'Plantilla del coach guardada');
+    res.json({ display: updated });
   });
 
   return router;

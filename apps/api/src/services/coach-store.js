@@ -69,6 +69,24 @@ export function createDbCoachStore({ db }) {
       return messageFromRow(row);
     },
 
+    /** Un mensaje, solo si es de una conversación del usuario. */
+    async getMessage(userId, messageId) {
+      const [row] = await db`
+        select m.* from coach_messages m
+        join coach_conversations c on c.id = m.conversation_id
+        where m.id = ${messageId} and c.user_id = ${userId}
+      `;
+      return row ? messageFromRow(row) : null;
+    },
+
+    /** @param {string} messageId  Ya comprobado que es del usuario (getMessage). */
+    async updateMessage(messageId, { content, meta }) {
+      await db`
+        update coach_messages set content = ${content}, meta = ${db.json(meta)}
+        where id = ${messageId}
+      `;
+    },
+
     async remove(userId, id) {
       const rows = await db`
         delete from coach_conversations where id = ${id} and user_id = ${userId} returning id
@@ -123,6 +141,21 @@ export function createMemoryCoachStore() {
       c.messages.push(message);
       touch(c);
       return { ...message };
+    },
+
+    async getMessage(userId, messageId) {
+      for (const c of conversations.values()) {
+        const message = c.userId === userId && c.messages.find((m) => m.id === messageId);
+        if (message) return { ...message };
+      }
+      return null;
+    },
+
+    async updateMessage(messageId, { content, meta }) {
+      for (const c of conversations.values()) {
+        const message = c.messages.find((m) => m.id === messageId);
+        if (message) Object.assign(message, { content, meta });
+      }
     },
 
     async remove(userId, id) {

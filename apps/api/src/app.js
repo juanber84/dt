@@ -42,6 +42,7 @@ import { createGoogleConnect } from './services/google-connect.js';
 import { createIntervalsConnect } from './services/intervals-connect.js';
 import { createMotraConnect, createMotraStrength } from './services/motra-connect.js';
 import { createStrengthApps } from './services/strength-apps.js';
+import { createAiTools } from './services/ai-tools.js';
 import { createDbPersonalTokens, createMemoryPersonalTokens } from './services/personal-tokens.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
 import { randomBytes } from 'node:crypto';
@@ -459,35 +460,36 @@ export function createApp({
     }),
   );
 
-  // MCP para clientes de IA (Claude Code, Desktop...) con token personal. Bajo /api para que pase
-  // por el mismo proxy que el resto.
-  if (pipeline) {
-    app.use(
-      '/api/mcp',
-      createMcpRouter({
-        tokens: personalTokens,
-        users,
+  // Las apps de fuerza conectadas de cada usuario (plantillas): solo necesitan la conexión
+  const strengthApps = createStrengthApps({
+    providers: [
+      ...(config.MOTRA_FIREBASE_API_KEY || motraClient
+        ? [
+            createMotraStrength({
+              store: connections,
+              apiKey: config.MOTRA_FIREBASE_API_KEY,
+              ...(motraClient && { createClient: motraClient }),
+            }),
+          ]
+        : []),
+    ],
+    logger: log.child({ module: 'strength' }),
+  });
+  // Las herramientas de IA de cada usuario, las mismas para el MCP y el coach
+  const aiTools = pipeline
+    ? createAiTools({
         queries: pipeline.queries,
+        timeZone: config.TIMEZONE,
         profiles,
         engine,
-        timeZone: config.TIMEZONE,
-        strengthApps: createStrengthApps({
-          // Cada app de fuerza con plantillas (solo necesitan la conexión, no la cola)
-          providers: [
-            ...(config.MOTRA_FIREBASE_API_KEY || motraClient
-              ? [
-                  createMotraStrength({
-                    store: connections,
-                    apiKey: config.MOTRA_FIREBASE_API_KEY,
-                    ...(motraClient && { createClient: motraClient }),
-                  }),
-                ]
-              : []),
-          ],
-          logger: log.child({ module: 'strength' }),
-        }),
-      }),
-    );
+        strengthApps,
+      })
+    : undefined;
+
+  // MCP para clientes de IA (Claude Code, Desktop...) con token personal. Bajo /api para que pase
+  // por el mismo proxy que el resto.
+  if (aiTools) {
+    app.use('/api/mcp', createMcpRouter({ tokens: personalTokens, users, aiTools }));
   }
 
   app.use(
@@ -525,6 +527,8 @@ export function createApp({
       profiles,
       supplements,
       engine,
+      aiTools,
+      strengthApps,
     }),
   );
 

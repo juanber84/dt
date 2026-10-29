@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { buildApp } from './helpers.js';
 import { loginCookie, testUsers } from './auth-helpers.js';
+import { createMemoryConnectionStore } from '@digitaltwin/connections';
 import { toModelHistory, titleFrom } from '../src/services/coach-store.js';
 
 const pipeline = {
@@ -233,6 +234,113 @@ describe('/api/v1/coach', () => {
       .expect(200);
     const tool = saved.body.messages.find((m) => m.role === 'tool');
     expect(tool.meta.display).toEqual(result.display);
+  });
+
+  it('plantilla de fuerza: el coach la propone en una tarjeta y se guarda con el botón', async () => {
+    const exercises = [
+      {
+        exerciseId: 'barbellBackSquat',
+        name: 'Barbell Back Squat',
+        sets: [{ reps: 5, weightKg: 80 }],
+      },
+    ];
+    const proposeLlm = scriptedLlm(
+      {
+        extra: {
+          tool_calls: [
+            {
+              id: 'p1',
+              type: 'function',
+              function: {
+                name: 'propose_strength_template',
+                arguments: JSON.stringify({ name: 'Pierna A', exercises }),
+              },
+            },
+          ],
+        },
+      },
+      { content: 'Ahí la tienes.' },
+      { content: 'Guardada, a darle.' },
+    );
+    const connections = createMemoryConnectionStore();
+    await connections.save({
+      userId: 'ana',
+      provider: 'motra',
+      status: 'connected',
+      externalUserId: 'uid-ana',
+      credentials: { refreshToken: 'ref-ana' },
+    });
+    const motra = {
+      listTemplates: async () => [],
+      templateDetails: async () => null,
+      searchExercises: async () => [],
+      saveTemplate: vi.fn(async (t) => t.templateID),
+      deleteTemplate: vi.fn(),
+    };
+    const strengthApp = buildApp(
+      { AI_DAILY_LIMIT_USD: '100' },
+      {
+        users: await testUsers(),
+        pipeline,
+        coachLlm: proposeLlm,
+        connections,
+        motraClient: () => motra,
+      },
+    );
+    const cookie = await loginCookie(strengthApp, 'ana@example.com');
+
+    const stream = events(
+      (await ask(strengthApp, cookie, { text: 'Prepárame pierna' }).expect(200)).body,
+    );
+    // El coach no escribe: propone (y no tiene save ni delete)
+    const offered = proposeLlm.calls[0].tools.map((t) => t.function.name);
+    expect(offered).toContain('propose_strength_template');
+    expect(offered).not.toContain('save_strength_template');
+    expect(motra.saveTemplate).not.toHaveBeenCalled();
+
+    const result = stream.find((e) => e.event === 'tool_result').data;
+    expect(result.display).toMatchObject({
+      type: 'strength-template',
+      app: 'motra',
+      session: { name: 'Pierna A', exercises },
+    });
+    const { id: messageId } = stream.find((e) => e.event === 'display').data;
+
+    // Otro usuario no puede usar su tarjeta
+    const other = await loginCookie(strengthApp, 'admin@example.com');
+    await request(strengthApp)
+      .post(`/api/v1/coach/messages/${messageId}/apply`)
+      .set('Cookie', other)
+      .expect(404);
+
+    const applied = await request(strengthApp)
+      .post(`/api/v1/coach/messages/${messageId}/apply`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(applied.body.display.saved).toMatchObject({ created: true });
+    const [template, options] = motra.saveTemplate.mock.calls[0];
+    expect(template).toMatchObject({ name: 'Pierna A', userID: 'uid-ana' });
+    expect(options.tags).toEqual([{ name: 'TwinMe', color: 'orange' }]);
+
+    // Dos veces no
+    await request(strengthApp)
+      .post(`/api/v1/coach/messages/${messageId}/apply`)
+      .set('Cookie', cookie)
+      .expect(409);
+
+    // Al volver a abrirla, sale guardada; y en la siguiente pregunta el coach lo sabe
+    const conversationId = stream[0].data.id;
+    const saved = await request(strengthApp)
+      .get(`/api/v1/coach/conversations/${conversationId}`)
+      .set('Cookie', cookie);
+    expect(saved.body.messages.find((m) => m.role === 'tool').meta.display.saved).toBeTruthy();
+    await ask(strengthApp, cookie, { conversationId, text: '¿Ya está?' }).expect(200);
+    const toolMessage = proposeLlm.calls[2].messages.find((m) => m.role === 'tool');
+    expect(JSON.parse(toolMessage.content)).toMatchObject({ saved: true, app: 'motra' });
+  });
+
+  it('el botón de una respuesta sin plantilla: 404', async () => {
+    await request(app).post('/api/v1/coach/messages/1/apply').set('Cookie', ana).expect(404);
   });
 
   it('las conversaciones de otro no se ven, ni se puede escribir en ellas', async () => {

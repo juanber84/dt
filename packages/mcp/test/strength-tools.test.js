@@ -127,3 +127,59 @@ describe('herramientas de plantillas de fuerza', () => {
     await expect(call).rejects.toThrow('Esa plantilla es del usuario');
   });
 });
+
+describe('plantillas de fuerza en el coach (proponer en vez de escribir)', () => {
+  const coachTools = (apps) =>
+    Object.fromEntries(
+      createTools({ ...base, strength: { apps, writes: 'propose' } }).map((t) => [t.name, t]),
+    );
+
+  it('no escribe: sin save ni delete, con propose y las de lectura', () => {
+    const names = Object.keys(coachTools([fakeApp('motra')]));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'list_strength_templates',
+        'get_strength_template',
+        'search_exercises',
+        'propose_strength_template',
+      ]),
+    );
+    expect(names).not.toContain('save_strength_template');
+    expect(names).not.toContain('delete_strength_template');
+  });
+
+  it('propose devuelve la tarjeta (display) y no llama a la app para guardar', async () => {
+    const motra = fakeApp('motra', 'Fuerza (experimental)');
+    const tool = coachTools([motra]).propose_strength_template;
+    expect(tool.display).toBe('strength-template');
+    const exercises = [
+      { exerciseId: 'squat', name: 'Back Squat', sets: [{ reps: 5, weightKg: 80 }] },
+    ];
+    const out = await tool.handler({ name: 'Pierna A', notes: 'Antes de la salida', exercises });
+    expect(out.display).toEqual({
+      app: 'motra',
+      appLabel: 'Fuerza (experimental)',
+      session: { name: 'Pierna A', notes: 'Antes de la salida', exercises },
+    });
+    expect(out.result).toMatchObject({ shown: true });
+    expect(motra.saveTemplate).not.toHaveBeenCalled();
+  });
+
+  it('propose para reescribir: solo una de TwinMe, y dice cuál reemplaza', async () => {
+    const motra = fakeApp('motra');
+    const tool = coachTools([motra]).propose_strength_template;
+    const exercises = [{ exerciseId: 'squat', name: 'Back Squat', sets: [{ reps: 5 }] }];
+    const out = await tool.handler({ templateId: 'motra-T1', name: 'Pierna B', exercises });
+    expect(out.display).toMatchObject({ templateId: 'motra-T1', replaces: 'Pierna' });
+
+    motra.getTemplate.mockResolvedValueOnce({
+      id: 'MINE',
+      name: 'Suya',
+      ours: false,
+      exercises: [],
+    });
+    await expect(tool.handler({ templateId: 'MINE-xxxx', name: 'X', exercises })).rejects.toThrow(
+      /es del usuario/,
+    );
+  });
+});

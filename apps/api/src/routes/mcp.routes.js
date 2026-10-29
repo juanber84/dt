@@ -11,23 +11,12 @@ import { isActive } from '../services/users.js';
  *
  * @param {object} deps
  * @param {ReturnType<typeof import('../services/personal-tokens.js').createDbPersonalTokens>} deps.tokens
- * @param {ReturnType<typeof import('@digitaltwin/timeline').createTimelineQueries>} deps.queries
- * @param {string} deps.timeZone
+ * @param {ReturnType<typeof import('../services/ai-tools.js').createAiTools>} deps.aiTools
+ *   Las herramientas del usuario (las mismas que las del coach, escribiendo en vez de proponer).
  * @param {ReturnType<typeof import('../services/users.js').createUserStore>} [deps.users]
  *   Con ellos, el token de un usuario desactivado o caducado deja de valer.
- * @param {ReturnType<typeof import('../services/strength-apps.js').createStrengthApps>} [deps.strengthApps]
- *   Con ellas, quien tenga conectada alguna app de fuerza tiene también las herramientas de
- *   plantillas.
  */
-export function createMcpRouter({
-  tokens,
-  queries,
-  profiles,
-  engine,
-  timeZone,
-  users,
-  strengthApps,
-}) {
+export function createMcpRouter({ tokens, users, aiTools }) {
   const router = Router();
 
   router.use(async (req, res, next) => {
@@ -47,16 +36,8 @@ export function createMcpRouter({
   });
 
   router.post('/', async (req, res) => {
-    const apps = (await strengthApps?.forUser(req.mcpUserId)) ?? [];
-    const server = createMcpServer({
-      queries,
-      userId: req.mcpUserId,
-      timeZone,
-      ...(profiles && { getProfile: () => profiles.get(req.mcpUserId) }),
-      ...(engine && { getEngine: () => engine.state(req.mcpUserId) }),
-      ...(apps.length && { strength: { apps } }),
-      logger: req.log,
-    });
+    const deps = await aiTools.depsFor(req.mcpUserId, { surface: 'mcp' });
+    const server = createMcpServer({ ...deps, logger: req.log });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

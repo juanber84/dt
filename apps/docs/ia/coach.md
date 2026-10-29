@@ -2,7 +2,7 @@
 
 ## Cómo contesta
 
-El coach es un agente: recibe tu pregunta, decide qué datos necesita, los consulta con sus **herramientas** (de solo lectura), y contesta. Puede dar varias vueltas (hasta 8) antes de responder; ves en directo qué consulta. Las respuestas llegan en streaming.
+El coach es un agente: recibe tu pregunta, decide qué datos necesita, los consulta con sus **herramientas** (de solo lectura: lo único que puede cambiar fuera, una plantilla de fuerza, lo guardas tú con un botón), y contesta. Puede dar varias vueltas (hasta 8) antes de responder; ves en directo qué consulta. Las respuestas llegan en streaming.
 
 ## Lo que sabe siempre
 
@@ -16,7 +16,16 @@ Antes de cada respuesta recibe, sin tener que preguntarlo:
 
 ## Sus herramientas
 
-Las mismas que el [MCP](/ia/mcp), más `show_chart` para enseñarte gráficas en la conversación.
+Las mismas que el [MCP](/ia/mcp), montadas en un solo sitio (`apps/api/src/services/ai-tools.js`) para los dos: una herramienta nueva llega al coach y al MCP a la vez. Además, `show_chart` para enseñarte gráficas en la conversación.
+
+### Plantillas de fuerza
+
+Si tienes conectada una app de fuerza, el coach ve tus plantillas (lo que tienes planificado, no solo lo hecho), busca en el catálogo de esa app y te puede preparar sesiones. La diferencia con el MCP está en guardar:
+
+- En el MCP, `save_strength_template` guarda y el permiso lo pide tu cliente (Claude Code, Desktop).
+- En el coach no hay quien pida ese permiso, así que **no guarda**: `propose_strength_template` te enseña la sesión en una **tarjeta** (ejercicios, series y kilos) con el botón **Guardar en la app** (o **Reescribir «…»** si cambia una de TwinMe).
+- El botón guarda lo que el coach propuso, que está guardado en el servidor (`POST /api/v1/coach/messages/:id/apply`); lo que mande el navegador no cuenta. Una tarjeta se guarda una vez, solo la puede usar su dueño y, después, el coach sabe que está guardada.
+- Tus plantillas no las toca: solo se reescriben las de TwinMe.
 
 ## Sus reglas
 

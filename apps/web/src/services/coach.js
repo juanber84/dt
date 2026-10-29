@@ -25,7 +25,27 @@ const TOOL_LABELS = {
   get_observations: (a) => `Datos crudos ${a.from ?? ''}`.trim(),
   get_day_summary: (a) => `Resumen del día ${a.date ?? 'de hoy'}`,
   show_chart: (a) => `Gráfica${a.title ? `: ${a.title}` : ''}`,
+  get_strength_sets: (a) => `Entrenos de fuerza ${a.from ?? ''}`.trim(),
+  list_strength_templates: () => 'Tus plantillas',
+  get_strength_template: () => 'Una plantilla',
+  search_exercises: (a) => `Ejercicios${a.query ? `: ${a.query}` : ''}`,
+  propose_strength_template: (a) => `Plantilla${a.name ? `: ${a.name}` : ''}`,
 };
+
+/**
+ * Guarda en su app la plantilla de fuerza que propuso el coach en ese mensaje (la guardada en el
+ * servidor, no lo que haya aquí). Devuelve el display actualizado, con `saved`.
+ */
+export const applyTemplate = (messageId) =>
+  apiFetch(`/api/v1/coach/messages/${messageId}/apply`, { method: 'POST' }).then((r) => r.display);
+
+/** Una serie en corto: "8 × 70 kg", "12", "45 s". */
+export function setLabel({ reps, weightKg, timeS } = {}) {
+  const kg = weightKg > 0 ? ` × ${String(weightKg).replace('.', ',')} kg` : '';
+  if (reps != null) return `${reps}${kg}`;
+  if (timeS != null) return `${timeS} s${kg}`;
+  return '?';
+}
 
 export function toolLabel(name, args = {}) {
   return TOOL_LABELS[name]?.(args ?? {}) ?? name;
@@ -33,8 +53,9 @@ export function toolLabel(name, args = {}) {
 
 /**
  * Mensajes guardados → lo que se pinta: cada pregunta y una respuesta por pregunta, con el texto
- * de todas las vueltas del asistente, las herramientas que usó y las gráficas que enseñó (de los
- * demás resultados no se enseña nada). Cada gráfica guarda en `at` por dónde iba el texto.
+ * de todas las vueltas del asistente, las herramientas que usó y las gráficas y plantillas que
+ * enseñó (de los demás resultados no se enseña nada). Cada una guarda en `at` por dónde iba el
+ * texto; las plantillas, también el mensaje guardado (`messageId`) para su botón.
  */
 export function toChat(messages) {
   const out = [];
@@ -64,6 +85,9 @@ export function toChat(messages) {
         if (tool) tool.ok = false;
       }
       if (m.meta?.display?.type === 'chart') addChart(answer, m.toolCallId, m.meta.display);
+      if (m.meta?.display?.type === 'strength-template') {
+        addTemplate(answer, m.toolCallId, m.meta.display, m.id);
+      }
     }
   }
   return out;
@@ -83,6 +107,13 @@ export function applyEvent(answer, event, data) {
       const tool = answer.tools.find((t) => t.id === data.id);
       if (tool) tool.ok = data.ok;
       if (data.display?.type === 'chart') addChart(answer, data.id, data.display);
+      if (data.display?.type === 'strength-template') addTemplate(answer, data.id, data.display);
+      break;
+    }
+    case 'display': {
+      // Ya guardado el mensaje de la tarjeta: con su id funciona el botón
+      const entry = answer.charts.find((c) => c.id === data.toolCallId);
+      if (entry) entry.messageId = data.id;
       break;
     }
     case 'delta':
@@ -104,18 +135,27 @@ export function addChart(answer, id, chart) {
   answer.charts.push({ id, at: answer.content.length, chart });
 }
 
+/** Una plantilla propuesta: va en el mismo hilo que las gráficas, con su mensaje (si ya lo hay). */
+export function addTemplate(answer, id, template, messageId = null) {
+  answer.charts.push({ id, at: answer.content.length, template, messageId });
+}
+
 /**
- * La respuesta en trozos para pintarla: texto y gráficas en el orden en que llegaron. El texto
- * se corta por los saltos de párrafo que hay entre vueltas, así el Markdown no queda partido.
- * @returns {Array<{ type: 'text', key: string, text: string } | { type: 'chart', key: string, chart: object }>}
+ * La respuesta en trozos para pintarla: texto, gráficas y plantillas en el orden en que llegaron.
+ * El texto se corta por los saltos de párrafo que hay entre vueltas, así el Markdown no queda
+ * partido. Una plantilla lleva su entrada entera (`entry`), que la tarjeta actualiza al guardar.
+ * @returns {Array<{ type: 'text', key: string, text: string } | { type: 'chart', key: string, chart: object } | { type: 'template', key: string, entry: object }>}
  */
 export function answerParts(answer) {
   const parts = [];
   let from = 0;
-  for (const { id, at, chart } of answer.charts ?? []) {
+  for (const entry of answer.charts ?? []) {
+    const { id, at, chart } = entry;
     const text = answer.content.slice(from, at).trim();
     if (text) parts.push({ type: 'text', key: `t${from}`, text });
-    parts.push({ type: 'chart', key: id, chart });
+    parts.push(
+      entry.template ? { type: 'template', key: id, entry } : { type: 'chart', key: id, chart },
+    );
     from = Math.max(from, at);
   }
   const rest = answer.content.slice(from).trim();
