@@ -40,7 +40,8 @@ import {
 } from '@digitaltwin/connections';
 import { createGoogleConnect } from './services/google-connect.js';
 import { createIntervalsConnect } from './services/intervals-connect.js';
-import { createMotraConnect, createMotraClients } from './services/motra-connect.js';
+import { createMotraConnect, createMotraStrength } from './services/motra-connect.js';
+import { createStrengthApps } from './services/strength-apps.js';
 import { createDbPersonalTokens, createMemoryPersonalTokens } from './services/personal-tokens.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
 import { randomBytes } from 'node:crypto';
@@ -470,13 +471,20 @@ export function createApp({
         profiles,
         engine,
         timeZone: config.TIMEZONE,
-        // Las plantillas de fuerza solo necesitan la conexión y la API key (no la cola)
-        ...((config.MOTRA_FIREBASE_API_KEY || motraClient) && {
-          motra: createMotraClients({
-            store: connections,
-            apiKey: config.MOTRA_FIREBASE_API_KEY,
-            ...(motraClient && { createClient: motraClient }),
-          }),
+        strengthApps: createStrengthApps({
+          // Cada app de fuerza con plantillas (solo necesitan la conexión, no la cola)
+          providers: [
+            ...(config.MOTRA_FIREBASE_API_KEY || motraClient
+              ? [
+                  createMotraStrength({
+                    store: connections,
+                    apiKey: config.MOTRA_FIREBASE_API_KEY,
+                    ...(motraClient && { createClient: motraClient }),
+                  }),
+                ]
+              : []),
+          ],
+          logger: log.child({ module: 'strength' }),
         }),
       }),
     );

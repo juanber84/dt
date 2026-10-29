@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@digitaltwin/motra": "^0.1.0",
+    "@digitaltwin/strength": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@modelcontextprotocol/sdk": "1.32.0",
     "zod": "^4.6.5"

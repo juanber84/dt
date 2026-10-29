@@ -51,17 +51,18 @@ El usuario sale del token, nunca de los argumentos: una IA no puede pedir datos 
 
 ## Plantillas de fuerza
 
-Si tienes conectada **Fuerza (experimental)**, tu IA puede prepararte sesiones de gimnasio y dejarlas en tu app de fuerza como **plantillas**, listas para entrenar. Las tuyas las puede leer, pero no tocarlas: solo crea, reescribe y borra las suyas, que llevan el chip naranja **TwinMe**.
+Si tienes conectada una app de fuerza (hoy, **Fuerza (experimental)**), tu IA puede prepararte sesiones de gimnasio y dejarlas en ella como **plantillas**, listas para entrenar. Las tuyas las puede leer, pero no tocarlas: solo crea, reescribe y borra las suyas, que van marcadas como de TwinMe (en la de fuerza, con el chip naranja **TwinMe**).
 
-| Herramienta                | Qué hace                                                                                                 |
-| -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `list_strength_templates`  | Tus plantillas (nombre, ejercicios, series, duración, músculos) y cuáles son de TwinMe                   |
-| `get_strength_template`    | Una plantilla serie a serie ("8x70", "45s") con el descanso medio                                        |
-| `search_exercises`         | Busca en el catálogo de ejercicios de la app (en inglés o español, por músculo o material)               |
-| `save_strength_template`   | Crea una plantilla o reescribe entera una de TwinMe (ejercicios en orden, reps, kilos, tiempo, descanso) |
-| `delete_strength_template` | Borra una de TwinMe                                                                                      |
+| Herramienta                | Qué hace                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `list_strength_templates`  | Tus plantillas (nombre, ejercicios, series, duración, músculos) y cuáles son de TwinMe                                     |
+| `get_strength_template`    | Una plantilla serie a serie ("8x70", "45s") con el descanso medio                                                          |
+| `search_exercises`         | Busca en el catálogo de ejercicios de esa app (en inglés o español, por músculo o material) y dice cuáles son solo de pago |
+| `save_strength_template`   | Crea una plantilla o reescribe entera una de TwinMe (ejercicios en orden, reps, kilos, tiempo, descanso)                   |
+| `delete_strength_template` | Borra una de TwinMe                                                                                                        |
 
+- **Cada app, su catálogo.** La IA busca los ejercicios en la app donde va a guardar la sesión y usa solo los que tu plan permite. Todas las herramientas llevan `app`: si tienes una sola, sobra; si tienes varias, te pregunta en cuál.
 - **Antes de guardar, te la enseña** y espera a que digas que sí. Las dos que escriben van marcadas como no de solo lectura, así que tu cliente (Claude Code, Desktop) también te pide permiso.
-- **Con el plan gratis de la app caben 2 plantillas.** Lo práctico es dejar una para TwinMe e ir reescribiéndola con la sesión que toque. Si las dos son tuyas, tu IA no borra ninguna: te pide que liberes una.
-- Una plantilla borrada no se recupera con el mismo id; si la vuelves a crear, es otra.
-- Es una integración no oficial: si la app cambia algo, estas herramientas pueden fallar sin tocar tus datos de TwinMe.
+- **En la de fuerza, con el plan gratis caben 2 plantillas** (`list_strength_templates` dice el límite de cada app). Lo práctico es dejar una para TwinMe e ir reescribiéndola con la sesión que toque. Si las dos son tuyas, tu IA no borra ninguna: te pide que liberes una.
+- En la de fuerza, una plantilla borrada no se recupera con el mismo id; si la vuelves a crear, es otra.
+- La de fuerza es una integración no oficial: si la app cambia algo, estas herramientas pueden fallar sin tocar tus datos de TwinMe.

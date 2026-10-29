@@ -1,6 +1,7 @@
 import {
   signInWithPassword,
   createMotraClient,
+  createMotraStrengthApp,
   MotraError,
   MotraErrorCode,
 } from '@digitaltwin/motra';
@@ -70,15 +71,15 @@ export function createMotraConnect({
 }
 
 /**
- * El cliente de Motra de un usuario con su conexión (para las plantillas del MCP), o null si no la
- * tiene conectada. Crearlo no llama a nadie: el login con el refresh token va con la primera
- * petición. Si Firebase rota el refresh token, se guarda el nuevo.
+ * Motra como app de fuerza de un usuario (para las plantillas del MCP), o null si no la tiene
+ * conectada. Crearla no llama a nadie: el login con el refresh token va con la primera petición.
+ * Si Firebase rota el refresh token, se guarda el nuevo.
  * @param {object} deps
  * @param {{ get: Function, save: Function }} deps.store
  * @param {string} [deps.apiKey]
  * @param {(options: object) => ReturnType<typeof createMotraClient>} [deps.createClient]
  */
-export function createMotraClients({
+export function createMotraStrength({
   store,
   apiKey,
   createClient = (options) => createMotraClient({ ...options, apiKey }),
@@ -94,7 +95,7 @@ export function createMotraClients({
           await store.save({ ...latest, credentials: { ...latest.credentials, refreshToken } });
         },
       });
-      return { client, accountId: connection.externalUserId };
+      return createMotraStrengthApp({ client, accountId: connection.externalUserId });
     },
   };
 }

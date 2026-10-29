@@ -190,7 +190,7 @@ POST /workout/{workoutID}      (workoutID generado por el cliente)
 
 Después la app pide `GET /workout/{workoutID}/save-summary`, que devuelve el entreno con el nombre que le pone el servidor.
 
-TwinMe marca las suyas con la etiqueta `TwinMe` (naranja) y solo reescribe o borra esas: herramientas `*_strength_template` del MCP (`packages/mcp/src/strength-tools.js`).
+TwinMe marca las suyas con la etiqueta `TwinMe` (naranja) y solo reescribe o borra esas. Lo hace el adaptador `packages/motra/src/strength-app.js`, que cumple el contrato común de `@digitaltwin/strength`; las herramientas `*_strength_template` del MCP (`packages/mcp/src/strength-tools.js`) solo hablan con ese contrato.
 
 Copia de las plantillas del usuario (JSON de `/details`) en `~/tools/motra-captures/templates-backup/`, fuera del repo.
 

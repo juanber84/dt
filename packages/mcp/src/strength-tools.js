@@ -1,10 +1,6 @@
 import { z } from 'zod';
-import { buildTemplate, MotraError, MotraErrorCode } from '@digitaltwin/motra';
+import { StrengthError, setText } from '@digitaltwin/strength';
 import { ToolError } from './errors.js';
-
-// El chip que llevan en la app las plantillas que crea TwinMe: solo esas se reescriben o borran
-export const OWN_TAG = Object.freeze({ name: 'TwinMe', color: 'orange' });
-const LB_TO_KG = 0.45359237;
 
 const templateId = z.string().trim().min(8).max(64).describe('id de list_strength_templates');
 const set = z
@@ -22,75 +18,62 @@ const set = z
   .refine((s) => s.reps != null || s.timeS != null, 'Cada serie lleva reps o timeS');
 
 /**
- * Plantillas de la app de fuerza (la conexión experimental): leer las del usuario, buscar en el
- * catálogo de ejercicios y crear, reescribir o borrar las de TwinMe. Las del usuario no se tocan:
- * lo que no lleva la etiqueta OWN_TAG es suyo. La etiqueta solo viene en el detalle, no en la
- * lista.
+ * Plantillas de las apps de fuerza conectadas (cada una, un adaptador de @digitaltwin/strength):
+ * leer las del usuario, buscar en el catálogo de cada app y crear, reescribir o borrar las de
+ * TwinMe. Aquí no se sabe nada del formato de cada app.
+ *
+ * Con una sola app, `app` sobra; con varias, la IA tiene que decir cuál (y preguntarle al usuario
+ * si no lo ha dicho). Los exerciseId son de cada app: se buscan en la misma donde se guarda.
  *
  * @param {object} deps
- * @param {ReturnType<typeof import('@digitaltwin/motra').createMotraClient>} deps.client
- * @param {string} deps.accountId  uid de la cuenta en la app (va en cada plantilla)
+ * @param {import('@digitaltwin/strength').StrengthApp[]} deps.apps  las que tiene conectadas
  */
-export function createStrengthTools({ client, accountId }) {
-  const call = async (fn) => {
+export function createStrengthTools({ apps }) {
+  if (!apps?.length) return [];
+  const names = apps.map((a) => `${a.id} (${a.label})`).join(', ');
+  const appParam = z
+    .enum(apps.map((a) => a.id))
+    .optional()
+    .describe(
+      apps.length === 1
+        ? `App de fuerza; solo tiene ${names}, así que puede omitirse`
+        : `App de fuerza: ${names}. Si el usuario no ha dicho en cuál, pregúntaselo`,
+    );
+
+  const pick = (id) => {
+    if (id) return apps.find((a) => a.id === id);
+    if (apps.length === 1) return apps[0];
+    throw new ToolError(`Tiene varias apps de fuerza (${names}): pregúntale en cuál y pasa app`);
+  };
+  const run = async (fn) => {
     try {
       return await fn();
     } catch (err) {
-      if (!(err instanceof MotraError)) throw err;
-      if (err.code === MotraErrorCode.SESSION_EXPIRED) {
-        throw new ToolError(
-          'La sesión de la app de fuerza ha caducado: el usuario tiene que reconectarla en Conexiones',
-        );
-      }
-      if (err.code === MotraErrorCode.NOT_FOUND) throw new ToolError('No existe esa plantilla');
-      if (err.code === MotraErrorCode.RATE_LIMITED) {
-        throw new ToolError('La app de fuerza pide esperar un poco antes de seguir');
-      }
-      throw new ToolError(`La app de fuerza no lo ha aceptado (${err.message})`);
+      if (err instanceof StrengthError) throw new ToolError(err.message);
+      throw err;
     }
   };
-  const isOurs = (template) => (template?.tags ?? []).some((tag) => tag?.name === OWN_TAG.name);
-
-  async function ours(id) {
-    const template = await call(() => client.templateDetails(id));
-    if (!template) throw new ToolError('No existe esa plantilla');
-    if (!isOurs(template)) {
-      throw new ToolError(
-        'Esa plantilla es del usuario: TwinMe solo reescribe o borra las que ha creado él. ' +
-          'Crea una nueva o pídele al usuario que libere una.',
-      );
-    }
-    return template;
-  }
 
   return [
     {
       name: 'list_strength_templates',
       title: 'Plantillas de fuerza',
       description:
-        'Las plantillas (rutinas) del usuario en su app de fuerza: nombre, ejercicios, series, ' +
-        'duración estimada y músculos. `ours` = la creó TwinMe (lleva su etiqueta; solo esas se ' +
-        'pueden reescribir o borrar). Con el plan gratis de la app caben 2 plantillas en total.',
-      inputSchema: {},
-      handler: async () => {
-        const items = await call(() => client.listTemplates());
-        // De quién es cada una solo se sabe por el detalle (son pocas: el plan gratis deja 2)
-        const details = await Promise.all(
-          items.map((t) => call(() => client.templateDetails(t.id)).catch(() => null)),
-        );
-        return {
-          templates: items.map((t, i) => ({
-            id: t.id,
-            name: t.name,
-            ...(t.caption && { caption: t.caption }),
-            exercises: t.numExercises,
-            sets: t.numSets,
-            minutes: t.estimatedDuration,
-            muscles: t.primaryMuscleGroups,
-            ours: isOurs(details[i]),
-          })),
-        };
-      },
+        'Las plantillas (rutinas) del usuario en sus apps de fuerza: nombre, ejercicios, series, ' +
+        'duración estimada y músculos. `ours` = la creó TwinMe (solo esas se pueden reescribir ' +
+        'o borrar). `maxTemplates` = cuántas caben en esa app con su plan. Sin `app`, de todas.',
+      inputSchema: { app: appParam },
+      handler: ({ app } = {}) =>
+        run(async () => ({
+          apps: await Promise.all(
+            (app ? [pick(app)] : apps).map(async (a) => ({
+              app: a.id,
+              label: a.label,
+              ...(a.maxTemplates && { maxTemplates: a.maxTemplates }),
+              templates: await a.listTemplates(),
+            })),
+          ),
+        })),
     },
 
     {
@@ -98,31 +81,41 @@ export function createStrengthTools({ client, accountId }) {
       title: 'Una plantilla de fuerza, serie a serie',
       description:
         'Una plantilla con sus ejercicios en orden y cada serie ("8x70" = 8 reps con 70 kg, ' +
-        '"12" = 12 reps sin peso, "45s" = 45 segundos) y el descanso medio. Los exerciseId sirven ' +
-        'para save_strength_template.',
-      inputSchema: { templateId },
-      handler: async ({ templateId: id }) => {
-        const t = await call(() => client.templateDetails(id));
-        if (!t) throw new ToolError('No existe esa plantilla');
-        return {
-          id: t.templateID,
-          name: t.name,
-          ...(t.caption && { caption: t.caption }),
-          ours: isOurs(t),
-          exercises: templateExercises(t),
-        };
-      },
+        '"12" = 12 reps sin peso, "45s" = 45 segundos) y el descanso medio. Sus exerciseId ' +
+        'sirven para save_strength_template en la misma app.',
+      inputSchema: { app: appParam, templateId },
+      handler: ({ app, templateId: id }) =>
+        run(async () => {
+          const target = pick(app);
+          const t = await target.getTemplate(id);
+          return {
+            app: target.id,
+            ...t,
+            exercises: t.exercises.map(({ sets, ...exercise }) => {
+              const rests = sets.map((s) => s.restS).filter((r) => r > 0);
+              return {
+                ...exercise,
+                sets: sets.map(setText),
+                ...(rests.length && {
+                  restS: Math.round(rests.reduce((a, b) => a + b, 0) / rests.length),
+                }),
+              };
+            }),
+          };
+        }),
     },
 
     {
       name: 'search_exercises',
-      title: 'Buscar ejercicios',
+      title: 'Buscar ejercicios en una app de fuerza',
       description:
-        'Busca en el catálogo de ejercicios de la app de fuerza (por nombre, en inglés o español: ' +
-        '"bench", "press banca", "sentadilla"). Devuelve el exerciseId que hay que usar en ' +
-        'save_strength_template. `proOnly` = solo con la suscripción de pago: evítalos. ' +
-        '`metric` = si se apunta por reps o por tiempo.',
+        'Busca en el catálogo de ejercicios de una app de fuerza (por nombre, en inglés o ' +
+        'español: "bench", "press banca", "sentadilla"; o por músculo y material). Cada app ' +
+        'tiene su catálogo y sus ids: busca en la misma app donde vas a guardar. `proOnly` = ' +
+        'solo con la suscripción de pago de esa app: no los uses. `metric` = si se apunta por ' +
+        'reps o por tiempo.',
       inputSchema: {
+        app: appParam,
         query: z.string().trim().max(60).default('').describe('Parte del nombre'),
         muscle: z
           .string()
@@ -137,38 +130,31 @@ export function createStrengthTools({ client, accountId }) {
           .trim()
           .max(30)
           .optional()
-          .describe('Material en inglés: barbell, dumbbell, machine, cables, kettlebell...'),
+          .describe('Material en inglés: barbell, dumbbells, machine, cables, kettlebell...'),
       },
-      handler: async ({ query = '', muscle, equipment }) => {
-        const items = await call(() =>
-          client.searchExercises({ query, muscleGroups: muscle, equipmentGroups: equipment }),
-        );
-        return {
-          exercises: items.map((x) => ({
-            exerciseId: x.backendKey,
-            name: x.presentationName,
-            muscles: x.primaryMuscleGroups,
-            equipment: x.equipmentGroups,
-            metric: x.tracking?.primaryMetric,
-            ...(x.isBodyWeight && { bodyweight: true }),
-            ...(x.isLocked && { proOnly: true }),
-          })),
-        };
-      },
+      handler: ({ app, query = '', muscle, equipment }) =>
+        run(async () => {
+          const target = pick(app);
+          return {
+            app: target.id,
+            exercises: await target.searchExercises({ query, muscle, equipment }),
+          };
+        }),
     },
 
     {
       name: 'save_strength_template',
       title: 'Crear o reescribir una plantilla de fuerza',
       description:
-        'Crea una plantilla en la app de fuerza del usuario o, con templateId, reescribe entera ' +
-        'una de TwinMe (las del usuario no se tocan). Aparece en su app lista para entrenar, con ' +
-        'la etiqueta TwinMe. ' +
-        'Usa exerciseId de search_exercises o get_strength_template; los ejercicios van en el ' +
-        'orden dado. Antes de llamarla, enséñale al usuario la sesión y que la confirme. Para ' +
-        'ir cambiando la sesión, mejor reescribir la misma plantilla que borrar y crear.',
+        'Crea una plantilla en una app de fuerza del usuario o, con templateId, reescribe entera ' +
+        'una de TwinMe (las del usuario no se tocan). Aparece en su app lista para entrenar, ' +
+        'marcada como de TwinMe. Los exerciseId tienen que ser de esa app (search_exercises o ' +
+        'get_strength_template) y no proOnly; los ejercicios van en el orden dado. Antes de ' +
+        'llamarla, enséñale al usuario la sesión y que la confirme. Para ir cambiando la ' +
+        'sesión, mejor reescribir la misma plantilla que borrar y crear.',
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       inputSchema: {
+        app: appParam,
         templateId: templateId.optional().describe('Para reescribir una de TwinMe; sin él, nueva'),
         name: z.string().trim().min(1).max(80).describe('Nombre que verá en la app ("Pierna A")'),
         notes: z.string().trim().max(200).optional().describe('Descripción corta'),
@@ -182,71 +168,31 @@ export function createStrengthTools({ client, accountId }) {
           .min(1)
           .max(15),
       },
-      handler: async ({ templateId: id, name, notes, exercises }) => {
-        if (id) await ours(id);
-        const template = buildTemplate({
-          userId: accountId,
-          name,
-          caption: notes,
-          ...(id && { templateId: id }),
-          exercises: exercises.map(({ exerciseId, sets }) => ({
-            exerciseTypeId: exerciseId,
-            sets,
-          })),
-        });
-        try {
-          await call(() => client.saveTemplate(template, { tags: [OWN_TAG] }));
-        } catch (err) {
-          if (id || !(err instanceof ToolError)) throw err;
-          throw new ToolError(
-            `${err.message}. Con el plan gratis de la app caben 2 plantillas: si ya hay 2, el ` +
-              'usuario tiene que liberar una (o reescribe una de TwinMe).',
+      handler: ({ app, templateId: id, name, notes, exercises }) =>
+        run(async () => {
+          const target = pick(app);
+          const saved = await target.saveTemplate(
+            { name, notes, exercises },
+            id ? { templateId: id } : {},
           );
-        }
-        return { id: template.templateID, name, created: !id };
-      },
+          return { app: target.id, name, ...saved };
+        }),
     },
 
     {
       name: 'delete_strength_template',
       title: 'Borrar una plantilla de TwinMe',
       description:
-        'Borra de la app de fuerza una plantilla creada por TwinMe (las del usuario no). Su id ' +
-        'no se puede volver a usar.',
+        'Borra de una app de fuerza una plantilla creada por TwinMe (las del usuario no). En ' +
+        'algunas apps su id no se puede volver a usar.',
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
-      inputSchema: { templateId },
-      handler: async ({ templateId: id }) => {
-        await ours(id);
-        await call(() => client.deleteTemplate(id));
-        return { deleted: id };
-      },
+      inputSchema: { app: appParam, templateId },
+      handler: ({ app, templateId: id }) =>
+        run(async () => {
+          const target = pick(app);
+          await target.deleteTemplate(id);
+          return { app: target.id, deleted: id };
+        }),
     },
   ];
-}
-
-/** Los ejercicios de una plantilla en orden, con sus series en corto. */
-function templateExercises(t) {
-  return (t.activities ?? []).flatMap((activity) =>
-    (activity.strengthExercise?.exercises ?? []).map(({ setIDs = [] }) => {
-      const sets = setIDs.map((sid) => t.setMap?.[sid]).filter(Boolean);
-      const typeId = sets[0]?.exerciseTypeID;
-      const info = t.exerciseDetails?.[typeId];
-      const rests = sets.map((s) => s.restTime).filter((r) => r > 0);
-      return {
-        exerciseId: typeId,
-        name: info?.name ?? typeId,
-        ...(info?.primaryMuscleGroups?.length && { muscles: info.primaryMuscleGroups }),
-        sets: sets.map(({ measurements: m = {} }) => {
-          const kg = m.weight?.unit === 'lb' ? m.weight.value * LB_TO_KG : (m.weight?.value ?? 0);
-          const weight = kg > 0 ? `x${Math.round(kg * 10) / 10}` : '';
-          if (m.reps != null) return `${m.reps}${weight}`;
-          if (m.time != null) return `${Math.round(m.time)}s${weight && ` ${weight}`}`;
-          return '?';
-        }),
-        ...(rests.length && {
-          restS: Math.round(rests.reduce((a, b) => a + b, 0) / rests.length),
-        }),
-      };
-    }),
-  );
 }

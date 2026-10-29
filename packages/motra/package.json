@@ -10,5 +10,8 @@
   "scripts": {
     "test": "vitest run"
   },
-  "description": "Cliente de Motra: login con Firebase (email/clave) y entrenos de fuerza con sets/reps/kg"
+  "description": "Cliente de Motra: login con Firebase (email/clave), entrenos de fuerza con sets/reps/kg y plantillas (como app de fuerza de @digitaltwin/strength)",
+  "dependencies": {
+    "@digitaltwin/strength": "^0.1.0"
+  }
 }

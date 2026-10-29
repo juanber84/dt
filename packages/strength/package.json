@@ -1,0 +1,14 @@
+{
+  "name": "@digitaltwin/strength",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Contrato común de las apps de fuerza (plantillas y catálogo de ejercicios): cada app es un adaptador",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

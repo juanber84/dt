@@ -53,8 +53,8 @@ const range = {
  * @param {() => Date} [deps.now]
  * @param {() => Promise<object>} [deps.getProfile]  Edad, sexo, altura... (sin ella no hay get_profile)
  * @param {() => Promise<object>} [deps.getEngine]  Estado del motor (sin él no hay get_engine)
- * @param {Parameters<typeof createStrengthTools>[0]} [deps.strength]  Cliente de la app de fuerza
- *   conectada: sin él no hay herramientas de plantillas
+ * @param {Parameters<typeof createStrengthTools>[0]} [deps.strength]  Las apps de fuerza
+ *   conectadas: sin ninguna no hay herramientas de plantillas
  */
 export function createTools({
   queries,

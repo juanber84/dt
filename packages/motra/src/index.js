@@ -368,3 +368,5 @@ export function flattenCalendar(calendar) {
   }
   return [...byId.values()].sort((a, b) => (a.timeStarted ?? 0) - (b.timeStarted ?? 0));
 }
+
+export { createMotraStrengthApp, MOTRA_APP_ID, OWN_TAG } from './strength-app.js';

@@ -153,8 +153,12 @@ describe('/api/mcp con la app de fuerza conectada', () => {
       method: 'tools/call',
       params: { name: 'list_strength_templates', arguments: {} },
     }).expect(200);
-    expect(JSON.parse(called.body.result.content[0].text).templates).toEqual([
-      expect.objectContaining({ id: 'T1', ours: false }),
+    expect(JSON.parse(called.body.result.content[0].text).apps).toEqual([
+      expect.objectContaining({
+        app: 'motra',
+        maxTemplates: 2,
+        templates: [expect.objectContaining({ id: 'T1', ours: false })],
+      }),
     ]);
 
     const admin = await tokenFor('admin@example.com');
