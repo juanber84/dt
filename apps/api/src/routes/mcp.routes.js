@@ -15,8 +15,10 @@ import { isActive } from '../services/users.js';
  * @param {string} deps.timeZone
  * @param {ReturnType<typeof import('../services/users.js').createUserStore>} [deps.users]
  *   Con ellos, el token de un usuario desactivado o caducado deja de valer.
+ * @param {ReturnType<typeof import('../services/motra-connect.js').createMotraClients>} [deps.motra]
+ *   Con él, quien tenga conectada la app de fuerza tiene también las herramientas de plantillas.
  */
-export function createMcpRouter({ tokens, queries, profiles, engine, timeZone, users }) {
+export function createMcpRouter({ tokens, queries, profiles, engine, timeZone, users, motra }) {
   const router = Router();
 
   router.use(async (req, res, next) => {
@@ -36,12 +38,14 @@ export function createMcpRouter({ tokens, queries, profiles, engine, timeZone, u
   });
 
   router.post('/', async (req, res) => {
+    const strength = await motra?.forUser(req.mcpUserId);
     const server = createMcpServer({
       queries,
       userId: req.mcpUserId,
       timeZone,
       ...(profiles && { getProfile: () => profiles.get(req.mcpUserId) }),
       ...(engine && { getEngine: () => engine.state(req.mcpUserId) }),
+      ...(strength && { strength }),
       logger: req.log,
     });
     const transport = new StreamableHTTPServerTransport({

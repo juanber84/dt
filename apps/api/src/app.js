@@ -40,7 +40,7 @@ import {
 } from '@digitaltwin/connections';
 import { createGoogleConnect } from './services/google-connect.js';
 import { createIntervalsConnect } from './services/intervals-connect.js';
-import { createMotraConnect } from './services/motra-connect.js';
+import { createMotraConnect, createMotraClients } from './services/motra-connect.js';
 import { createDbPersonalTokens, createMemoryPersonalTokens } from './services/personal-tokens.js';
 import { createMcpRouter } from './routes/mcp.routes.js';
 import { randomBytes } from 'node:crypto';
@@ -97,6 +97,7 @@ import { createClinical } from './services/clinical.js';
  *   Por defecto, en la BD si la hay; si no, en memoria.
  * @param {ReturnType<typeof createPasskeys>} [deps.passkeys]  Entrar con Face ID. Por defecto, con
  *   la BD si la hay; sin BD no se ofrece.
+ * @param {(options: object) => object} [deps.motraClient]  Cliente de Motra de mentira (tests)
  * @param {ReturnType<typeof createPush>} [deps.push]  Avisos push. Por defecto, con la BD y las
  *   claves VAPID; sin ellas no se ofrecen.
  * @param {ReturnType<typeof createEmail>} [deps.email]  Correos. Por defecto, con la BD y la clave
@@ -124,6 +125,7 @@ export function createApp({
   googleDescribeAccount,
   intervalsClient,
   motraSignIn,
+  motraClient,
   personalTokens,
   coachLlm,
   coachStore,
@@ -468,6 +470,14 @@ export function createApp({
         profiles,
         engine,
         timeZone: config.TIMEZONE,
+        // Las plantillas de fuerza solo necesitan la conexión y la API key (no la cola)
+        ...((config.MOTRA_FIREBASE_API_KEY || motraClient) && {
+          motra: createMotraClients({
+            store: connections,
+            apiKey: config.MOTRA_FIREBASE_API_KEY,
+            ...(motraClient && { createClient: motraClient }),
+          }),
+        }),
       }),
     );
   }

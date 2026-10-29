@@ -2,6 +2,7 @@
 
 ## 29 de octubre de 2026
 
+- **Tu IA te prepara la sesión de fuerza**: con Fuerza (experimental) conectada, el MCP tiene cinco herramientas nuevas para ver tus plantillas, buscar ejercicios y crear, reescribir o borrar plantillas en tu app de fuerza, que salen listas para entrenar con el chip **TwinMe**. Las tuyas no las toca. Con el plan gratis caben 2: deja una para TwinMe y que la vaya reescribiendo. Ver [Plantillas de fuerza](/ia/mcp#plantillas-de-fuerza).
 - **Borrar comidas**: una comida del bot que se apuntó mal (o dos veces) se borra desde su detalle en Hoy, con el mismo botón que el agua o los síntomas. Si el mensaje tenía varios platos, se borra solo el que tocas; con el último, la comida entera. Se quita de tu día y de tus totales. Ver [Hoy](/guia/hoy).
 
 ## 28 de octubre de 2026

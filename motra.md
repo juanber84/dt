@@ -133,6 +133,67 @@ Respuesta `data.workout` con claves:
 - `POST /user/health-data/flush`
 - Imágenes de ejercicios: `GET https://cdn.motra.com/exercise-assets/{hash}/thumbnailOriginal.jpg`
 
+### Plantillas y escritura (captura del 2026-10-29)
+
+Segunda sesión de sniffing: crear, editar y borrar una plantilla y registrar un entreno. Ninguna escritura lleva cabecera de App Check, solo el Bearer. **Verificado desde el PC** (solo Bearer, otra IP): `DELETE /template`, `PUT /template` (restaurada una plantilla idéntica a la copia) y `DELETE /workout` dan `200`.
+
+| Acción                    | Llamada                                                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Listar mis plantillas     | `GET /user/template/my-templates?size=10&sortBy=matchScore` (resumen: id, nombre, ejercicios, nº series, duración, músculos, `publicHash`)                                                       |
+| Listar por recuperación   | `GET /user/template/basic-details/v3?size=20&page=1&sortBy=recoveryScore&sortDirection=desc`                                                                                                     |
+| Leer una                  | `GET /template/{templateID}/details` → `data.template`                                                                                                                                           |
+| **Crear o editar**        | `PUT /template/{templateID}` (upsert, sobrescribe entera)                                                                                                                                        |
+| **Borrar**                | `DELETE /template/{templateID}` (sin cuerpo) → `{"success":true}`. El id queda quemado: un `PUT` posterior con ese id da `404 Template is deleted`                                               |
+| Borrar un entreno hecho   | `DELETE /workout/{workoutID}` → `{"success":true}` (no capturado, probado desde el PC)                                                                                                           |
+| Etiquetas                 | `GET /user/template/tags` (las del usuario). En el `PUT` van al lado de `template` (`"tags": [{"name": "TwinMe", "color": "orange"}]`) y vuelven en `/details` → `template.tags`, no en la lista |
+| Enlace público            | `https://motra.com/share/template/{publicHash}` (lo que la app llama "exportar")                                                                                                                 |
+| Buscar ejercicios         | `GET /in-workout-search/exercises?page=1&size=40&query=&muscleGroups=&equipmentGroups=&trainingStyle=&type=custom\|autoDetected&onlyFavourites=true&currentExerciseIDs=`                         |
+| Historial de un ejercicio | `GET /exercise/{exerciseTypeID}/history`, `/pr-breakdown`, `/summary`                                                                                                                            |
+| Últimos pesos y reps      | `GET /user/latest-weight-and-reps`                                                                                                                                                               |
+
+**Crear/editar plantilla.** El `templateID` y los `setID` los genera el cliente (UUID en mayúsculas): un `PUT` con un id nuevo crea la plantilla y con uno existente la reemplaza.
+
+```json
+PUT /template/CC2404CF-BDEE-44B5-BA20-465EA151EE50
+{
+  "template": {
+    "templateID": "CC2404CF-...", "userID": "<uid>",
+    "name": "Jueves Noche Plantilla de entrenamiento", "caption": "Esta es una prueba",
+    "accessLevel": "private",
+    "setMap": {
+      "FBAE4458-...": { "setID": "FBAE4458-...", "exerciseTypeID": "bodyweightSquat", "phase": "main",
+                        "restTime": 129, "measurements": { "reps": 12, "weight": { "value": 0, "unit": "kg" } } }
+    },
+    "activities": [
+      { "segment": "main", "strengthExercise": { "exercises": [ { "setIDs": ["FBAE4458-...", "..."] } ] } }
+    ],
+    "cardioExerciseMap": {}
+  },
+  "tags": []
+}
+→ {"success": true}
+```
+
+- Un elemento de `activities` por ejercicio, y el orden de `setIDs` es el orden de las series. `restTime` va en segundos. `measurements.time` es opcional.
+- Es el mismo formato de `setMap`/`activities` que un entreno hecho.
+- Plan gratis: **2 plantillas como máximo**. Para generar sesiones basta un `PUT` sobre una plantilla fija nuestra, sin borrar y crear (si se borra, hay que crearla con un id nuevo).
+
+**Registrar un entreno hecho** (la app al terminar):
+
+```
+POST /workout/{workoutID}      (workoutID generado por el cliente)
+{ "metadata": {"timezone": "Europe/Madrid"},
+  "workout": { workoutID, userID, timeStarted, timeEnded, statistics:{calories}, setMap, activities, cardioExerciseMap },
+  "source": "phoneLiveWorkout" }
+→ {"success": true}
+```
+
+Después la app pide `GET /workout/{workoutID}/save-summary`, que devuelve el entreno con el nombre que le pone el servidor.
+
+TwinMe marca las suyas con la etiqueta `TwinMe` (naranja) y solo reescribe o borra esas: herramientas `*_strength_template` del MCP (`packages/mcp/src/strength-tools.js`).
+
+Copia de las plantillas del usuario (JSON de `/details`) en `~/tools/motra-captures/templates-backup/`, fuera del repo.
+
 ### Servicios de terceros que usa la app (ignorables para el ingestor)
 
 RevenueCat (suscripciones), Intercom (soporte), Branch (deeplinks), Mixpanel/Statsig (analítica), FCM (push).
@@ -163,5 +224,5 @@ Mismo patrón que intervals.icu:
 - mitmproxy 11 en venv: `~/tools/mitmproxy-venv/`
 - Arranque: `~/tools/motra-captures/start-sniff.sh` (proxy `0.0.0.0:8888`, web UI `127.0.0.1:9090`).
 - iPhone: WiFi → proxy manual `IP_DEL_PC:8888`; CA desde `http://mitm.it` (o el `.pem` por email) + **confiar** en Ajustes → General → Información → Ajustes de confianza del certificado.
-- Capturas guardadas en `~/tools/motra-captures/motra.flows`.
+- Capturas guardadas en `~/tools/motra-captures/motra.flows` (lecturas, 10-22) y `motra-write.flows` (plantillas y escritura, 10-29).
 - **Limpieza tras capturar**: parar proxy, quitar proxy del WiFi, **borrar el certificado** del iPhone.

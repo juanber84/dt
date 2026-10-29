@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Servidor MCP sobre el timeline del usuario: herramientas para que una IA lea sus datos",
+  "description": "Servidor MCP sobre el timeline del usuario: herramientas para que una IA lea sus datos (y prepare plantillas de fuerza)",
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js"
@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@digitaltwin/motra": "^0.1.0",
     "@digitaltwin/timeline": "^0.1.0",
     "@modelcontextprotocol/sdk": "1.32.0",
     "zod": "^4.6.5"

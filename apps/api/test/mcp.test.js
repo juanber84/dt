@@ -1,5 +1,6 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
+import { createMemoryConnectionStore } from '@digitaltwin/connections';
 import { createMemoryPersonalTokens } from '../src/services/personal-tokens.js';
 import { buildApp } from './helpers.js';
 import { loginCookie, testUsers } from './auth-helpers.js';
@@ -106,5 +107,60 @@ describe('tokens personales y /api/mcp', () => {
     await request(app).delete(`/api/v1/tokens/${id}`).set('Cookie', cookie).expect(204);
     await request(app).delete(`/api/v1/tokens/${id}`).set('Cookie', cookie).expect(404);
     await rpc(app, token, { method: 'tools/list' }).expect(401);
+  });
+});
+
+describe('/api/mcp con la app de fuerza conectada', () => {
+  it('quien la tiene conectada ve las plantillas; quien no, no', async () => {
+    const connections = createMemoryConnectionStore();
+    await connections.save({
+      userId: 'ana',
+      provider: 'motra',
+      status: 'connected',
+      externalUserId: 'uid-ana',
+      credentials: { refreshToken: 'ref-ana' },
+    });
+    const motraClient = vi.fn(() => ({
+      listTemplates: async () => [{ id: 'T1', name: 'Pierna bici' }],
+      templateDetails: async () => ({ templateID: 'T1', tags: [] }),
+    }));
+    const app = buildApp(
+      {},
+      {
+        users: await testUsers(),
+        personalTokens: createMemoryPersonalTokens(),
+        pipeline,
+        connections,
+        motraClient,
+      },
+    );
+    const tokenFor = async (email) =>
+      (
+        await request(app)
+          .post('/api/v1/tokens')
+          .set('Cookie', await loginCookie(app, email))
+          .send({ name: 'Claude' })
+      ).body.token;
+
+    const ana = await tokenFor('ana@example.com');
+    const names = (await rpc(app, ana, { method: 'tools/list' })).body.result.tools.map(
+      (t) => t.name,
+    );
+    expect(names).toEqual(expect.arrayContaining(['save_strength_template', 'search_exercises']));
+    expect(motraClient).toHaveBeenCalledWith(expect.objectContaining({ refreshToken: 'ref-ana' }));
+
+    const called = await rpc(app, ana, {
+      method: 'tools/call',
+      params: { name: 'list_strength_templates', arguments: {} },
+    }).expect(200);
+    expect(JSON.parse(called.body.result.content[0].text).templates).toEqual([
+      expect.objectContaining({ id: 'T1', ours: false }),
+    ]);
+
+    const admin = await tokenFor('admin@example.com');
+    const adminNames = (await rpc(app, admin, { method: 'tools/list' })).body.result.tools.map(
+      (t) => t.name,
+    );
+    expect(adminNames).not.toContain('save_strength_template');
   });
 });

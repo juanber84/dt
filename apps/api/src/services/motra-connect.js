@@ -1,4 +1,9 @@
-import { signInWithPassword, MotraError, MotraErrorCode } from '@digitaltwin/motra';
+import {
+  signInWithPassword,
+  createMotraClient,
+  MotraError,
+  MotraErrorCode,
+} from '@digitaltwin/motra';
 import { publicConnection } from '@digitaltwin/connections';
 import { HttpError } from '../utils/http-error.js';
 
@@ -60,6 +65,36 @@ export function createMotraConnect({
         }
       }
       return publicConnection(connection);
+    },
+  };
+}
+
+/**
+ * El cliente de Motra de un usuario con su conexión (para las plantillas del MCP), o null si no la
+ * tiene conectada. Crearlo no llama a nadie: el login con el refresh token va con la primera
+ * petición. Si Firebase rota el refresh token, se guarda el nuevo.
+ * @param {object} deps
+ * @param {{ get: Function, save: Function }} deps.store
+ * @param {string} [deps.apiKey]
+ * @param {(options: object) => ReturnType<typeof createMotraClient>} [deps.createClient]
+ */
+export function createMotraClients({
+  store,
+  apiKey,
+  createClient = (options) => createMotraClient({ ...options, apiKey }),
+}) {
+  return {
+    async forUser(userId) {
+      const connection = await store.get(userId, MOTRA_PROVIDER);
+      if (connection?.status !== 'connected' || !connection.credentials?.refreshToken) return null;
+      const client = createClient({
+        refreshToken: connection.credentials.refreshToken,
+        onRefreshToken: async (refreshToken) => {
+          const latest = (await store.get(userId, MOTRA_PROVIDER)) ?? connection;
+          await store.save({ ...latest, credentials: { ...latest.credentials, refreshToken } });
+        },
+      });
+      return { client, accountId: connection.externalUserId };
     },
   };
 }

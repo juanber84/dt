@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { localMidnight } from '@digitaltwin/timeline';
+import { ToolError } from './errors.js';
+import { createStrengthTools } from './strength-tools.js';
+
+export { ToolError };
 
 const DAY_MS = 24 * 3600 * 1000;
 // Lo que guarda el timeline (weigh-in = pesaje; los clínicos, de los informes confirmados)
@@ -49,6 +53,8 @@ const range = {
  * @param {() => Date} [deps.now]
  * @param {() => Promise<object>} [deps.getProfile]  Edad, sexo, altura... (sin ella no hay get_profile)
  * @param {() => Promise<object>} [deps.getEngine]  Estado del motor (sin él no hay get_engine)
+ * @param {Parameters<typeof createStrengthTools>[0]} [deps.strength]  Cliente de la app de fuerza
+ *   conectada: sin él no hay herramientas de plantillas
  */
 export function createTools({
   queries,
@@ -57,6 +63,7 @@ export function createTools({
   now = () => new Date(),
   getProfile,
   getEngine,
+  strength,
 }) {
   const today = () => localDate(now(), timeZone);
   /** [from 00:00, día siguiente a `to` 00:00) en la zona del usuario */
@@ -345,12 +352,8 @@ export function createTools({
         };
       },
     },
+    ...(strength ? createStrengthTools(strength) : []),
   ];
-}
-
-/** Error que se le cuenta a la IA (argumentos fuera de rango...), no un fallo del servidor. */
-export class ToolError extends Error {
-  name = 'ToolError';
 }
 
 /** Una serie en corto: "8x70" (reps x kg), "12" (sin peso), "45s" o "45s x10" (por tiempo). */
