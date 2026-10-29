@@ -131,6 +131,12 @@ combustible por día, objetivos de composición, sueño) tiene su diseño en [PL
 - [x] **Tope de gasto de LLM por usuario** (27/10): diario; uno mensual, si hace falta.
 - [ ] **Privacidad con DeepSeek.** Lo que se habla con el coach y los datos de salud van tal cual
       (los PDFs sin datos personales). Con más usuarios: avisar y pedir consentimiento.
+- [ ] **Borrar conversaciones del coach en bloque** (idea del usuario, 29/10). Hoy solo se borran de
+      una en una. Un modo selección en la lista (casillas, "seleccionar todas") y borrar las
+      marcadas de un golpe, con confirmación y cuántas son. En la API, un `DELETE` con varios ids
+      (o "todas"), siempre solo las del usuario.
+- [ ] **Coach: probar la tarjeta de plantillas en el móvil** (29/10, 99eabda): que se vea bien y que
+      Guardar / Reescribir funcione de punta a punta en prod.
 
 ## App en el móvil (PWA)
 
