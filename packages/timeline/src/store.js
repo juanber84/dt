@@ -186,6 +186,16 @@ export function createTimelineStore({ db, catalog }) {
       return row ? Number(row.id) : null;
     },
 
+    /** El registro crudo vivo (sin borrar) de un origen, o null. */
+    async findRaw({ userId, provider, kind, externalId }) {
+      const [row] = await db`
+        select * from raw_records
+        where user_id = ${userId} and provider = ${provider} and kind = ${kind}
+          and external_id = ${String(externalId)} and deleted_at is null
+      `;
+      return row ?? null;
+    },
+
     async countRaw(userId, provider, kind) {
       const [row] = await db`
         select count(*)::int as n from raw_records

@@ -11,7 +11,7 @@ import { fmtClock, fmtDec, fmtDuration, fmtInt } from '../../lib/format.js';
 import { CATEGORY_COLOR, STAGE_COLOR, STAGE_LABEL } from '../charts/colors.js';
 import { sourceName } from '../../data/sources.js';
 import { useConfirm } from '../../composables/useConfirm.js';
-import { deleteEntry } from '../../services/twin.js';
+import { deleteEntry, deleteMealDish } from '../../services/twin.js';
 
 const props = defineProps({
   event: { type: Object, default: null },
@@ -64,7 +64,8 @@ function deleted() {
   emit('deleted');
 }
 
-// Lo apuntado a mano (Registrar o el bot) se puede borrar desde aquí
+// Lo apuntado a mano (Registrar o el bot, comidas incluidas) se puede borrar desde aquí
+const removable = computed(() => Boolean(props.event?.entryId || props.event?.dishId));
 const removing = ref(false);
 async function removeEntry() {
   const ok = await ask({
@@ -76,7 +77,9 @@ async function removeEntry() {
   if (!ok) return;
   removing.value = true;
   try {
-    await deleteEntry(props.event.entryId);
+    await (props.event.dishId
+      ? deleteMealDish(props.event.dishId)
+      : deleteEntry(props.event.entryId));
     emit('deleted');
   } finally {
     removing.value = false;
@@ -253,7 +256,7 @@ const fmtStamp = (iso) =>
       </section>
 
       <button
-        v-if="event.entryId"
+        v-if="removable"
         class="btn btn-danger remove"
         :disabled="removing"
         @click="removeEntry"

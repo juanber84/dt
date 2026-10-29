@@ -193,6 +193,12 @@ export async function deleteEntry(id) {
   clearTimelineCache();
 }
 
+/** Un plato de una comida del bot (`dishId`: el externalId de su episodio). */
+export async function deleteMealDish(dishId) {
+  await apiFetch(`/api/v1/entries/meals/${encodeURIComponent(dishId)}`, { method: 'DELETE' });
+  clearTimelineCache();
+}
+
 /** Medicamentos ya apuntados, para sugerirlos en Registrar. */
 export const fetchMedications = () => apiFetch('/api/v1/entries/medications').then((r) => r.items);
 

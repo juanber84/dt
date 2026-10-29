@@ -1,5 +1,9 @@
 # Novedades
 
+## 29 de octubre de 2026
+
+- **Borrar comidas**: una comida del bot que se apuntó mal (o dos veces) se borra desde su detalle en Hoy, con el mismo botón que el agua o los síntomas. Si el mensaje tenía varios platos, se borra solo el que tocas; con el último, la comida entera. Se quita de tu día y de tus totales. Ver [Hoy](/guia/hoy).
+
 ## 28 de octubre de 2026
 
 - **Ultrahuman en lugar de Oura** en Conexiones (próximamente): es un anillo sin suscripción, así que ni tú ni tus usuarios pagáis cuota por tener los datos. Su API oficial es para partners, hay que pedir acceso.

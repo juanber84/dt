@@ -66,6 +66,7 @@ export const entrySchema = z.discriminatedUnion('kind', [
 
 const PROVIDER = 'digitaltwin';
 const RAW_KIND = 'entry';
+const MEAL_KIND = 'meal';
 
 /**
  * Registros sueltos (agua, café, peso, síntomas, notas): de Registrar en la app o del bot. Entran
@@ -135,6 +136,35 @@ export function createEntries({ pipeline, queue, timeZone = 'Europe/Madrid' }) {
       if (!rawId) throw HttpError.notFound('No existe ese registro');
       await pipeline.normalize(rawId);
       // Por si había uno en cola con el registro antiguo
+      await queue.send(JOBS.NORMALIZE, { rawId }, { priority: PRIORITY.LIVE });
+    },
+
+    /**
+     * Borra un plato de una comida del bot (`<id de la comida>:<nº de plato>`, el externalId de
+     * su episodio). Si era el último, se borra la comida entera.
+     */
+    async removeDish(userId, dishId) {
+      const [, mealId, n] = /^(.+):(\d+)$/.exec(dishId) ?? [];
+      const key = { userId, provider: PROVIDER, kind: MEAL_KIND, externalId: mealId };
+      const raw = mealId && (await pipeline.store.findRaw(key));
+      const index = Number(n);
+      if (!raw || index >= raw.payload.dishes.length) {
+        throw HttpError.notFound('No existe ese plato');
+      }
+      const dishes = raw.payload.dishes.filter((_, i) => i !== index);
+      let rawId = Number(raw.id);
+      if (dishes.length) {
+        const times = dishes.map((d) => Date.parse(d.eatenAt));
+        ({ id: rawId } = await pipeline.store.saveRaw({
+          ...key,
+          periodStart: Math.min(...times),
+          periodEnd: Math.max(...times) + 1,
+          payload: { ...raw.payload, dishes },
+        }));
+      } else {
+        await pipeline.store.markRawDeleted(key);
+      }
+      await pipeline.normalize(rawId);
       await queue.send(JOBS.NORMALIZE, { rawId }, { priority: PRIORITY.LIVE });
     },
   };

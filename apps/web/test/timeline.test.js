@@ -79,6 +79,11 @@ describe('timeline real', () => {
     });
   });
 
+  it('comida del bot → se puede borrar (dishId); la de otra fuente, no', () => {
+    expect(mealEvent({ ...meal, externalId: 'e1:0' }).dishId).toBe('e1:0');
+    expect(mealEvent({ ...meal, externalId: 'g1', provider: 'google-health' }).dishId).toBeNull();
+  });
+
   it('comida con tipo → "Cena · …" en el subtítulo; sin tipo, como antes', () => {
     const dinner = mealEvent({ ...meal, summary: { ...meal.summary, mealType: 'dinner' } });
     expect(dinner.subtitle).toMatch(/^Cena · 343 kcal/);

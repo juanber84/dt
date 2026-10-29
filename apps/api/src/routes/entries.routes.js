@@ -17,6 +17,12 @@ export function createEntriesRouter({ entries }) {
     res.json({ items: await entries.medications(req.user.id) });
   });
 
+  // Un plato de una comida del bot (si la IA se equivocó o se apuntó dos veces)
+  router.delete('/meals/:dishId', async (req, res) => {
+    await entries.removeDish(req.user.id, req.params.dishId);
+    res.status(204).end();
+  });
+
   router.delete('/:id', async (req, res) => {
     await entries.remove(req.user.id, req.params.id);
     res.status(204).end();

@@ -182,6 +182,44 @@ describe.skipIf(!url)('API con el pipeline (BD + cola)', () => {
     expect(inbox).toMatchObject({ kind: 'data', status: 'routed', user_id: me.id });
   });
 
+  it('comida del bot: se borra plato a plato y, con el último, la comida entera', async () => {
+    const id = '7a1d1a51-6b0e-4a43-9a3b-1b6bb1e7a0d2';
+    const [toast] = meal.dishes;
+    const coffee = { ...toast, name: 'Café', eatenAt: '2026-10-16T08:00:00.000Z' };
+    await webhook({
+      type: 'meal.logged',
+      telegramUserId: TELEGRAM_ID,
+      data: {
+        ...meal,
+        id,
+        dishes: [{ ...toast, eatenAt: '2026-10-16T07:00:00.000Z' }, coffee],
+      },
+    }).expect(202);
+    await queue.drain();
+    const meals = async () =>
+      (
+        await request(app)
+          .get('/api/v1/timeline/episodes')
+          .query({ from: '2026-10-16T00:00:00Z', to: '2026-10-17T00:00:00Z', kinds: 'meal' })
+          .set('Cookie', cookie)
+      ).body.items;
+    const del = (dishId) =>
+      request(app)
+        .delete(`/api/v1/entries/meals/${encodeURIComponent(dishId)}`)
+        .set('Cookie', cookie);
+    expect((await meals()).map((e) => e.externalId)).toEqual([`${id}:0`, `${id}:1`]);
+
+    await del(`${id}:0`).expect(204);
+    // Queda el café, renumerado como plato 0
+    expect(await meals()).toMatchObject([{ title: 'Café', externalId: `${id}:0` }]);
+    await del(`${id}:3`).expect(404);
+    await del('no-es-un-plato').expect(404);
+
+    await del(`${id}:0`).expect(204);
+    expect(await meals()).toEqual([]);
+    await del(`${id}:0`).expect(404);
+  });
+
   it('al analizar, el bot le pasa al LLM lo ya apuntado ese día (para el tipo de comida)', async () => {
     // Un día que no usa ningún otro test: una tostada sin tipo (como las antiguas) y una cena
     const day = {

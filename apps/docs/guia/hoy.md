@@ -14,7 +14,7 @@ VFC, FC en reposo, SpO2, frecuencia respiratoria, temperatura de la piel y VO2 m
 
 ## Tu día
 
-Una franja de 24 h con la frecuencia cardiaca, el sueño, la actividad, la nutrición y lo demás. Debajo, el **timeline** con cada evento (comidas, entrenos, pesajes, agua, síntomas, medicación, suplementos, informes). Las comidas dicen qué comida fueron (_Cena · 520 kcal · 32 g proteína_). Al tocar uno se abre su detalle con todas las fuentes que lo registraron; los que apuntaste tú se pueden borrar desde ahí.
+Una franja de 24 h con la frecuencia cardiaca, el sueño, la actividad, la nutrición y lo demás. Debajo, el **timeline** con cada evento (comidas, entrenos, pesajes, agua, síntomas, medicación, suplementos, informes). Las comidas dicen qué comida fueron (_Cena · 520 kcal · 32 g proteína_). Al tocar uno se abre su detalle con todas las fuentes que lo registraron; los que apuntaste tú se pueden borrar desde ahí, comidas del bot incluidas (cada plato por separado: si borras el último, se va la comida entera).
 
 ## Actividad
 

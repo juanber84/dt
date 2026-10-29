@@ -32,16 +32,17 @@ Todas bajo `/api/v1`. 🔒 = con sesión · 👑 = solo administradores · 🤖 
 
 ## Datos 🔒
 
-|          |                          |                                                                                                                    |
-| -------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                                                                                  |
-| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`                                                                  |
-| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`, `details` (`false`: solo el resumen, para rangos largos)                       |
-| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                                                                        |
-| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos, historial y el aviso de la creatina (`creatine`)                 |
-| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota, medicación o toma de un suplemento (`supplement`, con `supplementId`) |
-| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                                                                            |
-| `DELETE` | `/entries/:id`           | Borrar un registro                                                                                                 |
+|          |                          |                                                                                                                                    |
+| -------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/timeline/metrics`      | Métricas con datos y desde cuándo                                                                                                  |
+| `GET`    | `/timeline/series`       | `from`, `to`, `metrics`, `bucket=day\|hour`, `tz`                                                                                  |
+| `GET`    | `/timeline/episodes`     | `from`, `to`, `kinds`, `all`, `tz`, `details` (`false`: solo el resumen, para rangos largos)                                       |
+| `GET`    | `/timeline/observations` | Datos crudos de una métrica                                                                                                        |
+| `GET`    | `/engine`                | El [motor](/motor/): peso real, gasto, objetivos, historial y el aviso de la creatina (`creatine`)                                 |
+| `POST`   | `/entries`               | Registrar agua, bebida, peso, síntoma, nota, medicación o toma de un suplemento (`supplement`, con `supplementId`)                 |
+| `GET`    | `/entries/medications`   | Medicamentos ya apuntados (sugerencias)                                                                                            |
+| `DELETE` | `/entries/:id`           | Borrar un registro                                                                                                                 |
+| `DELETE` | `/entries/meals/:dishId` | Borrar un plato de una comida del bot (`dishId` = el `externalId` de su episodio, `<comida>:<n>`); con el último, la comida entera |
 
 ## Clínica 🔒
 

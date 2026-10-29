@@ -27,6 +27,8 @@ export function mealEvent(episode) {
       .filter(Boolean)
       .join(' · '),
     mealType: s.mealType ?? null,
+    // Las del bot (las nuestras) se pueden borrar plato a plato desde el lateral
+    dishId: episode.provider === 'digitaltwin' ? (episode.externalId ?? null) : null,
     start: minutesOfDay(new Date(episode.start)),
     metrics: [
       { label: 'Calorías', value: macros.kcal, unit: 'kcal' },
