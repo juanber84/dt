@@ -76,7 +76,8 @@ export function createStrengthTools({ apps, writes = 'direct' }) {
       title: 'Plantillas de fuerza',
       description:
         'Las plantillas (rutinas) del usuario en sus apps de fuerza: nombre, ejercicios, series, ' +
-        'duración estimada y músculos. `ours` = la creó TwinMe (solo esas se pueden reescribir ' +
+        'duración estimada y músculos. `ours` = la preparó TwinMe, la app (no el usuario a mano): ' +
+        'solo esas se pueden reescribir ' +
         'o borrar). `maxTemplates` = cuántas caben en esa app con su plan. Sin `app`, de todas.',
       inputSchema: { app: appParam },
       handler: ({ app } = {}) =>
