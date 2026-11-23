@@ -134,9 +134,10 @@ export function createEntries({ pipeline, queue, timeZone = 'Europe/Madrid' }) {
         externalId: id,
       });
       if (!rawId) throw HttpError.notFound('No existe ese registro');
-      await pipeline.normalize(rawId);
-      // Por si había uno en cola con el registro antiguo
+      // Primero el trabajo (con reintentos, y por si había uno en cola con el registro antiguo):
+      // si la normalización en línea falla, el registro ya está marcado y no se podría reintentar
       await queue.send(JOBS.NORMALIZE, { rawId }, { priority: PRIORITY.LIVE });
+      await pipeline.normalize(rawId);
     },
 
     /**
@@ -164,8 +165,10 @@ export function createEntries({ pipeline, queue, timeZone = 'Europe/Madrid' }) {
       } else {
         await pipeline.store.markRawDeleted(key);
       }
-      await pipeline.normalize(rawId);
+      // Primero el trabajo (con reintentos): si la normalización en línea falla, el plato ya no
+      // está en el crudo y el botón daría 404 para siempre con la comida aún a la vista
       await queue.send(JOBS.NORMALIZE, { rawId }, { priority: PRIORITY.LIVE });
+      await pipeline.normalize(rawId);
     },
   };
 }

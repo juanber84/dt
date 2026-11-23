@@ -75,6 +75,9 @@ export function createTimelineStore({ db, catalog }) {
         ([mid, time, sid]) => !keep.has(`${mid}|${new Date(time).getTime()}|${sid}`),
       );
       if (gone.length) {
+        // El rango explícito deja a Timescale descartar trozos: sin él, el join con unnest
+        // descomprime todos los trozos comprimidos de esas métricas (y supera su límite)
+        const times = gone.map((k) => new Date(k[1]).getTime());
         await tx`
             delete from observations o
             using unnest(
@@ -83,6 +86,8 @@ export function createTimelineStore({ db, catalog }) {
               ${gone.map((k) => k[2])}::int[]
             ) as k(m, t, s)
             where o.user_id = ${userId} and o.metric_id = k.m and o.time = k.t and o.stream_id = k.s
+              and o.time >= ${new Date(Math.min(...times))}
+              and o.time <= ${new Date(Math.max(...times))}
           `;
       }
     }
@@ -222,9 +227,12 @@ export function createTimelineStore({ db, catalog }) {
         metricIds.set(code, await catalog.id(code, newMetrics[code]));
       }
 
-      return db.begin(async (tx) =>
-        write(tx, raw, { mode, range, observations, episodes, metrics, metricIds }),
-      );
+      return db.begin(async (tx) => {
+        // Reescribir datos viejos (backfills, borrados) descomprime trozos: sin tope, o un
+        // borrado se queda a medias (pasó el 23-11-2026 con 108.942 filas > 100.000)
+        await tx`set local timescaledb.max_tuples_decompressed_per_dml_transaction = 0`;
+        return write(tx, raw, { mode, range, observations, episodes, metrics, metricIds });
+      });
     },
 
     // Buzón de entrada

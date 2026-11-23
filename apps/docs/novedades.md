@@ -1,5 +1,9 @@
 # Novedades
 
+## 23 de noviembre de 2026
+
+- **Borrar una comida ya no se queda a medias**: al borrar un plato, la base de datos descomprimía de golpe todos los datos antiguos de esa métrica para buscar los suyos, pasaba de su límite (100.000 filas) y el borrado se cortaba. El plato desaparecía del registro pero seguía en tu día, y el botón respondía "No existe ese plato". Ahora el borrado solo mira las fechas del plato, no tiene ese tope, y si algo falla se reintenta solo.
+
 ## 29 de octubre de 2026
 
 - **El coach también ve y prepara tus plantillas de fuerza**: ya no solo lo que has hecho, también lo que tienes planificado en tu app de fuerza. Te puede proponer una sesión en una tarjeta con sus ejercicios, series y kilos, y la guardas en tu app con el botón **Guardar en la app**; él no guarda nada sin ti. Por dentro, el coach y el MCP montan sus herramientas en un solo sitio, así que lo que gane uno lo gana el otro. Ver [Coach](/guia/coach).
